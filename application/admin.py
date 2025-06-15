@@ -943,7 +943,13 @@ def create_annotation_project():
         project_desc = request.form.get("project_desc")
         max_questions_per_user = int(request.form.get("max_questions_per_user", 100))
         answers_per_task = int(request.form.get("answers_per_task", 1)) # Default to 1 for single completion
-        questions_per_image = int(request.form.get("questions_per_image", 5))
+        total_questions = int(request.form.get("total_questions", 0))
+        assigned_group_id = request.form.get("assigned_group_id")
+
+        # Validate total_questions
+        if total_questions <= 0:
+            flash("Please specify a valid number of questions!", "error")
+            return redirect(request.url)
 
         # Create the annotation project
         project = Project(
@@ -953,21 +959,43 @@ def create_annotation_project():
             is_annotation_project=True,
             max_questions_per_user=max_questions_per_user,
             answers_per_task=answers_per_task,
-            questions_per_image=questions_per_image
+            questions_per_image=total_questions  # Use total_questions directly
         )
         db.session.add(project)
         db.session.flush()  # Get the project ID
 
+        # Assign project to selected group
+        if assigned_group_id:
+            group = UserGroup.query.get(assigned_group_id)
+            if group:
+                # Check if project is already assigned to this group
+                existing_assignment = GroupProject.query.filter_by(
+                    group_id=group.id,
+                    project_id=project.id
+                ).first()
+                
+                if not existing_assignment:
+                    # Create new group-project assignment
+                    group_project = GroupProject(
+                        group_id=group.id,
+                        project_id=project.id
+                    )
+                    db.session.add(group_project)
+                    db.session.commit()
+                    
+                    # Distribute questions to group members
+                    distribute_questions_to_group(group, project)
+
         # Create the custom questions from form input
         custom_questions = []
-        for i in range(1, questions_per_image + 1):
+        for i in range(1, total_questions + 1):
             question_text = request.form.get(f"question_{i}")
             if question_text:
                 custom_questions.append(question_text.strip())
 
-        # Ensure we have the right number of questions
-        if len(custom_questions) != questions_per_image:
-            flash(f"Please provide exactly {questions_per_image} questions!", "error")
+        # Ensure we have exactly the specified number of questions
+        if len(custom_questions) != total_questions:
+            flash(f"Please provide exactly {total_questions} questions!", "error")
             return redirect(request.url)
 
         # Create the questions in database
@@ -980,10 +1008,11 @@ def create_annotation_project():
             db.session.add(question)
 
         db.session.commit()
-        flash(f"Annotation project '{project_name}' created with {questions_per_image} questions!", "success")
+        flash(f"Annotation project '{project_name}' created with {total_questions} questions!", "success")
         return redirect(url_for("admin.upload_images", project_id=project.id))
 
-    return render_template("admin/create_annotation_project.html")
+    groups = UserGroup.query.all()
+    return render_template("admin/create_annotation_project.html", groups=groups)
 
 
 @admin.route("/upload-images/<int:project_id>", methods=["GET", "POST"])
@@ -1061,10 +1090,10 @@ def generate_annotation_tasks(project_id):
     questions = Question.query.filter_by(project_id=project_id).all()
     groups = UserGroup.query.all()
 
-    # Check if we have enough questions based on the project's questions_per_image setting
-    if len(questions) < project.questions_per_image:
-        flash(f"This project requires {project.questions_per_image} questions per image, but only {len(questions)} questions are defined. Please add more questions first.", "warning")
-        return redirect(url_for("admin.edit_project_questions", project_id=project_id))
+    # Check if we have exactly the required number of images
+    if len(images) != len(questions):
+        flash(f"Number of images ({len(images)}) must match number of questions ({len(questions)})!", "error")
+        return redirect(url_for("admin.upload_images", project_id=project_id))
 
     if request.method == "POST":
         selected_group_id = request.form.get("group_id")
@@ -1072,29 +1101,32 @@ def generate_annotation_tasks(project_id):
             flash("Please select a user group!", "error")
             return redirect(request.url)
 
-        # Generate all annotation tasks (image × question combinations)
-        # Use only the first questions_per_image questions if there are more
+        # Generate unique annotation tasks (one-to-one mapping of questions to images)
         tasks_created = 0
-        questions_to_use = questions[:project.questions_per_image]
         
-        for image in images:
-            for question in questions_to_use:
-                # Check if task already exists
-                existing_task = AnnotationTask.query.filter_by(
+        # Create a unique mapping of questions to images
+        for i in range(len(questions)):
+            question = questions[i]
+            image = images[i]
+            
+            # Check if task already exists
+            existing_task = AnnotationTask.query.filter_by(
+                project_id=project_id,
+                image_id=image.id,
+                question_id=question.id
+            ).first()
+
+            if not existing_task:
+                task = AnnotationTask(
                     project_id=project_id,
                     image_id=image.id,
-                    question_id=question.id
-                ).first()
-
-                if not existing_task:
-                    task = AnnotationTask(
-                        project_id=project_id,
-                        image_id=image.id,
-                        question_id=question.id,
-                        required_answers=project.answers_per_task
-                    )
-                    db.session.add(task)
-                    tasks_created += 1
+                    question_id=question.id,
+                    required_answers=project.answers_per_task,
+                    current_answers=0,
+                    is_completed=False
+                )
+                db.session.add(task)
+                tasks_created += 1
 
         db.session.commit()
 
@@ -1109,7 +1141,7 @@ def generate_annotation_tasks(project_id):
         # Get all tasks for this project
         all_tasks = AnnotationTask.query.filter_by(project_id=project_id).all()
 
-        # Smart assignment algorithm
+        # Use the smart assignment algorithm
         assignments_created = assign_tasks_to_users(all_tasks, users, project.max_questions_per_user, project.answers_per_task)
 
         flash(f"Created {tasks_created} annotation tasks and {assignments_created} user assignments!", "success")
@@ -1135,101 +1167,113 @@ def assign_tasks_to_users(tasks, users, max_questions_per_user, answers_per_task
         print("No users available for assignment.")
         return 0
 
-    # Group tasks by image to ensure users get all questions for each image
-    tasks_by_image = {}
-    for task in tasks:
-        image_id = task.image_id
-        if image_id not in tasks_by_image:
-            tasks_by_image[image_id] = []
-        tasks_by_image[image_id].append(task)
+    try:
+        # Group tasks by image to ensure users get all questions for each image
+        tasks_by_image = {}
+        for task in tasks:
+            image_id = task.image_id
+            if image_id not in tasks_by_image:
+                tasks_by_image[image_id] = []
+            tasks_by_image[image_id].append(task)
 
-    # Convert to list of image groups
-    image_groups = list(tasks_by_image.values())
+        # Convert to list of image groups
+        image_groups = list(tasks_by_image.values())
 
-    # Sort image groups: prioritize tasks that are not yet completed (fewer current_answers)
-    # This helps maximize information gain by focusing on tasks that still need attention.
-    image_groups.sort(key=lambda img_tasks: img_tasks[0].current_answers)
+        # Sort image groups: prioritize tasks that are not yet completed (fewer current_answers)
+        # This helps maximize information gain by focusing on tasks that still need attention.
+        image_groups.sort(key=lambda img_tasks: img_tasks[0].current_answers)
 
-    print(f"📊 Smart Assignment Algorithm:")
-    print(f"   - Total images with tasks: {len(image_groups)}")
-    print(f"   - Questions per image (avg): {len(image_groups[0]) if image_groups else 0}")
-    print(f"   - Total users: {len(users)}")
-    print(f"   - Max questions per user: {max_questions_per_user}")
-    print(f"   - Required answers per task: {answers_per_task}")
+        print(f"📊 Smart Assignment Algorithm:")
+        print(f"   - Total images with tasks: {len(image_groups)}")
+        print(f"   - Questions per image (avg): {len(image_groups[0]) if image_groups else 0}")
+        print(f"   - Total users: {len(users)}")
+        print(f"   - Max questions per user: {max_questions_per_user}")
+        print(f"   - Required answers per task: {answers_per_task}")
 
-    user_index = 0  # For round-robin assignment
+        user_index = 0  # For round-robin assignment
 
-    # Iterate through image groups, assigning them to users
-    for image_tasks in image_groups:
-        # Skip if all tasks for this image are already completed
-        if all(task.current_answers >= task.required_answers for task in image_tasks):
-            continue
+        # Iterate through image groups, assigning them to users
+        for image_tasks in image_groups:
+            # Skip if all tasks for this image are already completed
+            if all(task.current_answers >= task.required_answers for task in image_tasks):
+                continue
 
-        questions_per_image = len(image_tasks)
-        users_assigned_to_current_image = 0
-        
-        # Keep track of users already assigned to this specific image in this run
-        # to avoid assigning the same image to the same user multiple times in one batch
-        users_already_assigned_to_this_image_in_batch = set()
-
-        # Attempt to assign this image group to enough users
-        while users_assigned_to_current_image < answers_per_task:
-            # Find the next available user in a round-robin fashion
-            user_to_assign = None
-            for _ in range(len(users)): # Iterate through users to find one
-                current_user = users[user_index]
-                user_index = (user_index + 1) % len(users) # Move to next user
-
-                # Check if user has room for all questions of this image
-                if user_task_counts[current_user.id] + questions_per_image <= max_questions_per_user:
-                    # Check if user hasn't already been assigned any task for this image (ever)
-                    already_assigned_ever = False
-                    for task in image_tasks:
-                        existing_assignment = TaskAssignment.query.filter_by(
-                            task_id=task.id,
-                            user_id=current_user.id
-                        ).first()
-                        if existing_assignment:
-                            already_assigned_ever = True
-                            break
-                    
-                    # Also check if assigned in this batch to prevent duplicates in one run
-                    if not already_assigned_ever and current_user.id not in users_already_assigned_to_this_image_in_batch:
-                        user_to_assign = current_user
-                        break
+            questions_per_image = len(image_tasks)
+            users_assigned_to_current_image = 0
             
-            if user_to_assign:
-                # Assign ALL questions for this image to this user
-                for task in image_tasks:
-                    assignment = TaskAssignment(
-                        task_id=task.id,
-                        user_id=user_to_assign.id
-                    )
-                    db.session.add(assignment)
-                    user_task_counts[user_to_assign.id] += 1
-                    assignments_created += 1
+            # Keep track of users already assigned to this specific image in this run
+            # to avoid assigning the same image to the same user multiple times in one batch
+            users_already_assigned_to_this_image_in_batch = set()
 
-                    # Update task's current answers count (in memory for this session)
-                    task.current_answers += 1
-                    if task.current_answers >= task.required_answers:
-                        task.is_completed = True
+            # Attempt to assign this image group to enough users
+            while users_assigned_to_current_image < answers_per_task:
+                # Find the next available user in a round-robin fashion
+                user_to_assign = None
+                for _ in range(len(users)): # Iterate through users to find one
+                    current_user = users[user_index]
+                    user_index = (user_index + 1) % len(users) # Move to next user
+
+                    # Check if user has room for all questions of this image
+                    if user_task_counts[current_user.id] + questions_per_image <= max_questions_per_user:
+                        # Check if user hasn't already been assigned any task for this image (ever)
+                        already_assigned_ever = False
+                        for task in image_tasks:
+                            existing_assignment = TaskAssignment.query.filter_by(
+                                task_id=task.id,
+                                user_id=current_user.id
+                            ).first()
+                            if existing_assignment:
+                                already_assigned_ever = True
+                                break
+                        
+                        # Also check if assigned in this batch to prevent duplicates in one run
+                        if not already_assigned_ever and current_user.id not in users_already_assigned_to_this_image_in_batch:
+                            user_to_assign = current_user
+                            break
                 
-                users_assigned_to_current_image += 1
-                users_already_assigned_to_this_image_in_batch.add(user_to_assign.id)
-            else:
-                # No more available users for this image, break out of while loop
-                break
+                if user_to_assign:
+                    # Assign ALL questions for this image to this user
+                    for task in image_tasks:
+                        assignment = TaskAssignment(
+                            task_id=task.id,
+                            user_id=user_to_assign.id
+                        )
+                        db.session.add(assignment)
+                        user_task_counts[user_to_assign.id] += 1
+                        assignments_created += 1
 
-        if users_assigned_to_current_image < answers_per_task:
-            print(f"⚠️  Warning: Image {image_tasks[0].image_id} only assigned to {users_assigned_to_current_image} users (needed {answers_per_task})")
+                        # Update task's current answers count and save to database
+                        task.current_answers += 1
+                        if task.current_answers >= task.required_answers:
+                            task.is_completed = True
+                        else:
+                            task.is_completed = False
+                        
+                        # Save the task state immediately
+                        db.session.add(task)
+                        db.session.commit()
+                    
+                    users_assigned_to_current_image += 1
+                    users_already_assigned_to_this_image_in_batch.add(user_to_assign.id)
+                else:
+                    # No more available users for this image, break out of while loop
+                    break
 
-    db.session.commit()
+            if users_assigned_to_current_image < answers_per_task:
+                print(f"⚠️  Warning: Image {image_tasks[0].image_id} only assigned to {users_assigned_to_current_image} users (needed {answers_per_task})")
 
-    print(f"✅ Assignment completed:")
-    print(f"   - Total assignments created: {assignments_created}")
-    print(f"   - Average tasks per user: {assignments_created / len(users) if users else 0:.1f}")
+        db.session.commit()
 
-    return assignments_created
+        print(f"✅ Assignment completed:")
+        print(f"   - Total assignments created: {assignments_created}")
+        print(f"   - Average tasks per user: {assignments_created / len(users) if users else 0:.1f}")
+
+        return assignments_created
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error during task assignment: {str(e)}")
+        return 0
 
 
 @admin.route("/view-annotation-project/<int:project_id>")
@@ -1249,7 +1293,20 @@ def view_annotation_project(project_id):
 
     # Calculate detailed statistics
     total_tasks = len(tasks)
-    completed_tasks = len([t for t in tasks if t.is_completed])
+    
+    # Count truly completed tasks (those that have received required answers)
+    completed_tasks = 0
+    for task in tasks:
+        # Check if task is truly completed based on answers
+        if task.current_answers >= task.required_answers:
+            completed_tasks += 1
+            task.is_completed = True  # Update the is_completed flag
+        else:
+            task.is_completed = False
+        
+        # Update all tasks with their current completion status
+        db.session.commit()
+    
     total_assignments = len(assignments)
     completed_assignments = len([a for a in assignments if a.is_completed])
 

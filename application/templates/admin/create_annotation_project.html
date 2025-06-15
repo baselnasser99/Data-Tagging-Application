@@ -13,6 +13,18 @@
 </section>
 
 <section class="content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible">
+          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+          <h4><i class="icon fa {% if category == 'success' %}fa-check{% else %}fa-warning{% endif %}"></i> {{ category|capitalize }}</h4>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
   <div class="row">
     <div class="col-md-8">
       <div class="box box-primary">
@@ -41,10 +53,23 @@
             <div class="row">
               <div class="col-md-6">
                 <div class="form-group">
-                  <label for="questions_per_image">Questions Per Image</label>
-                  <input type="number" class="form-control" id="questions_per_image"
-                         name="questions_per_image" value="5" min="1" max="20" required>
-                  <p class="help-block">Number of questions to ask for each image.</p>
+                  <label for="total_questions">Total Questions</label>
+                  <input type="number" class="form-control" id="total_questions"
+                         name="total_questions" value="5" min="1" max="20" required>
+                  <p class="help-block">Total number of questions you want to create for this project.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="assigned_group_id">Assign to Group</label>
+                  <select class="form-control" id="assigned_group_id" name="assigned_group_id" required>
+                    <option value="">Select a group...</option>
+                    {% for group in groups %}
+                      <option value="{{ group.id }}">{{ group.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <p class="help-block">Select the user group to assign this project to.</p>
                 </div>
               </div>
             </div>
@@ -54,60 +79,9 @@
               <label>Annotation Questions</label>
               <p class="help-block">Define the questions that will be asked for every image:</p>
               <div id="questions-container">
-                <!-- Default 5 questions -->
-                <div class="row">
-                  <div class="col-md-12">
-                    <div class="form-group">
-                      <label for="question_1">Question 1:</label>
-                      <input type="text" class="form-control" id="question_1" name="question_1"
-                             placeholder="e.g., What is shown in this image?" required>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="row">
-                  <div class="col-md-12">
-                    <div class="form-group">
-                      <label for="question_2">Question 2:</label>
-                      <input type="text" class="form-control" id="question_2" name="question_2"
-                             placeholder="e.g., Is the image blurry or clear?" required>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="row">
-                  <div class="col-md-12">
-                    <div class="form-group">
-                      <label for="question_3">Question 3:</label>
-                      <input type="text" class="form-control" id="question_3" name="question_3"
-                             placeholder="e.g., What is the main object in the image?" required>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="row">
-                  <div class="col-md-12">
-                    <div class="form-group">
-                      <label for="question_4">Question 4:</label>
-                      <input type="text" class="form-control" id="question_4" name="question_4"
-                             placeholder="e.g., What is the background of the image?" required>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="row">
-                  <div class="col-md-12">
-                    <div class="form-group">
-                      <label for="question_5">Question 5:</label>
-                      <input type="text" class="form-control" id="question_5" name="question_5"
-                             placeholder="e.g., Rate the overall quality of this image (1-5)" required>
-                    </div>
-                  </div>
-                </div>
-                <!-- Additional questions will be added dynamically -->
+                <div id="dynamic-questions"></div>
               </div>
             </div>
-
 
             <div class="row">
               <div class="col-md-6">
@@ -202,44 +176,25 @@ $(document).ready(function() {
         `;
     }
 
-    // Function to update question summary in sidebar
-    function updateQuestionSummary(count) {
-        var summaryHtml = '';
-        for (var i = 1; i <= count; i++) {
-            summaryHtml += `<li><i class="fa fa-edit text-blue"></i> Question ${i}: Your custom question</li>`;
-        }
-        $('#question-summary').html(summaryHtml);
-    }
+    // Update questions when total_questions changes
+    $('#total_questions').on('change', function() {
+        const totalQuestions = parseInt($(this).val());
+        const questionsContainer = $('#dynamic-questions');
+        questionsContainer.empty();
 
-    // Handle changes to questions_per_image input
-    $('#questions_per_image').change(function() {
-        var count = parseInt($(this).val());
-        
         // Validate input
-        if (count < 1) {
-            count = 1;
+        if (totalQuestions < 1) {
             $(this).val(1);
-        } else if (count > 20) {
-            count = 20;
+            totalQuestions = 1;
+        } else if (totalQuestions > 20) {
             $(this).val(20);
+            totalQuestions = 20;
         }
-        
-        // Get current number of questions
-        var currentCount = $('.question-row').length;
-        
-        // Add or remove question inputs as needed
-        if (count > currentCount) {
-            // Add more questions
-            for (var i = currentCount + 1; i <= count; i++) {
-                $('#questions-container').append(createQuestionInput(i));
-            }
-        } else if (count < currentCount) {
-            // Remove excess questions
-            $('.question-row').slice(count).remove();
+
+        // Create question inputs
+        for (let i = 1; i <= totalQuestions; i++) {
+            questionsContainer.append(createQuestionInput(i));
         }
-        
-        // Update the question summary in the sidebar
-        updateQuestionSummary(count);
     });
     
     // Initialize by marking the default 5 questions with the question-row class

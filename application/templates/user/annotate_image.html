@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Annotate Image - {{ project.name }}{% endblock %}
+
+{% block content %}
+<section class="content-header">
+  <h1>Image Annotation</h1>
+  <ol class="breadcrumb">
+    <li><a href="{{ url_for('user.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+    <li><a href="{{ url_for('user.annotation_tasks') }}"><i class="fa fa-image"></i> Annotation Tasks</a></li>
+    <li class="active">Annotate Image</li>
+  </ol>
+</section>
+
+<section class="content">
+  <div class="row">
+    <!-- Image Display -->
+    <div class="col-md-6">
+      <div class="box box-primary">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-image"></i> {{ image.original_filename }}
+          </h3>
+        </div>
+        <div class="box-body text-center">
+          <img src="{{ url_for('static', filename='uploads/images/' + project.id|string + '/' + image.filename) }}" 
+               class="img-responsive center-block" 
+               style="max-height: 400px; border: 2px solid #ddd; border-radius: 5px;">
+          <p class="text-muted" style="margin-top: 10px;">
+            <strong>Project:</strong> {{ project.name }}
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Questions and Answers Form -->
+    <div class="col-md-6">
+      <div class="box box-success">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-question-circle"></i> Answer All Questions
+          </h3>
+          <div class="box-tools pull-right">
+            <span class="badge bg-blue">{{ assignments|length }} Questions</span>
+          </div>
+        </div>
+        
+        <form method="POST" action="{{ url_for('user.annotate_image', image_id=image.id, project_id=project.id, batch_index=batch_index) }}">
+          <div class="box-body">
+            <p class="text-muted">
+              <strong>Batch:</strong> {{ batch_index + 1 }} of {{ (total_uncompleted_questions / batch_size)|round(0, 'ceil')|int }}
+              (Questions {{ (batch_index * batch_size) + 1 }} - {{ (batch_index * batch_size) + assignments|length }} of {{ total_uncompleted_questions }} remaining)
+            </p>
+            <hr>
+            {% for assignment in assignments %}
+            <div class="form-group">
+              <label for="answer_{{ assignment.id }}">
+                <strong>Question {{ (batch_index * batch_size) + loop.index }}:</strong> {{ assignment.task.question.question }}
+              </label>
+              
+              {# Always show input fields for current batch, as we only fetch uncompleted tasks #}
+              {% if assignment.task.question.answer_type.name == 'MCQ' %}
+                <div class="form-group">
+                  {% for i in range(1, assignment.task.question.number_of_options + 1) %}
+                    {% set option_value = getattr_safe(assignment.task.question, 'option' + i|string) %}
+                    {% if option_value %}
+                      <div class="radio">
+                        <label>
+                          <input type="radio"
+                                 name="answer_{{ assignment.id }}"
+                                 value="{{ option_value }}"
+                                 required>
+                          {{ option_value }}
+                        </label>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              {% else %}
+                <textarea class="form-control"
+                          id="answer_{{ assignment.id }}"
+                          name="answer_{{ assignment.id }}"
+                          rows="3"
+                          placeholder="Type your answer here..."
+                          required></textarea>
+              {% endif %}
+            </div>
+            
+            {% if not loop.last %}
+            <hr>
+            {% endif %}
+            {% endfor %}
+          </div>
+          
+          <div class="box-footer">
+            {% if assignments|length > 0 %}
+            <button type="submit" class="btn btn-success btn-block">
+              <i class="fa fa-arrow-right"></i> Submit and Continue ({{ assignments|length }} Question{{ 's' if assignments|length != 1 else '' }})
+            </button>
+            {% else %}
+            <div class="alert alert-info">
+              <i class="fa fa-info-circle"></i> All questions for this image have been completed!
+            </div>
+            {% endif %}
+            
+            <div class="row" style="margin-top: 10px;">
+              <div class="col-xs-6">
+                {% if has_prev_page %}
+                <a href="{{ url_for('user.annotate_image', image_id=image.id, project_id=project.id, batch_index=batch_index - 1) }}" class="btn btn-primary btn-block">
+                  <i class="fa fa-arrow-left"></i> Previous Batch
+                </a>
+                {% else %}
+                <button type="button" class="btn btn-default btn-block" disabled>
+                  <i class="fa fa-arrow-left"></i> Previous Batch
+                </button>
+                {% endif %}
+              </div>
+              <div class="col-xs-6">
+                {% if has_next_page %}
+                <a href="{{ url_for('user.annotate_image', image_id=image.id, project_id=project.id, batch_index=batch_index + 1) }}" class="btn btn-primary btn-block">
+                  Next Batch <i class="fa fa-arrow-right"></i>
+                </a>
+                {% else %}
+                <button type="button" class="btn btn-default btn-block" disabled>
+                  Next Batch <i class="fa fa-arrow-right"></i>
+                </button>
+                {% endif %}
+              </div>
+            </div>
+
+            <a href="{{ url_for('user.annotation_tasks') }}" class="btn btn-default btn-block" style="margin-top: 10px;">
+              <i class="fa fa-arrow-left"></i> Back to Annotation Tasks
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Progress Information -->
+  <div class="row">
+    <div class="col-md-12">
+      <div class="box box-info">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-info-circle"></i> Progress Information
+          </h3>
+        </div>
+        <div class="box-body">
+          <div class="row">
+            <div class="col-md-3">
+              <div class="info-box">
+                <span class="info-box-icon bg-blue"><i class="fa fa-image"></i></span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Current Image</span>
+                  <span class="info-box-number">{{ image.original_filename[:20] }}{% if image.original_filename|length > 20 %}...{% endif %}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-3">
+              <div class="info-box">
+                <span class="info-box-icon bg-green"><i class="fa fa-check"></i></span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Completed</span>
+                  <span class="info-box-number">{{ assignments | selectattr('is_completed') | list | length }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-3">
+              <div class="info-box">
+                <span class="info-box-icon bg-yellow"><i class="fa fa-clock-o"></i></span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Remaining</span>
+                  <span class="info-box-number">{{ assignments | rejectattr('is_completed') | list | length }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-3">
+              <div class="info-box">
+                <span class="info-box-icon bg-red"><i class="fa fa-question"></i></span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Total Questions</span>
+                  <span class="info-box-number">{{ assignments | length }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.center-block {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.img-responsive {
+    max-width: 100%;
+    height: auto;
+}
+
+.info-box {
+    display: block;
+    min-height: 90px;
+    background: #fff;
+    width: 100%;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    border-radius: 2px;
+    margin-bottom: 15px;
+}
+
+.info-box-icon {
+    border-top-left-radius: 2px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 2px;
+    display: block;
+    float: left;
+    height: 90px;
+    width: 90px;
+    text-align: center;
+    font-size: 45px;
+    line-height: 90px;
+    background: rgba(0,0,0,0.2);
+}
+
+.info-box-content {
+    padding: 5px 10px;
+    margin-left: 90px;
+}
+
+.info-box-text {
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.info-box-number {
+    display: block;
+    font-weight: bold;
+    font-size: 18px;
+}
+</style>
+{% endblock %}

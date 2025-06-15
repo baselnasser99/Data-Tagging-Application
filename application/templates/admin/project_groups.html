@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - Assigned Groups{% endblock %}
+
+{% block content %}
+<!-- Content Header (Page header) -->
+<section class="content-header">
+	<h1>
+		Groups Assigned to {{ project.name }}
+	</h1>
+	<ol class="breadcrumb">
+		<li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Home</a></li>
+        <li><a href="{{ url_for('admin.my_projects') }}">My Projects</a></li>
+        <li><a href="{{ url_for('admin.project_dashboard', project_id=project.id) }}">{{ project.name }} Dashboard</a></li>
+		<li class="active">Assigned Groups</li>
+	</ol>
+</section>
+
+<section class="content">
+    <div class="row">
+        <div class="col-12">
+            <div class="box">
+                <div class="box-header">
+                    <h3 class="box-title">Assigned Groups</h3>
+                </div>
+                <div class="box-body">
+                    {% if project.assigned_groups %}
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Group Name</th>
+                                <th>Description</th>
+                                <th>Members</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for group_project in project.assigned_groups %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ group_project.group.name }}</td>
+                                <td>{{ group_project.group.description or 'N/A' }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#membersModal{{ group_project.group.id }}">
+                                        View {{ group_project.group.members | length }} Members
+                                    </button>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin.manage_group', group_id=group_project.group.id) }}" class="btn btn-primary btn-sm">Manage Group</a>
+                                </td>
+                            </tr>
+
+                            <!-- Members Modal -->
+                            <div class="modal fade" id="membersModal{{ group_project.group.id }}" tabindex="-1" role="dialog" aria-labelledby="membersModalLabel{{ group_project.group.id }}">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="membersModalLabel{{ group_project.group.id }}">{{ group_project.group.name }} - Members</h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <table class="table table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Name</th>
+                                                        <th>Email</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for member in group_project.group.members %}
+                                                    <tr>
+                                                        <td>{{ loop.index }}</td>
+                                                        <td>{{ member.user.full_name }}</td>
+                                                        <td>{{ member.user.email }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p>No groups are assigned to this project yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %} 

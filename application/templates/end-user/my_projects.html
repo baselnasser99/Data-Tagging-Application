@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <h1>My Assigned Projects</h1>
+    <ol class="breadcrumb">
+      <li>
+        <a href="#"><i class="fa fa-dashboard"></i> Home</a>
+      </li>
+      <li class="active">Assigned Projects</li>
+    </ol>
+  </section>
+  <section>
+    {% include 'flash_messages.html' %}
+  </section>
+  <section class="content">
+    <!-- Individual assignments removed - only group assignments supported -->
+
+    <!-- Group Projects -->
+    {% if group_projects %}
+    <div class="row" style="margin-top: 30px;">
+      <div class="col-xs-12">
+        <h3>Group Project Assignments</h3>
+        <table class="table table-striped table-bordered">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th class="col-3">Project Name</th>
+              <th>Group</th>
+              <th class="col-4">Project Description</th>
+              <th>Assigned Questions</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for gp in group_projects %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ gp.project.name }}</td>
+                <td><span class="badge badge-info">{{ gp.group_name }}</span></td>
+                <td style="white-space: pre-line">{{ gp.project.desc[:400]|safe }} ...</td>
+                <td>
+                  {% if gp.project.is_annotation_project %}
+                    <span class="badge bg-blue">{{ gp.annotation_tasks_count or 0 }} images</span>
+                  {% else %}
+                    {{ gp.project.total_questions }}
+                  {% endif %}
+                </td>
+                {% if gp.project.is_annotation_project %}
+                  <td>
+                    <a href="{{ url_for('user.annotation_tasks') }}" class="btn btn-info btn-sm w-100">
+                      <i class="fa fa-image"></i> Annotate
+                    </a>
+                  </td>
+                {% elif gp.project.answered %}
+                  <td>
+                    <span class="btn btn-success btn-sm w-100">Completed</span>
+                  </td>
+                {% else %}
+                  <td>
+                    <a href="{{ url_for('user.view_group_project', group_project_id=gp.group_project_id) }}" class="btn btn-primary btn-sm w-100">Solve</a>
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not group_projects %}
+    <div class="row">
+      <div class="col-xs-12">
+        <div class="alert alert-info">
+          <h4>No Projects Assigned</h4>
+          <p>You don't have any projects assigned yet through groups. Contact your administrator to be added to a group with project assignments.</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Images - {{ project.name }}{% endblock %}
+
+{% block content %}
+<section class="content-header">
+  <h1>Upload Images</h1>
+  <ol class="breadcrumb">
+    <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+    <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
+    <li class="active">Upload Images</li>
+  </ol>
+</section>
+
+<section class="content">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="box box-primary">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-upload"></i> Batch Image Upload for "{{ project.name }}"
+          </h3>
+        </div>
+        
+        <form method="POST" enctype="multipart/form-data">
+          <div class="box-body">
+            <div class="form-group">
+              <label for="image_zip">Select ZIP File with Images</label>
+              <input type="file" class="form-control" id="image_zip" name="image_zip" 
+                     accept=".zip" required>
+              <p class="help-block">
+                Upload a ZIP file containing your images. Supported formats: PNG, JPG, JPEG, GIF, BMP
+              </p>
+            </div>
+            
+            <div class="alert alert-info">
+              <h4><i class="fa fa-info-circle"></i> Upload Instructions:</h4>
+              <ul>
+                <li>Create a ZIP file containing all your images</li>
+                <li>Images can be in folders within the ZIP (folder structure will be flattened)</li>
+                <li>Only image files will be extracted (PNG, JPG, JPEG, GIF, BMP)</li>
+                <li>Each image will be combined with all 5 questions to create annotation tasks</li>
+                <li>File names will be preserved but made unique to prevent conflicts</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="box-footer">
+            <button type="submit" class="btn btn-primary">
+              <i class="fa fa-upload"></i> Upload Images
+            </button>
+            <a href="{{ url_for('admin.view_projects') }}" class="btn btn-default">
+              <i class="fa fa-arrow-left"></i> Back to Projects
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="box box-info">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-cog"></i> Project Settings
+          </h3>
+        </div>
+        <div class="box-body">
+          <table class="table table-bordered">
+            <tr>
+              <th>Project Name:</th>
+              <td>{{ project.name }}</td>
+            </tr>
+            <tr>
+              <th>Max Questions/User:</th>
+              <td>{{ project.max_questions_per_user }}</td>
+            </tr>
+            <tr>
+              <th>Answers per Task:</th>
+              <td>{{ project.answers_per_task }}</td>
+            </tr>
+            <tr>
+              <th>Questions Created:</th>
+              <td>{{ project.questions|length }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      
+      <div class="box box-success">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-question-circle"></i> Questions for Each Image
+          </h3>
+        </div>
+        <div class="box-body">
+          {% for question in project.questions %}
+          <p><i class="fa fa-check text-green"></i> {{ question.question }}</p>
+          {% endfor %}
+        </div>
+      </div>
+      
+      <div class="box box-warning">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-calculator"></i> Task Calculation
+          </h3>
+        </div>
+        <div class="box-body">
+          <p><strong>Formula:</strong></p>
+          <p>Total Tasks = Images × Questions</p>
+          <p><strong>Example:</strong></p>
+          <p>1000 images × 5 questions = 5000 annotation tasks</p>
+          <p class="text-muted">Each task will be assigned to {{ project.answers_per_task }} different users.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+// File upload validation
+document.getElementById('image_zip').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        if (!file.name.toLowerCase().endsWith('.zip')) {
+            alert('Please select a ZIP file.');
+            this.value = '';
+            return;
+        }
+        
+        // Show file size
+        const fileSize = (file.size / 1024 / 1024).toFixed(2);
+        console.log(`Selected file: ${file.name} (${fileSize} MB)`);
+    }
+});
+</script>
+{% endblock %}

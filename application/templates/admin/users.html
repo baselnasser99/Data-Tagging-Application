@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <h1>Users</h1>
+    <ol class="breadcrumb">
+      <li>
+        <a href="#"><i class="fa fa-dashboard"></i> Home</a>
+      </li>
+      <li>Users</li>
+    </ol>
+  </section>
+  <section>
+    {% include 'flash_messages.html' %}
+  </section>
+
+  <section class="content">
+    <div class="row" style="margin-bottom: 20px;">
+      <div class="col-xs-12">
+        <a href="{{ url_for('admin.import_users') }}" class="btn btn-primary">
+          <i class="fa fa-upload"></i> Import Users from CSV
+        </a>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-xs-12 col-md-12">
+        <table class="table table-striped table-bordered">
+          <thead class="table-dark">
+            <tr class="">
+              <th>#</th>
+              <th class="col-3">Name</th>
+              <th class="col-5">Email</th>
+              <th>Assigned Groups</th>
+              <th>Assigned Projects</th>
+              <th>Answers</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ user.full_name }}</td>
+                <td>{{ user.email }}</td>
+                <td>
+                  {% for membership in user.group_memberships %}
+                    <span class="badge badge-primary">{{ membership.group.name }}</span>{% if not loop.last %}, {% endif %}
+                  {% else %}
+                    No Groups
+                  {% endfor %}
+                </td>
+                <td>{{ user.assigned_projects | length }}</td>
+                <td>
+  							<a class="btn btn-success btn-sm w-100" href="{{ url_for('admin.download_answers', user_id=user.id) }}">Download</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+{% endblock %}

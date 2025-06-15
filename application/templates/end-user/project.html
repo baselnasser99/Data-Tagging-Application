@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <h1>{{ project.name }}</h1>
+    <ol class="breadcrumb">
+      <li>
+        <a href="#"><i class="fa fa-dashboard"></i> Home</a>
+      </li>
+      <li class="active">Project</li>
+    </ol>
+  </section>
+  <section>
+    {% include 'flash_messages.html' %}
+  </section>
+  <section class="content">
+    <div class="row">
+      <div class="col-xs-12">
+        <form action="{{ url_for('user.view_project', project_id=project.id) }}" method="post">
+          {% for question in project.questions %}
+            <div class="card mb-4">
+              <div class="card-body">
+                <h4 class="card-title mb-3"><strong>Q{{ loop.index }}</strong> {{ question.question }}</h4>
+								{% if question.file_path %}
+										{% set file_extension = question.file_path.split('.')[-1].lower() %}										
+										{% if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] %}
+										<img class="img-fluid mt-3 mb-3" src="{{ url_for('static', filename='uploads/' + question.file_path) }}" class="mx-auto d-block" style="max-width: 200px; max-height: 200px;" alt="image" />
+										{% elif file_extension in ['mp3', 'wav', 'ogg', 'aac', 'flac'] %}
+												<audio controls>
+														<source src="{{ url_for('static', filename='uploads/' + question.file_path) }}" type="audio/{{ file_extension }}">
+														Your browser does not support the audio element.
+												</audio>
+										{% else %}
+												<p>Unsupported file type</p>
+										{% endif %}
+								{% endif %}
+                <h4 style="margin-top: 30px;">Answer</h4>
+                <input type="hidden" name="question_id_{{ question.id }}" value="{{ question.id }}" />
+                {% if question.number_of_options in [1, 2, 3, 4, 5, 6] %}
+                  {% for i in range(1, question.number_of_options + 1) %}
+                    {% set option_value = getattr_safe(question, 'option' + i|string) %}
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="answer_{{ question.id }}" id="option{{ i }}_{{ question.id }}" value="{{ option_value }}" />
+                      <label class="form-check-label" for="option{{ i }}_{{ question.id }}">{{ option_value }}</label>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <textarea class="form-control mb-3" name="answer_{{ question.id }}"></textarea>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Submit Answers</button>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

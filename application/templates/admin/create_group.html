@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <h1>Create User Group</h1>
+    <ol class="breadcrumb">
+      <li>
+        <a href="#"><i class="fa fa-dashboard"></i> Home</a>
+      </li>
+      <li>
+        <a href="{{ url_for('admin.view_groups') }}">Groups</a>
+      </li>
+      <li class="active">Create</li>
+    </ol>
+  </section>
+  <section>
+    {% include 'flash_messages.html' %}
+  </section>
+
+  <section style="margin-top: 20px; padding: 10px;">
+    <div class="row">
+      <div class="col-lg-6 col-md-8 col-sm-10 col-xs-12">
+        <div class="box box-primary">
+          <div class="box-header with-border">
+            <h3 class="box-title">Group Details</h3>
+          </div>
+          <form action="{{ url_for('admin.create_group') }}" method="POST">
+            <div class="box-body">
+              <div class="form-group">
+                <label for="group_name">Group Name *</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="group_name" 
+                       name="group_name" 
+                       placeholder="Enter group name" 
+                       required>
+                <small class="form-text text-muted">Group name must be unique</small>
+              </div>
+              
+              <div class="form-group">
+                <label for="group_desc">Description</label>
+                <textarea class="form-control" 
+                          id="group_desc" 
+                          name="group_desc" 
+                          rows="3" 
+                          placeholder="Enter group description (optional)"></textarea>
+              </div>
+            </div>
+            
+            <div class="box-footer">
+              <button type="submit" class="btn btn-primary">
+                <i class="fa fa-save"></i> Create Group
+              </button>
+              <a href="{{ url_for('admin.view_groups') }}" class="btn btn-default">
+                <i class="fa fa-arrow-left"></i> Back to Groups
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

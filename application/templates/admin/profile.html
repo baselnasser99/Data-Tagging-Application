@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Profile{% endblock %}
+
+{% block content %}
+<section class="content-header">
+  <h1>Admin Profile</h1>
+  <ol class="breadcrumb">
+    <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+    <li class="active">Profile</li>
+  </ol>
+</section>
+
+<section class="content">
+  <div class="row">
+    <!-- Profile Information -->
+    <div class="col-md-6">
+      <div class="box box-primary">
+        <div class="box-header with-border">
+          <h3 class="box-title">Profile Information</h3>
+        </div>
+        <div class="box-body">
+          <table class="table table-bordered">
+            <tr>
+              <th style="width: 30%">Full Name:</th>
+              <td>{{ admin.full_name }}</td>
+            </tr>
+            <tr>
+              <th>Email:</th>
+              <td>{{ admin.email }}</td>
+            </tr>
+            <tr>
+              <th>Role:</th>
+              <td><span class="badge bg-green">{{ admin.role.title() }}</span></td>
+            </tr>
+            <tr>
+              <th>User ID:</th>
+              <td>{{ admin.id }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Update Email -->
+    <div class="col-md-6">
+      <div class="box box-info">
+        <div class="box-header with-border">
+          <h3 class="box-title">Update Email Address</h3>
+        </div>
+        <form method="POST">
+          <div class="box-body">
+            <input type="hidden" name="action" value="update_email">
+            <div class="form-group">
+              <label for="email">New Email Address</label>
+              <input type="email" class="form-control" id="email" name="email" 
+                     value="{{ admin.email }}" required>
+              <p class="help-block">Enter your new email address.</p>
+            </div>
+          </div>
+          <div class="box-footer">
+            <button type="submit" class="btn btn-info">
+              <i class="fa fa-envelope"></i> Update Email
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Update Password -->
+    <div class="col-md-8">
+      <div class="box box-warning">
+        <div class="box-header with-border">
+          <h3 class="box-title">Change Password</h3>
+        </div>
+        <form method="POST">
+          <div class="box-body">
+            <input type="hidden" name="action" value="update_password">
+            
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label for="current_password">Current Password</label>
+                  <input type="password" class="form-control" id="current_password" 
+                         name="current_password" required>
+                  <p class="help-block">Enter your current password to confirm your identity.</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="new_password">New Password</label>
+                  <input type="password" class="form-control" id="new_password" 
+                         name="new_password" required minlength="6">
+                  <p class="help-block">Minimum 6 characters.</p>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="confirm_password">Confirm New Password</label>
+                  <input type="password" class="form-control" id="confirm_password" 
+                         name="confirm_password" required minlength="6">
+                  <p class="help-block">Re-enter your new password.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="box-footer">
+            <button type="submit" class="btn btn-warning">
+              <i class="fa fa-lock"></i> Change Password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Security Tips -->
+    <div class="col-md-4">
+      <div class="box box-success">
+        <div class="box-header with-border">
+          <h3 class="box-title">Security Tips</h3>
+        </div>
+        <div class="box-body">
+          <ul class="list-unstyled">
+            <li><i class="fa fa-check text-green"></i> Use a strong password with at least 8 characters</li>
+            <li><i class="fa fa-check text-green"></i> Include uppercase and lowercase letters</li>
+            <li><i class="fa fa-check text-green"></i> Add numbers and special characters</li>
+            <li><i class="fa fa-check text-green"></i> Don't reuse passwords from other accounts</li>
+            <li><i class="fa fa-check text-green"></i> Change your password regularly</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+// Password confirmation validation
+document.getElementById('confirm_password').addEventListener('input', function() {
+    var password = document.getElementById('new_password').value;
+    var confirmPassword = this.value;
+    
+    if (password !== confirmPassword) {
+        this.setCustomValidity('Passwords do not match');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+document.getElementById('new_password').addEventListener('input', function() {
+    var confirmPassword = document.getElementById('confirm_password');
+    if (confirmPassword.value) {
+        confirmPassword.dispatchEvent(new Event('input'));
+    }
+});
+</script>
+{% endblock %}

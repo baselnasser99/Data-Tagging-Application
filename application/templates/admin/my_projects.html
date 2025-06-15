@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}My Projects{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">My Projects</h3>
+                </div>
+                <div class="card-body">
+                    {% if projects %}
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Project Name</th>
+                                <th>Project Description</th>
+                                <th>Total Questions</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for project in projects %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ project.name }}</td>
+                                <td>{{ project.desc[:200] | safe }}...</td>
+                                <td>{{ project.questions | length }}</td>
+                                <td>
+                                    <a href="{{ url_for('admin.project_dashboard', project_id=project.id) }}" class="btn btn-primary btn-sm">Dashboard</a>
+                                    <a href="{{ url_for('admin.edit_project_questions', project_id=project.id) }}" class="btn btn-info btn-sm">Questions</a>
+                                    <a href="{{ url_for('admin.project_groups', project_id=project.id) }}" class="btn btn-success btn-sm">Groups</a>
+                                    <a href="{{ url_for('admin.project_results', project_id=project.id) }}" class="btn btn-secondary btn-sm">Results</a>
+                                    {% if session.get('role') == 'admin' %}
+                                    {# System Admins can manage project admins from here as well #}
+                                    <a href="{{ url_for('admin.project_admins', project_id=project.id) }}" class="btn btn-warning btn-sm">Manage Admins</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p>You are not assigned to any projects as an admin yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

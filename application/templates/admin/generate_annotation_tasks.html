@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Annotation Tasks - {{ project.name }}{% endblock %}
+
+{% block content %}
+<section class="content-header">
+  <h1>Generate Annotation Tasks</h1>
+  <ol class="breadcrumb">
+    <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+    <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
+    <li class="active">Generate Tasks</li>
+  </ol>
+</section>
+
+<section class="content">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="box box-primary">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-cogs"></i> Generate Tasks for "{{ project.name }}"
+          </h3>
+        </div>
+        
+        <form method="POST">
+          <div class="box-body">
+            <div class="alert alert-success">
+              <h4><i class="fa fa-check-circle"></i> Ready to Generate Tasks!</h4>
+              <p>
+                <strong>{{ images|length }}</strong> images × <strong>{{ questions|length }}</strong> questions = 
+                <strong>{{ images|length * questions|length }}</strong> annotation tasks
+              </p>
+              <p>Each task will be assigned to <strong>{{ project.answers_per_task }}</strong> different users.</p>
+            </div>
+            
+            <div class="form-group">
+              <label for="group_id">Select User Group for Annotation</label>
+              <select class="form-control" id="group_id" name="group_id" required>
+                <option value="">-- Select a Group --</option>
+                {% for group in groups %}
+                <option value="{{ group.id }}">
+                  {{ group.name }} ({{ group.members|length }} members)
+                </option>
+                {% endfor %}
+              </select>
+              <p class="help-block">Choose which group of users will perform the annotations.</p>
+            </div>
+            
+            <div class="alert alert-info">
+              <h4><i class="fa fa-info-circle"></i> Assignment Algorithm:</h4>
+              <ul>
+                <li>Tasks are randomly distributed among group members</li>
+                <li>Each user gets maximum {{ project.max_questions_per_user }} tasks</li>
+                <li>Each task is assigned to {{ project.answers_per_task }} different users</li>
+                <li>No user gets the same task twice</li>
+                <li>System ensures fair distribution across all users</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="box-footer">
+            <button type="submit" class="btn btn-primary">
+              <i class="fa fa-cogs"></i> Generate Tasks & Assign Users
+            </button>
+            <a href="{{ url_for('admin.view_projects') }}" class="btn btn-default">
+              <i class="fa fa-arrow-left"></i> Back to Projects
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="box box-info">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-bar-chart"></i> Project Statistics
+          </h3>
+        </div>
+        <div class="box-body">
+          <table class="table table-bordered">
+            <tr>
+              <th>Images Uploaded:</th>
+              <td><span class="badge bg-blue">{{ images|length }}</span></td>
+            </tr>
+            <tr>
+              <th>Questions Created:</th>
+              <td><span class="badge bg-green">{{ questions|length }}</span></td>
+            </tr>
+            <tr>
+              <th>Total Tasks:</th>
+              <td><span class="badge bg-yellow">{{ images|length * questions|length }}</span></td>
+            </tr>
+            <tr>
+              <th>Max Tasks/User:</th>
+              <td><span class="badge bg-purple">{{ project.max_questions_per_user }}</span></td>
+            </tr>
+            <tr>
+              <th>Answers/Task:</th>
+              <td><span class="badge bg-red">{{ project.answers_per_task }}</span></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      
+      <div class="box box-success">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-image"></i> Sample Images
+          </h3>
+        </div>
+        <div class="box-body">
+          {% if images %}
+          <div class="row">
+            {% for image in images[:6] %}
+            <div class="col-xs-4" style="margin-bottom: 10px;">
+              <img src="{{ url_for('static', filename='uploads/images/' + project.id|string + '/' + image.filename) }}" 
+                   class="img-responsive img-thumbnail" 
+                   style="height: 60px; width: 100%; object-fit: cover;"
+                   title="{{ image.original_filename }}">
+            </div>
+            {% endfor %}
+          </div>
+          {% if images|length > 6 %}
+          <p class="text-muted text-center">... and {{ images|length - 6 }} more images</p>
+          {% endif %}
+          {% else %}
+          <p class="text-muted">No images uploaded yet.</p>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="box box-warning">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-users"></i> Available Groups
+          </h3>
+        </div>
+        <div class="box-body">
+          {% if groups %}
+          {% for group in groups %}
+          <p>
+            <i class="fa fa-group"></i> 
+            <strong>{{ group.name }}</strong> 
+            <span class="badge">{{ group.members|length }} members</span>
+          </p>
+          {% endfor %}
+          {% else %}
+          <p class="text-muted">No user groups available. <a href="{{ url_for('admin.create_group') }}">Create a group</a> first.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

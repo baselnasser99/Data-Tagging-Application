@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - Annotation Project{% endblock %}
+
+{% block content %}
+<section class="content-header">
+  <h1>{{ project.name }}</h1>
+  <ol class="breadcrumb">
+    <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+    <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
+    <li class="active">{{ project.name }}</li>
+  </ol>
+</section>
+
+<section class="content">
+  <!-- Progress Overview -->
+  <div class="row">
+    <div class="col-lg-3 col-xs-6">
+      <div class="small-box bg-aqua">
+        <div class="inner">
+          <h3>{{ stats.total_images }}</h3>
+          <p>Images Uploaded</p>
+        </div>
+        <div class="icon">
+          <i class="fa fa-image"></i>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-3 col-xs-6">
+      <div class="small-box bg-green">
+        <div class="inner">
+          <h3>{{ stats.total_tasks }}</h3>
+          <p>Annotation Tasks</p>
+        </div>
+        <div class="icon">
+          <i class="fa fa-tasks"></i>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-3 col-xs-6">
+      <div class="small-box bg-yellow">
+        <div class="inner">
+          <h3>{{ stats.completion_percentage }}%</h3>
+          <p>Tasks Completed</p>
+        </div>
+        <div class="icon">
+          <i class="fa fa-check-circle"></i>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-3 col-xs-6">
+      <div class="small-box bg-red">
+        <div class="inner">
+          <h3>{{ stats.total_assignments }}</h3>
+          <p>User Assignments</p>
+        </div>
+        <div class="icon">
+          <i class="fa fa-users"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <!-- Project Details -->
+    <div class="col-md-8">
+      <div class="box box-primary">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-info-circle"></i> Project Details
+          </h3>
+        </div>
+        <div class="box-body">
+          <table class="table table-bordered">
+            <tr>
+              <th style="width: 30%">Project Name:</th>
+              <td>{{ project.name }}</td>
+            </tr>
+            <tr>
+              <th>Description:</th>
+              <td>{{ project.desc }}</td>
+            </tr>
+            <tr>
+              <th>Project Type:</th>
+              <td><span class="badge bg-blue">Image Annotation</span></td>
+            </tr>
+            <tr>
+              <th>Max Questions per User:</th>
+              <td>{{ project.max_questions_per_user }}</td>
+            </tr>
+            <tr>
+              <th>Required Answers per Task:</th>
+              <td>{{ project.answers_per_task }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Progress Chart -->
+      <div class="box box-success">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-bar-chart"></i> Completion Progress
+          </h3>
+        </div>
+        <div class="box-body">
+          <div class="progress-group">
+            <span class="progress-text">Task Completion</span>
+            <span class="float-right"><b>{{ stats.completed_tasks }}</b>/{{ stats.total_tasks }}</span>
+            <div class="progress progress-sm">
+              <div class="progress-bar bg-green" style="width: {{ stats.completion_percentage }}%"></div>
+            </div>
+          </div>
+          
+            <div class="progress-group">
+            <span class="progress-text">User Assignment Completion</span>
+            <span class="float-right"><b>{{ stats.completed_assignments }}</b>/{{ stats.total_assignments }}</span>
+            <div class="progress progress-sm">
+              <div class="progress-bar bg-blue" style="width: {{ stats.assignment_completion }}%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Actions & Info -->
+    <div class="col-md-4">
+      <div class="box box-warning">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-cog"></i> Actions
+          </h3>
+        </div>
+        <div class="box-body">
+          <a href="{{ url_for('admin.upload_images', project_id=project.id) }}" class="btn btn-primary btn-block">
+            <i class="fa fa-upload"></i> Upload More Images
+          </a>
+          <a href="{{ url_for('admin.generate_annotation_tasks', project_id=project.id) }}" class="btn btn-success btn-block">
+            <i class="fa fa-cogs"></i> Generate More Tasks
+          </a>
+          <a href="#" class="btn btn-info btn-block">
+            <i class="fa fa-download"></i> Download Results
+          </a>
+          <a href="{{ url_for('admin.view_projects') }}" class="btn btn-default btn-block">
+            <i class="fa fa-arrow-left"></i> Back to Projects
+          </a>
+        </div>
+      </div>
+      
+      <div class="box box-info">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-question-circle"></i> Questions
+          </h3>
+        </div>
+        <div class="box-body">
+          {% for question in questions %}
+          <p><i class="fa fa-check text-green"></i> {{ question.question }}</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Sample Images -->
+  {% if images %}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="box box-default">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-image"></i> Sample Images (First 10)
+          </h3>
+        </div>
+        <div class="box-body">
+          <div class="row">
+            {% for image in images %}
+            <div class="col-md-2 col-sm-3 col-xs-4" style="margin-bottom: 15px;">
+              <div class="thumbnail">
+                <img src="{{ url_for('static', filename='uploads/images/' + project.id|string + '/' + image.filename) }}" 
+                     class="img-responsive" 
+                     style="height: 120px; width: 100%; object-fit: cover;"
+                     title="{{ image.original_filename }}">
+                <div class="caption text-center">
+                  <small>{{ image.original_filename[:20] }}{% if image.original_filename|length > 20 %}...{% endif %}</small>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% if stats.total_images > 10 %}
+          <p class="text-center text-muted">... and {{ stats.total_images - 10 }} more images</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
+  <!-- User Assignment Statistics -->
+  {% if stats.user_assignments %}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="box box-primary">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-users"></i> User Assignment Statistics
+          </h3>
+        </div>
+        <div class="box-body">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>User ID</th>
+                <th>Total Assignments</th>
+                <th>Completed</th>
+                <th>Completion Rate</th>
+                <th>Progress</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for user_id, data in stats.user_assignments.items() %}
+              <tr>
+                <td>{{ user_id }}</td>
+                <td>{{ data.total }}</td>
+                <td>{{ data.completed }}</td>
+                <td>{{ data.percentage }}%</td>
+                <td>
+                  <div class="progress progress-xs">
+                    <div class="progress-bar progress-bar-success" style="width: {{ data.percentage }}%"></div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

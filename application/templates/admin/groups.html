@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <h1>User Groups</h1>
+    <ol class="breadcrumb">
+      <li>
+        <a href="#"><i class="fa fa-dashboard"></i> Home</a>
+      </li>
+      <li>Groups</li>
+    </ol>
+  </section>
+  <section>
+    {% include 'flash_messages.html' %}
+  </section>
+
+  <section style="margin-top: 20px; padding: 10px;">
+    <div class="row">
+      <div class="col-xs-12">
+        <div class="mb-3">
+          <a href="{{ url_for('admin.create_group') }}" class="btn btn-primary">
+            <i class="fa fa-plus"></i> Create New Group
+          </a>
+        </div>
+        
+        <table class="table table-striped table-bordered">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>Group Name</th>
+              <th>Description</th>
+              <th>Members</th>
+              <th>Assigned Projects</th>
+              <th>Created Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for group in groups %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ group.name }}</td>
+                <td>{{ group.description or 'No description' }}</td>
+                <td>
+                  <span class="badge badge-info">{{ group.members | length }} members</span>
+                </td>
+                <td>
+                  <span class="badge badge-success">{{ group.assigned_projects | length }} projects</span>
+                </td>
+                <td>{{ group.created_date.strftime('%Y-%m-%d %H:%M') if group.created_date else 'N/A' }}</td>
+                <td>
+                  <div class="btn-group" role="group">
+                    <a href="{{ url_for('admin.manage_group', group_id=group.id) }}" 
+                       class="btn btn-info btn-sm" title="Manage Members">
+                      <i class="fa fa-users"></i> Manage
+                    </a>
+                    <a href="{{ url_for('admin.delete_group', group_id=group.id) }}" 
+                       class="btn btn-danger btn-sm" 
+                       onclick="return confirm('Are you sure you want to delete this group? This will remove all members and project assignments.')"
+                       title="Delete Group">
+                      <i class="fa fa-trash"></i> Delete
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="7" class="text-center">No groups found. <a href="{{ url_for('admin.create_group') }}">Create your first group</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+{% endblock %}

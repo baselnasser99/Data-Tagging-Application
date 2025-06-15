@@ -1,0 +1,91 @@
+<html>
+<head>
+  <title>Question & Answer</title>
+
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Flask-Admin dashboard login template">
+  <meta name="author" content="Jonathan Ars">
+
+  <link href="{{url_for('static',filename='/vendor/bootstrap5/css/bootstrap.min.css')}}" rel="stylesheet"></link>
+</head>
+<body>
+<section class="">
+    <div class="px-4 py-5 px-md-5 text-center text-lg-start" style="height: 100vh;background-color: hsl(0, 0%, 96%);margin: auto;display: flex;align-items: center;">
+      <div class="container">
+        <div class="row gx-lg-5 align-items-center">
+          <div class="col-lg-6 mb-5 mb-lg-0">
+            <h1 class="my-5 display-3 fw-bold ls-tight">
+              Welcome to the Question & Answer
+            </h1>
+            <p style="color: hsl(217, 10%, 50.8%)">
+              Lorem ipsum dolor sit amet consectetur adipisicing elit.
+              Eveniet, itaque accusantium odio, soluta, corrupti aliquam
+              quibusdam tempora at cupiditate quis eum maiores libero
+              veritatis? Dicta facilis sint aliquid ipsum atque?
+            </p>
+          </div>
+  
+          <div class="col-lg-6 mb-5 mb-lg-0">
+            <div class="card">
+              <div class="card-body py-5 px-md-5">
+                {% include "flash_messages.html" %}
+                <form action="{{ url_for("auth.register") }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input class="form-control" type="text" name="fullname" required>
+                    </div>
+                    <div data-mdb-input-init class="form-outline mb-4">
+                        <label class="form-label">Email address</label>
+                        <input type="email" name="email" class="form-control" required />
+                    </div>
+                    <div data-mdb-input-init class="form-outline mb-4">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control" required />
+                    </div>
+        
+                    <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-block mb-4 w-100">Register</button>
+
+                    <div class="text-center">
+                        <p>Already have an account? <a href="{{ url_for("auth.login") }}">Login</a></p>
+                      </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</section>
+
+<script src="{{url_for('static',filename='new/js/bootstrap.min.js')}}"></script>
+</body>
+</html>
+
+{% block content %}
+    <section class="row vh-100 justify-content-center align-items-center">
+        <div class="col-12 col-md-10 col-lg-6 border p-5 rounded shadow-sm bg-white">
+            <h2 class="fw-bold mb-3">Register To Website</h2>
+            {% include "flash_messages.html" %}
+            <form action="{{ url_for("auth.register") }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label fs-5">Full Name</label>
+                    <input class="form-control" type="text" name="fullname" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fs-5">Email Address</label>
+                    <input class="form-control" type="email" name="email" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fs-5">Password</label>
+                    <input class="form-control" type="password" name="password" required>
+                </div>
+                <a class="link-primary" href="{{ url_for("auth.login") }}">Already have an account? <b>Login</b></a>
+                <div class="mb-3 d-flex justify-content-end">
+                    <input type="submit" value="Register" class="btn btn-primary px-5 flex-grow-1 flex-md-grow-0">
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}

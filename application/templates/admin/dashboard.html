@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Content Header (Page header) -->
+<section class="content-header">
+  <h1>
+    Dashboard
+  </h1>
+  <ol class="breadcrumb">
+    <li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
+    <li class="active">Dashboard</li>
+  </ol>
+</section>
+<section>
+	{% include "flash_messages.html" %}
+</section>
+
+<section class="content">
+  <div class="row">
+    <div class="col-lg-3 col-xs-6">
+        <div class="small-box bg-aqua">
+            <div class="inner">
+              <h3>{{ total_projects }}</h3>
+              <p>Total Projects</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-xs-6">
+        <div class="small-box bg-red">
+            <div class="inner">
+              <h3>{{ total_users }}</h3>
+              <p>Total Users</p>
+            </div>
+          </div>
+    </div>
+    <div class="col-lg-3 col-xs-6">
+        <div class="small-box bg-green">
+            <div class="inner">
+              <h3>{{ total_groups }}</h3>
+              <p>User Groups</p>
+            </div>
+          </div>
+    </div>
+    <div class="col-lg-3 col-xs-6">
+        <div class="small-box bg-yellow">
+            <div class="inner">
+              <h3>{{ weeks_data[-1].answers if weeks_data else 0 }}</h3>
+              <p>This Week's Answers</p>
+            </div>
+          </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-12">
+      <div class="box box-info">
+        <div class="box-header with-border">
+          <h3 class="box-title">User Management Tools</h3>
+        </div>
+        <div class="box-body">
+          <a href="{{ url_for('admin.import_users') }}" class="btn btn-app">
+            <i class="fa fa-file-excel-o"></i> Import Users (CSV)
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Charts Row -->
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="box box-primary">
+        <div class="box-header with-border">
+          <h3 class="box-title">Weekly Answer Trends</h3>
+        </div>
+        <div class="box-body">
+          <canvas id="weeklyChart" style="height: 300px;" data-chart-data="{{ weeks_data | tojson }}"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="box box-success">
+        <div class="box-header with-border">
+          <h3 class="box-title">Group Performance</h3>
+        </div>
+        <div class="box-body">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Group</th>
+                <th>Members</th>
+                <th>Completion %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for group in group_stats %}
+              <tr>
+                <td>{{ group.name }}</td>
+                <td>{{ group.members }}</td>
+                <td>
+                  <span class="badge {% if group.completion_rate >= 80 %}bg-green{% elif group.completion_rate >= 50 %}bg-yellow{% else %}bg-red{% endif %}">
+                    {{ group.completion_rate }}%
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Weekly Answers Chart
+const ctx = document.getElementById('weeklyChart').getContext('2d');
+const chartCanvas = document.getElementById('weeklyChart');
+const weeklyChartData = JSON.parse(chartCanvas.dataset.chartData);
+
+const weeklyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: weeklyChartData.map(week => week.week),
+        datasets: [{
+            label: 'Answers Submitted',
+            data: weeklyChartData.map(week => week.answers),
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            },
+            title: {
+                display: true,
+                text: 'Weekly Answer Submission Trends'
+            }
+        }
+    }
+});
+
+// Auto-refresh every 30 seconds
+setInterval(function() {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Create Image Annotation Project{% endblock %}
+
+{% block content %}
+<section class="content-header">
+  <h1>Create Image Annotation Project</h1>
+  <ol class="breadcrumb">
+    <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+    <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
+    <li class="active">Create Annotation Project</li>
+  </ol>
+</section>
+
+<section class="content">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="box box-primary">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-image"></i> New Image Annotation Project
+          </h3>
+        </div>
+        
+        <form method="POST">
+          <div class="box-body">
+            <div class="form-group">
+              <label for="project_name">Project Name</label>
+              <input type="text" class="form-control" id="project_name" name="project_name" 
+                     placeholder="e.g., Medical Image Classification" required>
+              <p class="help-block">Give your annotation project a descriptive name.</p>
+            </div>
+            
+            <div class="form-group">
+              <label for="project_desc">Project Description</label>
+              <textarea class="form-control" id="project_desc" name="project_desc" rows="4" 
+                        placeholder="Describe what users will be annotating..." required></textarea>
+              <p class="help-block">Explain the purpose and goals of this annotation project.</p>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="questions_per_image">Questions Per Image</label>
+                  <input type="number" class="form-control" id="questions_per_image"
+                         name="questions_per_image" value="5" min="1" max="20" required>
+                  <p class="help-block">Number of questions to ask for each image.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom Questions Section -->
+            <div class="form-group">
+              <label>Annotation Questions</label>
+              <p class="help-block">Define the questions that will be asked for every image:</p>
+              <div id="questions-container">
+                <!-- Default 5 questions -->
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="form-group">
+                      <label for="question_1">Question 1:</label>
+                      <input type="text" class="form-control" id="question_1" name="question_1"
+                             placeholder="e.g., What is shown in this image?" required>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="form-group">
+                      <label for="question_2">Question 2:</label>
+                      <input type="text" class="form-control" id="question_2" name="question_2"
+                             placeholder="e.g., Is the image blurry or clear?" required>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="form-group">
+                      <label for="question_3">Question 3:</label>
+                      <input type="text" class="form-control" id="question_3" name="question_3"
+                             placeholder="e.g., What is the main object in the image?" required>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="form-group">
+                      <label for="question_4">Question 4:</label>
+                      <input type="text" class="form-control" id="question_4" name="question_4"
+                             placeholder="e.g., What is the background of the image?" required>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="form-group">
+                      <label for="question_5">Question 5:</label>
+                      <input type="text" class="form-control" id="question_5" name="question_5"
+                             placeholder="e.g., Rate the overall quality of this image (1-5)" required>
+                    </div>
+                  </div>
+                </div>
+                <!-- Additional questions will be added dynamically -->
+              </div>
+            </div>
+
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="max_questions_per_user">Max Questions per User</label>
+                  <input type="number" class="form-control" id="max_questions_per_user"
+                         name="max_questions_per_user" value="100" min="1" max="1000" required>
+                  <p class="help-block">Maximum annotation tasks each user can complete.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="answers_per_task">Answers per Task</label>
+                  <input type="number" class="form-control" id="answers_per_task"
+                         name="answers_per_task" value="10" min="1" max="50" required>
+                  <p class="help-block">How many users should answer each image-question pair.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="box-footer">
+            <button type="submit" class="btn btn-primary">
+              <i class="fa fa-plus"></i> Create Project & Add Questions
+            </button>
+            <a href="{{ url_for('admin.view_projects') }}" class="btn btn-default">
+              <i class="fa fa-arrow-left"></i> Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="box box-info">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-info-circle"></i> How It Works
+          </h3>
+        </div>
+        <div class="box-body">
+          <ol>
+            <li><strong>Create Project</strong> - Set up your annotation project with parameters</li>
+            <li><strong>Custom Questions</strong> - Define questions for all images (default: 5)</li>
+            <li><strong>Upload Images</strong> - Batch upload images via ZIP file</li>
+            <li><strong>Generate Tasks</strong> - System creates image × question combinations</li>
+            <li><strong>Assign Users</strong> - Smart distribution to user groups</li>
+            <li><strong>Monitor Progress</strong> - Track completion and download results</li>
+          </ol>
+        </div>
+      </div>
+      
+      <div class="box box-success">
+        <div class="box-header with-border">
+          <h3 class="box-title">
+            <i class="fa fa-question-circle"></i> Custom Questions
+          </h3>
+        </div>
+        <div class="box-body">
+          <p>You can define custom questions that will be asked for every image:</p>
+          <ul class="list-unstyled" id="question-summary">
+            <li><i class="fa fa-edit text-blue"></i> Question 1: Your custom question</li>
+            <li><i class="fa fa-edit text-blue"></i> Question 2: Your custom question</li>
+            <li><i class="fa fa-edit text-blue"></i> Question 3: Your custom question</li>
+            <li><i class="fa fa-edit text-blue"></i> Question 4: Your custom question</li>
+            <li><i class="fa fa-edit text-blue"></i> Question 5: Your custom question</li>
+          </ul>
+          <p class="text-muted">These questions will be applied to every uploaded image.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Function to create a new question input
+    function createQuestionInput(index) {
+        return `
+            <div class="row question-row" data-index="${index}">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label for="question_${index}">Question ${index}:</label>
+                        <input type="text" class="form-control" id="question_${index}" name="question_${index}"
+                               placeholder="Enter your question here" required>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Function to update question summary in sidebar
+    function updateQuestionSummary(count) {
+        var summaryHtml = '';
+        for (var i = 1; i <= count; i++) {
+            summaryHtml += `<li><i class="fa fa-edit text-blue"></i> Question ${i}: Your custom question</li>`;
+        }
+        $('#question-summary').html(summaryHtml);
+    }
+
+    // Handle changes to questions_per_image input
+    $('#questions_per_image').change(function() {
+        var count = parseInt($(this).val());
+        
+        // Validate input
+        if (count < 1) {
+            count = 1;
+            $(this).val(1);
+        } else if (count > 20) {
+            count = 20;
+            $(this).val(20);
+        }
+        
+        // Get current number of questions
+        var currentCount = $('.question-row').length;
+        
+        // Add or remove question inputs as needed
+        if (count > currentCount) {
+            // Add more questions
+            for (var i = currentCount + 1; i <= count; i++) {
+                $('#questions-container').append(createQuestionInput(i));
+            }
+        } else if (count < currentCount) {
+            // Remove excess questions
+            $('.question-row').slice(count).remove();
+        }
+        
+        // Update the question summary in the sidebar
+        updateQuestionSummary(count);
+    });
+    
+    // Initialize by marking the default 5 questions with the question-row class
+    $('#questions-container > .row').addClass('question-row');
+    
+    // Set initial question count
+    var initialCount = parseInt($('#questions_per_image').val());
+    updateQuestionSummary(initialCount);
+});
+</script>
+{% endblock %}

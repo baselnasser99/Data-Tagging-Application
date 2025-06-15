@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <h1>Assign Project to Group</h1>
+    <ol class="breadcrumb">
+      <li>
+        <a href="#"><i class="fa fa-dashboard"></i> Home</a>
+      </li>
+      <li>Groups</li>
+      <li class="active">Assign Project</li>
+    </ol>
+  </section>
+  <section>
+    {% include 'flash_messages.html' %}
+  </section>
+  
+  <section class="content">
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="box box-primary">
+          <div class="box-header with-border">
+            <h3 class="box-title">Assign Project to Group</h3>
+          </div>
+          <form method="post">
+            <div class="box-body">
+              <div class="row">
+                <div class="form-group col-md-6 col-xs-12">
+                  <label>Select Group</label>
+                  <select class="form-control" name="group_id" required>
+                    <option value="">Choose a group...</option>
+                    {% for group in groups %}
+                      <option value="{{ group.id }}">
+                        {{ group.name }} ({{ group.members | length }} members)
+                      </option>
+                    {% endfor %}
+                  </select>
+                  {% if not groups %}
+                    <small class="text-muted">No groups available. <a href="{{ url_for('admin.create_group') }}">Create a group first</a></small>
+                  {% endif %}
+                </div>
+                <div class="form-group col-md-6 col-xs-12">
+                  <label>Select Project</label>
+                  <select class="form-control" name="project_id" required>
+                    <option value="">Choose a project...</option>
+                    {% for project in projects %}
+                      <option value="{{ project.id }}">
+                        {{ project.name }} ({{ project.questions | length }} questions)
+                      </option>
+                    {% endfor %}
+                  </select>
+                  {% if not projects %}
+                    <small class="text-muted">No projects available. <a href="{{ url_for('admin.create_project') }}">Create a project first</a></small>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="box-footer">
+              <button type="submit" class="btn btn-primary" {% if not groups or not projects %}disabled{% endif %}>
+                <i class="fa fa-link"></i> Assign Project to Group
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Display current group-project assignments -->
+    <div class="row">
+      <div class="col-xs-12">
+        <div class="box box-info">
+          <div class="box-header with-border">
+            <h3 class="box-title">Current Group-Project Assignments</h3>
+          </div>
+          <div class="box-body">
+            <table class="table table-bordered table-hover">
+              <thead>
+                <tr>
+                  <th>Group Name</th>
+                  <th>Members</th>
+                  <th>Assigned Projects</th>
+                  <th>Questions Distributed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for group in groups %}
+                  <tr>
+                    <td>{{ group.name }}</td>
+                    <td>
+                      <span class="badge badge-info">{{ group.members | length }}</span>
+                      {% if group.members %}
+                        <br><small class="text-muted">
+                          {% for membership in group.members[:3] %}
+                            {{ membership.user.full_name }}{% if not loop.last %}, {% endif %}
+                          {% endfor %}
+                          {% if group.members | length > 3 %}
+                            and {{ group.members | length - 3 }} more...
+                          {% endif %}
+                        </small>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if group.assigned_projects %}
+                        {% for group_project in group.assigned_projects %}
+                          <div class="mb-1">
+                            <strong>{{ group_project.project.name }}</strong>
+                            <small class="text-muted">({{ group_project.project.questions | length }} questions)</small>
+                          </div>
+                        {% endfor %}
+                      {% else %}
+                        <span class="text-muted">No projects assigned</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if group.assigned_projects %}
+                        {% for group_project in group.assigned_projects %}
+                          <div class="mb-1">
+                            {% if group_project.questions_distributed %}
+                              <span class="label label-success">Distributed</span>
+                            {% else %}
+                              <span class="label label-warning">Pending</span>
+                            {% endif %}
+                          </div>
+                        {% endfor %}
+                      {% else %}
+                        <span class="text-muted">N/A</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="4" class="text-center">No groups found. <a href="{{ url_for('admin.create_group') }}">Create your first group</a></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

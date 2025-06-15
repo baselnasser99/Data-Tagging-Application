@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="content-header">
+	<h1>
+		Questions for "{{ project.name }}"
+	</h1>
+	<ol class="breadcrumb">
+		<li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
+		<li>Projects</li>
+        <li>{{ project.name }}</li>
+		<li class="active">Question</li>
+	</ol>
+</section>
+<section>
+    {% include "flash_messages.html" %}
+</section>
+<section style="margin-top: 20px; padding: 10px;">
+    <div class="row">
+        <div class="col-xs-12">
+        {% for question in project.questions %}
+            <div class="mb-2 border rounded p-3 bg-white">
+                <h3>Question {{ loop.index }}</h3>
+                <p class="fw-bold" style="white-space: pre-line">{{ question.question|safe }}</p>
+                <div>
+                    {% if question.file_path %}
+                        {% set file_extension = question.file_path.split('.')[-1].lower() %}
+                        
+                        {% if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] %}
+                            <img class="w-auto h-100 img-thumbnail" style="height: 300px" src="{{ url_for('static', filename='uploads/' + question.file_path) }}">
+                        {% elif file_extension in ['mp3', 'wav', 'ogg', 'aac', 'flac'] %}
+                            <audio controls>
+                                <source src="{{ url_for('static', filename='uploads/' + question.file_path) }}" type="audio/{{ file_extension }}">
+                                Your browser does not support the audio element.
+                            </audio>
+                        {% else %}
+                            <p>Unsupported file type</p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <h3>Answer</h3>
+                <p style="white-space: pre-line">{{ question.answer if question.answer else "Not Answered!" }}</p>
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+{% endblock %}

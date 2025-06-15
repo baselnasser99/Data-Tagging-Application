@@ -29,8 +29,8 @@ A modern web-based platform for managing both image annotation projects and gene
     - Attach files (images, audio, video) to questions.
 - **Batch Image Upload** (for Annotation Projects)
 - **User Group Management**: Organize users into groups for easier assignment.
-- **Project Assignment to Groups**: Assign projects to entire user groups.
-- **Automatic Task Generation & Assignment**: System intelligently distributes questions/tasks to users based on project settings and group assignments.
+- **Project Assignment to Groups**: Assign projects to entire user groups during project creation or later.
+- **Smart Task Generation & Assignment**: System intelligently distributes questions/tasks to users based on project settings, group assignments, and completion requirements.
 - **Role-Based Access Control**:
     - **System Admin**: Full control over all projects, users, and groups.
     - **Project Admin**: Manage specific projects they are assigned to, including questions, images, and group assignments for that project.
@@ -69,7 +69,7 @@ As a **System Admin**, you can:
     -   Generate and assign annotation tasks.
     -   View detailed project dashboards and results.
 3.  **Manage Users**: View all registered users, their roles, and activity.
-4.  **Manage Groups**: Create, edit, and delete user groups. Assign projects to groups.
+4.  **Manage Groups**: Create, edit, and delete user groups. Assign projects to groups during project creation or later.
 5.  **Manage Project Admins**: Assign other users the "Project Admin" role for specific projects, granting them limited administrative control.
 6.  **Export Data**: Download comprehensive project answers.
 
@@ -84,8 +84,9 @@ As a **Project Admin**, you can:
     -   Edit project details and settings.
     -   Add, edit, and delete questions for your projects. This includes defining multiple-choice options and the correct answer for MCQ questions.
     -   Upload images for your annotation projects.
-    -   Generate annotation tasks and assign them to user groups.
-    -   View project-specific dashboards, progress, and results.
+    -   Generate annotation tasks and assign them to user groups with smart distribution.
+    -   View project-specific dashboards showing accurate completion percentages based on required answers.
+    -   Monitor real-time progress of tasks and user assignments.
 3.  **Manage Groups for Your Projects**: Assign user groups to your projects.
 4.  **Manage Project-Specific Admins**: Create and remove other Project Admins for the projects you manage.
 

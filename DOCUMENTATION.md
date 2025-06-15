@@ -21,12 +21,17 @@ This is a web-based project management system that allows administrators to crea
    ├── Create Project
    │   ├── Set Project Type (Survey/Annotation)
    │   ├── Configure Project Settings
-   │   └── Define Questions
-   ├── Assign to Groups
-   │   ├── Select Target Groups
-   │   └── Configure Distribution Rules
+   │   ├── Set Required Answers per Task
+   │   ├── Define Questions
+   │   └── Assign to Groups
+   │       ├── Select Target Groups
+   │       └── Configure Distribution Rules
+   ├── Generate Tasks
+   │   ├── Create Annotation Tasks
+   │   └── Assign Users with Smart Distribution
    └── Monitor Progress
-       ├── Track Completion
+       ├── Track Completion (Based on Required Answers)
+       ├── View User Progress
        └── Generate Reports
    ```
 
@@ -188,7 +193,7 @@ This is a web-based project management system that allows administrators to crea
 
 ### 1. Question Distribution System
 
-The system implements a sophisticated question distribution mechanism to ensure efficient and fair distribution of questions among users:
+The system implements a sophisticated task distribution mechanism to ensure efficient and fair distribution of tasks among users:
 
 #### Regular Projects
 - Questions are distributed evenly among group members
@@ -198,6 +203,16 @@ The system implements a sophisticated question distribution mechanism to ensure 
   remaining_questions = total_questions % total_members
   ```
 - Each user gets a fair share of questions
+
+#### Annotation Projects
+- Tasks are generated with one-to-one mapping of questions to images
+- Smart distribution based on:
+  - Required answers per task
+  - Current answers received
+  - User capacity (max_questions_per_user)
+  - Group assignments
+- Completion tracking based on required answers
+- Real-time progress updates for administrators
 - Questions are assigned one-by-one to users
 - System tracks assigned questions through `UserQuestionAssignment` model
 - Features:

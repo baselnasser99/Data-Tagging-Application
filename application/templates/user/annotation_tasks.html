@@ -12,45 +12,45 @@
 </section>
 
 <section class="content">
-  <div class="row">
+      <div class="row">
     {% if assignments %}
     {% for assignment in assignments %}
-    <div class="col-md-4 col-sm-6 col-xs-12" style="margin-bottom: 20px;">
-      <div class="box box-default">
-        <div class="box-header with-border">
-          <h4 class="box-title">
+        <div class="col-md-4 col-sm-6 col-xs-12" style="margin-bottom: 20px;">
+          <div class="box box-default">
+            <div class="box-header with-border">
+              <h4 class="box-title">
             {{ assignment.task.image.original_filename[:20] }}{% if assignment.task.image.original_filename|length > 20 %}...{% endif %}
-          </h4>
-          <div class="box-tools pull-right">
+              </h4>
+              <div class="box-tools pull-right">
             {% if assignment.is_completed %}
             <span class="badge bg-green">Completed</span>
             {% else %}
             <span class="badge bg-yellow">Pending</span>
             {% endif %}
-          </div>
-        </div>
-        <div class="box-body text-center">
+              </div>
+            </div>
+            <div class="box-body text-center">
           <img src="{{ url_for('static', filename='uploads/images/' + assignment.task.project.id|string + '/' + assignment.task.image.filename) }}"
-               class="img-responsive center-block"
-               style="height: 150px; width: 100%; object-fit: cover; border-radius: 5px;">
+                   class="img-responsive center-block"
+                   style="height: 150px; width: 100%; object-fit: cover; border-radius: 5px;">
 
-          <div style="margin-top: 10px;">
+              <div style="margin-top: 10px;">
             <h6><strong>Question:</strong></h6>
-            <p class="text-sm" style="margin: 2px 0;">
-              {{ assignment.task.question.question[:40] }}{% if assignment.task.question.question|length > 40 %}...{% endif %}
-            </p>
-          </div>
+                <p class="text-sm" style="margin: 2px 0;">
+                  {{ assignment.task.question.question[:40] }}{% if assignment.task.question.question|length > 40 %}...{% endif %}
+                </p>
+              </div>
 
           <div class="box-footer">
             <a href="{{ url_for('user.annotation_task', assignment_id=assignment.id) }}" class="btn btn-primary btn-block">
               <i class="fa fa-pencil"></i> Answer Question
-            </a>
+              </a>
           </div>
         </div>
       </div>
     </div>
-    {% endfor %}
-    {% else %}
+      {% endfor %}
+      {% else %}
     <div class="col-md-12">
       <div class="box box-info">
         <div class="box-header with-border">
@@ -58,8 +58,8 @@
         </div>
         <div class="box-body">
           <p>You currently have no annotation tasks assigned to you. Please contact your administrator.</p>
-        </div>
-      </div>
+    </div>
+  </div>
     </div>
     {% endif %}
   </div>

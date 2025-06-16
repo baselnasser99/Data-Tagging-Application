@@ -616,23 +616,23 @@ def download_answers(user_id):
                 submitted_date,
                 'Yes' if is_completed_assignment else 'No'
             ])
-    else:
-        writer.writerow(['','','','No answers found for this user','','','','',''])
+        else:
+             writer.writerow(['','','','No answers found for this user','','','','',''])
 
-    output.seek(0)
+        output.seek(0)
 
     # Prepare for download
-    mem = io.BytesIO()
-    mem.write(output.getvalue().encode('utf-8')) # Ensure UTF-8 encoding
-    mem.seek(0)
+        mem = io.BytesIO()
+        mem.write(output.getvalue().encode('utf-8')) # Ensure UTF-8 encoding
+        mem.seek(0)
 
-    response = make_response(send_file(
+        response = make_response(send_file(
         mem,
         as_attachment=True,
         download_name=f'user_{user.email}_answers.csv',
         mimetype='text/csv'
     ))
-    return response
+        return response
 
 
 @admin.route("/profile", methods=['GET', 'POST'])
@@ -956,12 +956,12 @@ def distribute_questions_to_group(group, project):
                 ).first()
                 
                 if not existing_assignment:
-                    assignment = UserQuestionAssignment(
-                        user_id=member.id,
+                  assignment = UserQuestionAssignment(
+                    user_id=member.id,
                         question_id=question.id,
-                        group_project_id=group_project_id
-                    )
-                    db.session.add(assignment)
+                    group_project_id=group_project_id
+                )
+                db.session.add(assignment)
         print(f"Assigned all {len(questions)} questions to each of {len(members)} members for survey project {project.name}.")
 
     # Mark questions as distributed (this flag might need review based on exact workflow, but keeping for now)
@@ -1218,7 +1218,7 @@ def generate_annotation_tasks(project_id):
             return redirect(url_for("admin.view_annotation_project", project_id=project.id))
 
         assignments_created = assign_tasks_to_users(new_tasks, users_in_group, project.max_questions_per_user, project.answers_per_task)
-        
+
         flash(f"Created {tasks_created} annotation tasks and {assignments_created} user assignments!", "success")
         return redirect(url_for("admin.view_annotation_project", project_id=project.id))
 
@@ -1279,7 +1279,7 @@ def assign_tasks_to_users(tasks, users, max_questions_per_user, answers_per_task
 
                 # If user already assigned this task (in this run or previously committed)
                 if current_user.id in users_assigned_this_task_current_run:
-                    continue
+                        continue
 
                 # If user has not reached their max task limit
                 if user_task_counts[current_user.id] < max_questions_per_user:
@@ -1292,10 +1292,10 @@ def assign_tasks_to_users(tasks, users, max_questions_per_user, answers_per_task
                     assignments_created += 1
                     assigned_for_this_task += 1
                     users_assigned_this_task_current_run.add(current_user.id) # Mark user as having this task
-                
+
             if assigned_for_this_task < task.required_answers:
                 print(f"⚠️  Task {task.id} (Q: {task.question.question[:20]}) could not be assigned to {task.required_answers} different users. Assigned to {assigned_for_this_task} users.")
-            
+
         db.session.commit() # Commit all assignments at once
 
         print(f"✅ Assignment completed:")
@@ -1750,6 +1750,9 @@ def edit_project_questions(project_id):
                         TaskAssignment.query.filter_by(task_id=task.id).delete()
                         db.session.delete(task)
                 
+                # Delete user question assignments for this question
+                UserQuestionAssignment.query.filter_by(question_id=question.id).delete()
+
                 db.session.delete(question)
                 db.session.commit()
                 flash('Question deleted.', 'success')

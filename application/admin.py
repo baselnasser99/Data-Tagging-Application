@@ -151,8 +151,8 @@ def users():
         direct_project_assignments = UserQuestionAssignment.query.filter_by(user_id=user.id).all()
         for assignment in direct_project_assignments:
             question = Question.query.get(assignment.question_id)
-            if question and question.project:
-                assigned_projects.add(question.project.id)
+            if question and question.belongs_to:
+                assigned_projects.add(question.belongs_to.id)
         
         # 2. Get projects assigned through groups
         user_group_memberships = UserGroupMembership.query.filter_by(user_id=user.id).all()
@@ -917,42 +917,57 @@ def assign_project_to_group():
 
 
 def distribute_questions_to_group(group, project):
-    """Distribute questions evenly among group members"""
-    members = [m.user for m in group.members]
+    """Distribute questions evenly among group members for survey projects, or based on annotation tasks for annotation projects"""
+    members = [m.user for m in group.members if m.user]
     questions = project.questions
 
     if not members or not questions:
+        print(f"No members ({len(members)}) or questions ({len(questions)}) for distribution in project {project.name}.")
         return
 
     # Create a unique identifier for this group-project combination
     group_project_id = f"{group.id}-{project.id}"
 
-    # Distribute questions evenly
-    questions_per_user = len(questions) // len(members)
-    remaining_questions = len(questions) % len(members)
+    # Clear existing assignments for this group-project combination before re-distributing
+    UserQuestionAssignment.query.filter_by(group_project_id=group_project_id).delete()
+    db.session.commit()
 
-    question_index = 0
-    for i, member in enumerate(members):
-        # Calculate how many questions this user gets
-        user_question_count = questions_per_user
-        if i < remaining_questions:
-            user_question_count += 1
+    if project.is_annotation_project:
+        # For annotation projects, tasks are generated and assigned via _generate_project_tasks and assign_tasks_to_users
+        # This function should primarily handle non-annotation project question distribution if called directly.
+        # If it's called for an annotation project, it means questions were added/deleted via edit_project_questions,
+        # and _generate_project_tasks would have already been called. So, we just need to re-assign those tasks.
+        # Fetch all tasks related to this project that need assignment
+        all_project_tasks = AnnotationTask.query.filter_by(project_id=project.id).all()
+        if all_project_tasks:
+            # Distribute these tasks to the current group members
+            assign_tasks_to_users(all_project_tasks, members, project.max_questions_per_user, project.answers_per_task)
+        else:
+            print(f"No annotation tasks found for project {project.name} during group distribution.")
 
-        # Assign questions to this user
-        for j in range(user_question_count):
-            if question_index < len(questions):
-                assignment = UserQuestionAssignment(
+    else: # This is a regular survey project
+        # For survey projects, each user in the group should receive ALL questions from the project
+        for member in members:
+            for question in questions:
+                existing_assignment = UserQuestionAssignment.query.filter_by(
                     user_id=member.id,
-                    question_id=questions[question_index].id,
+                    question_id=question.id,
                     group_project_id=group_project_id
-                )
-                db.session.add(assignment)
-                question_index += 1
+                ).first()
+                
+                if not existing_assignment:
+                    assignment = UserQuestionAssignment(
+                        user_id=member.id,
+                        question_id=question.id,
+                        group_project_id=group_project_id
+                    )
+                    db.session.add(assignment)
+        print(f"Assigned all {len(questions)} questions to each of {len(members)} members for survey project {project.name}.")
 
-    # Mark questions as distributed
-    group_project = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
-    if group_project:
-        group_project.questions_distributed = True
+    # Mark questions as distributed (this flag might need review based on exact workflow, but keeping for now)
+    group_project_link = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
+    if group_project_link:
+        group_project_link.questions_distributed = True
 
     db.session.commit()
 
@@ -1710,6 +1725,12 @@ def edit_project_questions(project_id):
                         if users_in_group:
                             assign_tasks_to_users(new_tasks, users_in_group, project.max_questions_per_user, project.answers_per_task)
                             flash(f"Tasks regenerated and re-assigned for group '{group.name}'.", "info")
+            else: # For survey projects
+                for group_project in project.assigned_groups:
+                    group = group_project.group
+                    if group:
+                        distribute_questions_to_group(group, project)
+                        flash(f"Questions re-distributed for survey project '{project.name}' to group '{group.name}'.", "info")
             
             # Redirect back to the edit page to see the new question
             return redirect(url_for('admin.edit_project_questions', project_id=project.id))
@@ -1744,6 +1765,12 @@ def edit_project_questions(project_id):
                             if users_in_group:
                                 assign_tasks_to_users(new_tasks, users_in_group, project.max_questions_per_user, project.answers_per_task)
                                 flash(f"Tasks regenerated and re-assigned for group '{group.name}'.", "info")
+                else: # For survey projects
+                    for group_project in project.assigned_groups:
+                        group = group_project.group
+                        if group:
+                            distribute_questions_to_group(group, project)
+                            flash(f"Questions re-distributed for survey project '{project.name}' to group '{group.name}'.", "info")
             else:
                 flash('Error deleting question.', 'danger')
             # Redirect back to the edit page

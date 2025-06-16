@@ -1,15 +1,12 @@
 import csv
 import io
-from flask import send_file, make_response
-from .models import QuestionAnswer
-from functools import wraps
-from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort
-
-from .models import Project, Question, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage
+from flask import send_file, make_response, Blueprint, request, redirect, url_for, flash, render_template, session, abort
+from .models import Project, Question, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer
 from .extns import db
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
 
 end_user = Blueprint('user', __name__, url_prefix='/user')
-
 
 def user_required(func):
     @wraps(func)
@@ -106,8 +103,6 @@ def my_projects():
                 group_project_id=str(gp['group_project_id'])  # Ensure it's a string
             ).all()
 
-
-
             gp['project'].total_questions = len(assigned_questions)
             gp['project'].is_group_project = True
             gp['project'].group_name = gp['group_name']
@@ -203,6 +198,50 @@ def view_project(project_id):
     else:
         flash('Project not found', 'danger')
         return redirect(url_for('user.my_projects'))
+
+
+@end_user.route("/profile")
+@user_required
+def profile():
+    return render_template('end-user/profile.html')
+
+
+@end_user.route("/change-password", methods=['GET', 'POST'])
+@user_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+
+        user_id = session['id']
+        user = User.query.get(user_id)
+
+        if not user:
+            flash('User not found', 'danger')
+            return redirect(url_for('user.profile'))
+
+        # Verify current password
+        if not check_password_hash(user.password_hash, current_password):
+            flash('Current password is incorrect', 'danger')
+            return redirect(url_for('user.change_password'))
+
+        # Validate new password
+        if new_password != confirm_password:
+            flash('New passwords do not match', 'danger')
+            return redirect(url_for('user.change_password'))
+
+        if len(new_password) < 6:
+            flash('Password must be at least 6 characters long', 'danger')
+            return redirect(url_for('user.change_password'))
+
+        # Update password
+        user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        flash('Password changed successfully', 'success')
+        return redirect(url_for('user.profile'))
+
+    return render_template('end-user/change_password.html')
 
 
 @end_user.route("/group-project/<group_project_id>", methods=['GET', 'POST'])

@@ -21,6 +21,9 @@ def create_app():
         'sqlite:///database.db'
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # Email configuration
+
 
     app.register_blueprint(auth)
     app.register_blueprint(admin)

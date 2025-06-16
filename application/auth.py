@@ -1,10 +1,9 @@
 from flask import Blueprint, render_template, redirect, request, url_for, flash, session
 from .extns import db
 from .models import User, ProjectAdmin
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 auth = Blueprint("auth", __name__)
-
 
 def is_project_admin(project_id):
     """Helper function to check if current user is admin for a specific project"""
@@ -27,12 +26,8 @@ def login():
 
         user = User.query.filter_by(email=email).first()
 
-        if not user:
-            flash("Email address does not exist! Create an account.", "danger")
-            return redirect(url_for("auth.login"))
-
-        if not check_password_hash(user.password_hash, password):
-            flash("Please enter a valid password!", "danger")
+        if not user or not check_password_hash(user.password_hash, password):
+            flash("Email address or password is incorrect!", "danger")
             return redirect(url_for("auth.login"))
 
         session['id'] = user.id

@@ -1,4 +1,5 @@
 <html>
+
 <head>
   <title>Question & Answer</title>
 
@@ -12,30 +13,41 @@
   <script src="{{url_for('static',filename='new/plugins/jQuery/jquery-2.2.3.min.js')}}"></script>
 
   <!-- Bootstrap 3.3.6 -->
-  <link href="{{url_for('static',filename='new/css/bootstrap.min.css')}}" rel="stylesheet"></link>
+  <link href="{{url_for('static',filename='new/css/bootstrap.min.css')}}" rel="stylesheet">
+  </link>
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
   <!-- Ionicons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
   <!-- Theme style -->
-  <link href="{{url_for('static',filename='new/css/AdminLTE.min.css')}}" rel="stylesheet"></link>
+  <link href="{{url_for('static',filename='new/css/AdminLTE.min.css')}}" rel="stylesheet">
+  </link>
   <!-- AdminLTE Skins. Choose a skin from the css/skins folder instead of downloading all of them to reduce the load. -->
-  <link href="{{url_for('static',filename='new/css/skins/_all-skins.min.css')}}" rel="stylesheet"></link>
+  <link href="{{url_for('static',filename='new/css/skins/_all-skins.min.css')}}" rel="stylesheet">
+  </link>
   <!-- iCheck -->
-  <link href="{{url_for('static',filename='new/plugins/iCheck/flat/blue.css')}}" rel="stylesheet"></link>
+  <link href="{{url_for('static',filename='new/plugins/iCheck/flat/blue.css')}}" rel="stylesheet">
+  </link>
   <!-- Morris chart -->
-  <link href="{{url_for('static',filename='new/plugins/morris/morris.css')}}" rel="stylesheet"></link>
+  <link href="{{url_for('static',filename='new/plugins/morris/morris.css')}}" rel="stylesheet">
+  </link>
   <!-- jvectormap -->
-  <link href="{{url_for('static',filename='new/plugins/jvectormap/jquery-jvectormap-1.2.2.css')}}" rel="stylesheet"></link>
+  <link href="{{url_for('static',filename='new/plugins/jvectormap/jquery-jvectormap-1.2.2.css')}}" rel="stylesheet">
+  </link>
   <!-- Date Picker -->
-  <link href="{{url_for('static',filename='new/plugins/datepicker/datepicker3.css')}}" rel="stylesheet"></link>
+  <link href="{{url_for('static',filename='new/plugins/datepicker/datepicker3.css')}}" rel="stylesheet">
+  </link>
   <!-- Daterange picker -->
-  <link href="{{url_for('static',filename='new/plugins/daterangepicker/daterangepicker.css')}}" rel="stylesheet"></link>
+  <link href="{{url_for('static',filename='new/plugins/daterangepicker/daterangepicker.css')}}" rel="stylesheet">
+  </link>
   <!-- bootstrap wysihtml5 - text editor -->
-  <link href="{{url_for('static',filename='new/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css')}}" rel="stylesheet"></link>
+  <link href="{{url_for('static',filename='new/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css')}}"
+    rel="stylesheet">
+  </link>
 </head>
+
 <body class="hold-transition skin-blue sidebar-mini">
-	{% if 'id' in session %}
+  {% if 'id' in session %}
   <!-- TOP NAVBAR -->
   <div class="wrapper">
     <header class="main-header">
@@ -103,25 +115,29 @@
               <a href="#" data-toggle="control-sidebar"><i class="fa fa-gears"></i></a>
             </li>
 
-						<li class="dropdown user user-menu">
-							<a href="#" class="dropdown-toggle" data-toggle="dropdown">
-								<i class="fa fa-user-circle" style="color: white; font-size: 1.4em;"></i>
-								<span class="hidden-xs"></span>
-							</a>
-							<ul class="dropdown-menu" style="width: 150px;">
+            <li class="dropdown user user-menu">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                <i class="fa fa-user-circle" style="color: white; font-size: 1.4em;"></i>
+                <span class="hidden-xs"></span>
+              </a>
+              <ul class="dropdown-menu" style="width: 150px;">
                 <li class="dropdown-menu-item">
                   <div class="text-center" style="padding: 10px;">
                     <strong>{{ session['name'] }} </strong>
-                  <div>
-								</li>
-								<li class="dropdown-menu-item">
-									<a href="#" class="">Profile</a>
-								</li>
-								<li class="dropdown-menu-item">
-									<a href="{{ url_for('auth.logout') }}">Sign out</a>
-								</li>
-							</ul>
-						</li>
+                    <div>
+                </li>
+                <li class="dropdown-menu-item">
+                  {% if session['role'] == 'end-user' %}
+                  <a href="{{ url_for('user.profile') }}" class="">Profile</a>
+                  {% elif session['role'] == 'admin' %}
+                  <a href="{{ url_for('admin.admin_profile') }}" class="">My Profile</a>
+                  {% endif %}
+                </li>
+                <li class="dropdown-menu-item">
+                  <a href="{{ url_for('auth.logout') }}">Sign out</a>
+                </li>
+              </ul>
+            </li>
           </ul>
 
         </div>
@@ -132,128 +148,131 @@
     <!-- LEFT MENU -->
     <aside class="main-sidebar">
       <ul class="sidebar-menu">
-				{% if session['role'] == 'admin' %}
-					<li>
-						<a href="{{ url_for('admin.dashboard') }}">
-							<i class="fa fa-home"></i> <span>Dashboard</span>
-						</a>
-					</li>
-					<li>
-						<a href="{{ url_for('admin.users') }}">
-							<i class="fa fa-users"></i> <span>Users</span>
-						</a>
-					</li>
-					<li>
-						<a href="{{ url_for('admin.admin_profile') }}">
-							<i class="fa fa-user-circle"></i> <span>My Profile</span>
-						</a>
-					</li>
-					<li class="treeview">
-						<a href="#">
-							<i class="fa fa-users"></i> <span>Groups</span>
-							<span class="pull-right-container">
-								<i class="fa fa-angle-left pull-right"></i>
-							</span>
-						</a>
-						<ul class="treeview-menu" style="display:block;">
-							<li><a href="{{ url_for('admin.view_groups') }}">View Groups</a></li>
-							<li><a href="{{ url_for('admin.create_group') }}">Create Group</a></li>
-							<li><a href="{{ url_for('admin.assign_project_to_group') }}">Assign Project to Group</a></li>
-						</ul>
-					</li>
-						<li class="treeview">
-							<a href="#">
-								<i class="fa fa-book"></i> <span>Projects</span>
-								<span class="pull-right-container">
-									<i class="fa fa-angle-left pull-right"></i>
-								</span>
-							</a>
-							<ul class="treeview-menu" style="display:block;">
-								<li><a href="{{ url_for('admin.view_projects') }}">View Projects</a></li>
-								<li><span style="color: #fff; padding-left: 15px; display: block;">Create Survey Project</span></li>
-								<li><a href="{{ url_for('admin.create_annotation_project') }}"><i class="fa fa-image text-blue"></i> Create Annotation Project</a></li>
-							</ul>
-						</li>
-				{% endif %}
-				{% if session['role'] == 'project-admin' %}
-					<li class="header">PROJECT ADMIN NAVIGATION</li>
-					<li>
-						<a href="{{ url_for('admin.my_projects') }}">
-							<i class="fa fa-folder"></i> <span>My Projects</span>
-						</a>
-					</li>
-					{# Project-specific links will appear on project dashboard and related pages #}
-				{% endif %}
-				{% if session['role'] == 'end-user' %}
-					<li>
-						<a href="{{ url_for('user.dashboard') }}">
-							<i class="fa fa-home"></i> <span>Dashboard</span>
-						</a>
-					</li>
-					<li>
-						<a href="{{ url_for('user.my_projects') }}">
-							<i class="fa fa-folder"></i> <span>My Group Projects</span>
-						</a>
-					</li>
-					<li>
-						<a href="{{ url_for('user.annotation_tasks') }}">
-							<i class="fa fa-image text-blue"></i> <span>Annotation Tasks</span>
-						</a>
-					</li>
-				{% endif %}
+        {% if session['role'] == 'admin' %}
+        <li>
+          <a href="{{ url_for('admin.dashboard') }}">
+            <i class="fa fa-home"></i> <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('admin.users') }}">
+            <i class="fa fa-users"></i> <span>Users</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('admin.admin_profile') }}">
+            <i class="fa fa-user-circle"></i> <span>My Profile</span>
+          </a>
+        </li>
+        <li class="treeview">
+          <a href="#">
+            <i class="fa fa-users"></i> <span>Groups</span>
+            <span class="pull-right-container">
+              <i class="fa fa-angle-left pull-right"></i>
+            </span>
+          </a>
+          <ul class="treeview-menu" style="display:block;">
+            <li><a href="{{ url_for('admin.view_groups') }}">View Groups</a></li>
+            <li><a href="{{ url_for('admin.create_group') }}">Create Group</a></li>
+            <li><a href="{{ url_for('admin.assign_project_to_group') }}">Assign Project to Group</a></li>
+          </ul>
+        </li>
+        <li class="treeview">
+          <a href="#">
+            <i class="fa fa-book"></i> <span>Projects</span>
+            <span class="pull-right-container">
+              <i class="fa fa-angle-left pull-right"></i>
+            </span>
+          </a>
+          <ul class="treeview-menu" style="display:block;">
+            <li><a href="{{ url_for('admin.view_projects') }}">View Projects</a></li>
+            <li><span style="color: #fff; padding-left: 15px; display: block;">Create Survey Project</span></li>
+            <li><a href="{{ url_for('admin.create_annotation_project') }}"><i class="fa fa-image text-blue"></i> Create
+                Annotation Project</a></li>
+          </ul>
+        </li>
+        {% endif %}
+        {% if session['role'] == 'project-admin' %}
+        <li class="header">PROJECT ADMIN NAVIGATION</li>
+        <li>
+          <a href="{{ url_for('admin.my_projects') }}">
+            <i class="fa fa-folder"></i> <span>My Projects</span>
+          </a>
+        </li>
+        {# Project-specific links will appear on project dashboard and related pages #}
+        {% endif %}
+        {% if session['role'] == 'end-user' %}
+        <li>
+          <a href="{{ url_for('user.dashboard') }}">
+            <i class="fa fa-home"></i> <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('user.my_projects') }}">
+            <i class="fa fa-folder"></i> <span>My Group Projects</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('user.annotation_tasks') }}">
+            <i class="fa fa-image text-blue"></i> <span>Annotation Tasks</span>
+          </a>
+        </li>
+        {% endif %}
       </ul>
-    </section>
-    <!-- /.sidebar -->
-  </aside>
-	{% endif %}
+      </section>
+      <!-- /.sidebar -->
+    </aside>
+    {% endif %}
 
-  <div class="content-wrapper">
-    {% block content %}
-    {% endblock %}
+    <div class="content-wrapper">
+      {% block content %}
+      {% endblock %}
 
-    {% block scripts %}
-    {% endblock %}
+      {% block scripts %}
+      {% endblock %}
+    </div>
+
+    <footer class="main-footer">
+      <strong>Copyright &copy; 2025</strong>
+    </footer>
   </div>
 
-  <footer class="main-footer">
-		<strong>Copyright &copy; 2025</strong>
-  </footer>
-</div>
-
-<!-- jQuery UI 1.11.4 -->
-<script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
-<!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
-<script>
-  $.widget.bridge('uibutton', $.ui.button);
-</script>
-<!-- Bootstrap 3.3.6 -->
-<script src="{{url_for('static',filename='new/js/bootstrap.min.js')}}"></script>
-<!-- Morris.js charts -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
-<script src="{{url_for('static',filename='new/plugins/morris/morris.min.js')}}"></script>
-<!-- Sparkline -->
-<script src="{{url_for('static',filename='new/plugins/sparkline/jquery.sparkline.min.js')}}"></script>
-<!-- jvectormap -->
-<script src="{{url_for('static',filename='new/plugins/jvectormap/jquery-jvectormap-1.2.2.min.js')}}"></script>    
-<script src="{{url_for('static',filename='new/plugins/jvectormap/jquery-jvectormap-world-mill-en.js')}}"></script>    
-<!-- jQuery Knob Chart -->
-<script src="{{url_for('static',filename='new/plugins/knob/jquery.knob.js')}}"></script>    
-<!-- daterangepicker -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.11.2/moment.min.js"></script>
-<script src="{{url_for('static',filename='new/plugins/daterangepicker/daterangepicker.js')}}"></script>    
-<!-- datepicker -->
-<script src="{{url_for('static',filename='new/plugins/datepicker/bootstrap-datepicker.js')}}"></script>    
-<!-- Bootstrap WYSIHTML5 -->
-<script src="{{url_for('static',filename='new/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.all.min.js')}}"></script>    
-<!-- Slimscroll -->
-<script src="{{url_for('static',filename='new/plugins/slimScroll/jquery.slimscroll.min.js')}}"></script>    
-<!-- FastClick -->
-<script src="{{url_for('static',filename='new/plugins/fastclick/fastclick.js')}}"></script>
-<!-- AdminLTE App -->
-<script src="{{url_for('static',filename='new/js/app.min.js')}}"></script>
-<!-- AdminLTE for demo purposes -->
-<script src="{{url_for('static',filename='new/js/demo.js')}}"></script>
-<script src="{{url_for('static',filename='new/js/pages/dashboard.js')}}"></script>
+  <!-- jQuery UI 1.11.4 -->
+  <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+  <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
+  <script>
+    $.widget.bridge('uibutton', $.ui.button);
+  </script>
+  <!-- Bootstrap 3.3.6 -->
+  <script src="{{url_for('static',filename='new/js/bootstrap.min.js')}}"></script>
+  <!-- Morris.js charts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
+  <script src="{{url_for('static',filename='new/plugins/morris/morris.min.js')}}"></script>
+  <!-- Sparkline -->
+  <script src="{{url_for('static',filename='new/plugins/sparkline/jquery.sparkline.min.js')}}"></script>
+  <!-- jvectormap -->
+  <script src="{{url_for('static',filename='new/plugins/jvectormap/jquery-jvectormap-1.2.2.min.js')}}"></script>
+  <script src="{{url_for('static',filename='new/plugins/jvectormap/jquery-jvectormap-world-mill-en.js')}}"></script>
+  <!-- jQuery Knob Chart -->
+  <script src="{{url_for('static',filename='new/plugins/knob/jquery.knob.js')}}"></script>
+  <!-- daterangepicker -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.11.2/moment.min.js"></script>
+  <script src="{{url_for('static',filename='new/plugins/daterangepicker/daterangepicker.js')}}"></script>
+  <!-- datepicker -->
+  <script src="{{url_for('static',filename='new/plugins/datepicker/bootstrap-datepicker.js')}}"></script>
+  <!-- Bootstrap WYSIHTML5 -->
+  <script
+    src="{{url_for('static',filename='new/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.all.min.js')}}"></script>
+  <!-- Slimscroll -->
+  <script src="{{url_for('static',filename='new/plugins/slimScroll/jquery.slimscroll.min.js')}}"></script>
+  <!-- FastClick -->
+  <script src="{{url_for('static',filename='new/plugins/fastclick/fastclick.js')}}"></script>
+  <!-- AdminLTE App -->
+  <script src="{{url_for('static',filename='new/js/app.min.js')}}"></script>
+  <!-- AdminLTE for demo purposes -->
+  <script src="{{url_for('static',filename='new/js/demo.js')}}"></script>
+  <script src="{{url_for('static',filename='new/js/pages/dashboard.js')}}"></script>
 
 </body>
+
 </html>

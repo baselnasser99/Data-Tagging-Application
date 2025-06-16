@@ -463,7 +463,7 @@ def delete_project(project_id):
 
 
 @admin.route("/edit-project/<int:project_id>", methods=['GET', 'POST'])
-@admin_required
+@project_admin_required
 def edit_project(project_id):
     project = Project.query.get_or_404(project_id)
 
@@ -517,6 +517,7 @@ def view_questions(project_id):
 
 
 @admin.route("/download-files/<int:project_id>")
+@project_admin_required
 def download_files(project_id):
     project = Project.query.get(project_id)
     if project:
@@ -554,6 +555,7 @@ def download_files(project_id):
 
 # Download answers per user
 @admin.route("/download-answers/<int:user_id>")
+@admin_required
 def download_answers(user_id):
     user = User.query.get(user_id)
     if not user:
@@ -686,6 +688,7 @@ def admin_profile():
     
 #Download answers per projects by user
 @admin.route("/download-full")
+@admin_required
 def full_download():
     projects = Project.query.all()
     output = io.StringIO()
@@ -756,12 +759,19 @@ def create_group():
     return render_template("admin/create_group.html")
 
 
-@admin.route("/manage-group/<int:group_id>", methods=['GET', 'POST'])
-@admin_required
-def manage_group(group_id):
+@admin.route("/manage-group/<int:project_id>/<int:group_id>", methods=['GET', 'POST'])
+@project_admin_required
+def manage_group(project_id, group_id):
     group = UserGroup.query.get_or_404(group_id)
 
+    # Verify that the group is assigned to the project the admin has access to
+    group_project_link = GroupProject.query.filter_by(group_id=group_id, project_id=project_id).first()
+    if not group_project_link:
+        flash('This group is not associated with your project, or you do not have permission to manage it.', 'danger')
+        return redirect(url_for('admin.project_groups', project_id=project_id))
+
     if request.method == 'POST':
+        print(f"DEBUG: POST request received in manage_group. Form data: {request.form}")
         action = request.form.get('action')
 
         if action == 'add_user':
@@ -794,7 +804,7 @@ def manage_group(group_id):
             else:
                 flash('User not found in group or user object not found', 'danger')
 
-        return redirect(url_for("admin.manage_group", group_id=group_id))
+        return redirect(url_for("admin.manage_group", project_id=project_id, group_id=group_id))
 
     # Get all users not in this group
     current_member_ids = [m.user_id for m in group.members]

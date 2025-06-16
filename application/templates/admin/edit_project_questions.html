@@ -217,10 +217,12 @@
                                                 <p><a href="/static/uploads/{{ question.file_path }}" target="_blank">View File</a></p>
                                             </div>
                                             {% endif %}
+                                            {% if not project.is_annotation_project %}
                                             <div class="form-group">
                                                 <label for="questionfile-{{ question.id }}">Upload File (Optional)</label>
                                                 <input type="file" id="questionfile-{{ question.id }}" name="questionfile-{{ question.id }}">
                                             </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                     

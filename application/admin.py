@@ -1588,6 +1588,12 @@ def add_project_admin(project_id):
         flash('User not found.', 'danger')
         return redirect(url_for('admin.project_admins', project_id=project_id))
     
+    # Check if a project admin already exists for this project
+    existing_project_manager = ProjectAdmin.query.filter_by(project_id=project_id).first()
+    if existing_project_manager:
+        flash('This project already has a manager. Only one manager is allowed per project.', 'danger')
+        return redirect(url_for('admin.project_admins', project_id=project_id))
+    
     # Check if user is already a project admin for this project
     existing_admin = ProjectAdmin.query.filter_by(
         user_id=user.id,
@@ -1688,6 +1694,12 @@ def create_project_admin(project_id):
             flash('A user with this email already exists.', 'danger')
             return redirect(url_for('admin.create_project_admin', project_id=project_id))
         
+        # Check if a project admin already exists for this project
+        existing_project_manager = ProjectAdmin.query.filter_by(project_id=project_id).first()
+        if existing_project_manager:
+            flash('This project already has a manager. Only one manager is allowed per project.', 'danger')
+            return redirect(url_for('admin.project_admins', project_id=project_id))
+
         # Create new user and assign as project admin
         new_user = User()
         new_user.register_project_admin(fullname, email, password, project_id, current_user_id)

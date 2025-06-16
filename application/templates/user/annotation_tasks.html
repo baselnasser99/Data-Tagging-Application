@@ -1,133 +1,67 @@
 {% extends "base.html" %}
 
-{% block title %}My Annotation Tasks{% endblock %}
+{% block title %}Annotation Tasks{% endblock %}
 
 {% block content %}
 <section class="content-header">
-  <h1>My Annotation Tasks</h1>
+  <h1>Annotation Tasks</h1>
   <ol class="breadcrumb">
     <li><a href="{{ url_for('user.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-    <li class="active">Annotation Tasks</li>
+    <li class="active"><i class="fa fa-image"></i> Annotation Tasks</li>
   </ol>
 </section>
 
 <section class="content">
-  {% if projects_data %}
-  {% for project_id, data in projects_data.items() %}
-  <div class="box box-primary">
-    <div class="box-header with-border">
-      <h3 class="box-title">
-        <i class="fa fa-image"></i> {{ data.project.name }}
-      </h3>
-      <div class="box-tools pull-right">
-        <span class="badge bg-blue">{{ data.completed_tasks }}/{{ data.total_tasks }} completed</span>
-      </div>
-    </div>
-    
-    <div class="box-body">
-      <p class="text-muted">{{ data.project.desc }}</p>
-      
-      <!-- Progress Bar -->
-      <div class="progress progress-sm">
-        <div class="progress-bar bg-green"
-             style="width: {{ (data.completed_images / data.total_images * 100) if data.total_images > 0 else 0 }}%">
-        </div>
-      </div>
-      <p class="text-sm">
-        <strong>Images:</strong> {{ data.completed_images }} of {{ data.total_images }} completed
-        ({{ "%.1f"|format((data.completed_images / data.total_images * 100) if data.total_images > 0 else 0) }}%) |
-        <strong>Tasks:</strong> {{ data.completed_tasks }} of {{ data.total_tasks }} completed
-      </p>
-
-      <!-- Image List with All Questions -->
-      <div class="row">
-        {% for image_id, image_data in data.images.items() %}
-        {% if loop.index <= 12 %}
-        <div class="col-md-4 col-sm-6 col-xs-12" style="margin-bottom: 20px;">
-          <div class="box box-default">
-            <div class="box-header with-border">
-              <h4 class="box-title">
-                {{ image_data.image.original_filename[:20] }}{% if image_data.image.original_filename|length > 20 %}...{% endif %}
-              </h4>
-              <div class="box-tools pull-right">
-                <span class="badge bg-blue">{{ image_data.completed_count }}/{{ image_data.total_count }}</span>
-              </div>
-            </div>
-            <div class="box-body text-center">
-              <img src="{{ url_for('static', filename='uploads/images/' + data.project.id|string + '/' + image_data.image.filename) }}"
-                   class="img-responsive center-block"
-                   style="height: 150px; width: 100%; object-fit: cover; border-radius: 5px;">
-
-              <div style="margin-top: 10px;">
-                <h6><strong>Questions to Answer:</strong></h6>
-                {% for assignment in image_data.assignments %}
-                <p class="text-sm" style="margin: 2px 0;">
-                  {% if assignment.is_completed %}
-                  <i class="fa fa-check text-green"></i>
-                  {% else %}
-                  <i class="fa fa-circle-o text-muted"></i>
-                  {% endif %}
-                  {{ assignment.task.question.question[:40] }}{% if assignment.task.question.question|length > 40 %}...{% endif %}
-                </p>
-                {% endfor %}
-              </div>
-            </div>
-            <div class="box-footer text-center">
-              {% if image_data.completed_count == image_data.total_count %}
-              <span class="badge bg-green">
-                <i class="fa fa-check"></i> All Questions Completed
-              </span>
-              {% else %}
-              <a href="{{ url_for('user.annotate_image', image_id=image_data.image.id, project_id=data.project.id) }}"
-                 class="btn btn-primary btn-sm">
-                <i class="fa fa-edit"></i> Answer Questions ({{ image_data.total_count - image_data.completed_count }} left)
-              </a>
-              {% endif %}
-            </div>
+  <div class="row">
+    {% if assignments %}
+    {% for assignment in assignments %}
+    <div class="col-md-4 col-sm-6 col-xs-12" style="margin-bottom: 20px;">
+      <div class="box box-default">
+        <div class="box-header with-border">
+          <h4 class="box-title">
+            {{ assignment.task.image.original_filename[:20] }}{% if assignment.task.image.original_filename|length > 20 %}...{% endif %}
+          </h4>
+          <div class="box-tools pull-right">
+            {% if assignment.is_completed %}
+            <span class="badge bg-green">Completed</span>
+            {% else %}
+            <span class="badge bg-yellow">Pending</span>
+            {% endif %}
           </div>
         </div>
-        {% endif %}
-        {% endfor %}
-      </div>
+        <div class="box-body text-center">
+          <img src="{{ url_for('static', filename='uploads/images/' + assignment.task.project.id|string + '/' + assignment.task.image.filename) }}"
+               class="img-responsive center-block"
+               style="height: 150px; width: 100%; object-fit: cover; border-radius: 5px;">
 
-      {% if data.images|length > 12 %}
-      <p class="text-center text-muted">... and {{ data.images|length - 12 }} more images</p>
-      {% endif %}
+          <div style="margin-top: 10px;">
+            <h6><strong>Question:</strong></h6>
+            <p class="text-sm" style="margin: 2px 0;">
+              {{ assignment.task.question.question[:40] }}{% if assignment.task.question.question|length > 40 %}...{% endif %}
+            </p>
+          </div>
+
+          <div class="box-footer">
+            <a href="{{ url_for('user.annotation_task', assignment_id=assignment.id) }}" class="btn btn-primary btn-block">
+              <i class="fa fa-pencil"></i> Answer Question
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
-    
-    <div class="box-footer">
-      {% if data.completed_images < data.total_images %}
-      {% set found_incomplete = false %}
-      {% for image_id, image_data in data.images.items() %}
-      {% if image_data.completed_count < image_data.total_count and not found_incomplete %}
-      {% set found_incomplete = true %}
-      <a href="{{ url_for('user.annotate_image', image_id=image_data.image.id, project_id=data.project.id) }}"
-         class="btn btn-primary">
-        <i class="fa fa-play"></i> Continue Annotation
-      </a>
-      {% endif %}
-      {% endfor %}
-      {% else %}
-      <span class="text-success">
-        <i class="fa fa-check-circle"></i> All images completed!
-      </span>
-      {% endif %}
+    {% endfor %}
+    {% else %}
+    <div class="col-md-12">
+      <div class="box box-info">
+        <div class="box-header with-border">
+          <h3 class="box-title"><i class="fa fa-info-circle"></i> No Annotation Tasks</h3>
+        </div>
+        <div class="box-body">
+          <p>You currently have no annotation tasks assigned to you. Please contact your administrator.</p>
+        </div>
+      </div>
     </div>
+    {% endif %}
   </div>
-  {% endfor %}
-  
-  {% else %}
-  <div class="box box-default">
-    <div class="box-header with-border">
-      <h3 class="box-title">
-        <i class="fa fa-info-circle"></i> No Annotation Tasks
-      </h3>
-    </div>
-    <div class="box-body text-center">
-      <p class="text-muted">You don't have any annotation tasks assigned yet.</p>
-      <p>Contact your administrator to get assigned to annotation projects.</p>
-    </div>
-  </div>
-  {% endif %}
 </section>
 {% endblock %}

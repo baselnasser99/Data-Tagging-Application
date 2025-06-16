@@ -314,56 +314,14 @@ def view_group_project(group_project_id):
 @end_user.route("/annotation-tasks")
 @user_required
 def annotation_tasks():
-    """View assigned annotation tasks grouped by image"""
+    """View assigned annotation tasks (one card per image-question pair)"""
     user_id = session["id"]
 
-    # Get all annotation task assignments for this user
-    assignments = TaskAssignment.query.filter_by(user_id=user_id).all()
+    # Get all annotation task assignments for this user, ordered by project, then image
+    assignments = TaskAssignment.query.filter_by(user_id=user_id).join(AnnotationTask).order_by(AnnotationTask.project_id, AnnotationTask.image_id, AnnotationTask.question_id).all()
 
-    # Group by project and then by image
-    projects_data = {}
-    for assignment in assignments:
-        task = assignment.task
-        project = task.project
-        image = task.image
-
-        if project.id not in projects_data:
-            projects_data[project.id] = {
-                'project': project,
-                'images': {},
-                'total_images': 0,
-                'completed_images': 0,
-                'total_tasks': 0,
-                'completed_tasks': 0
-            }
-
-        # Group tasks by image
-        if image.id not in projects_data[project.id]['images']:
-            projects_data[project.id]['images'][image.id] = {
-                'image': image,
-                'assignments': [],
-                'completed_count': 0,
-                'total_count': 0
-            }
-            projects_data[project.id]['total_images'] += 1
-
-        # Add assignment to image group
-        projects_data[project.id]['images'][image.id]['assignments'].append(assignment)
-        projects_data[project.id]['images'][image.id]['total_count'] += 1
-        projects_data[project.id]['total_tasks'] += 1
-
-        if assignment.is_completed:
-            projects_data[project.id]['images'][image.id]['completed_count'] += 1
-            projects_data[project.id]['completed_tasks'] += 1
-
-    # Calculate completed images (all questions for an image are done)
-    for project_id in projects_data:
-        for image_id in projects_data[project_id]['images']:
-            image_data = projects_data[project_id]['images'][image_id]
-            if image_data['completed_count'] == image_data['total_count']:
-                projects_data[project_id]['completed_images'] += 1
-
-    return render_template("user/annotation_tasks.html", projects_data=projects_data)
+    # Pass the flat list of assignments directly to the template
+    return render_template("user/annotation_tasks.html", assignments=assignments)
 
 
 @end_user.route("/annotation-task/<int:assignment_id>", methods=["GET", "POST"])

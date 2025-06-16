@@ -140,8 +140,41 @@ def dashboard():
 @admin.route("/users")
 @admin_required
 def users():
-    users = User.query.filter_by(role='end-user').all()
-    return render_template('admin/users.html', users=users)
+    users_data = []
+    end_users = User.query.filter_by(role='end-user').all()
+
+    for user in end_users:
+        assigned_projects = set()
+
+        # 1. Get projects directly assigned to the user (if applicable)
+        # This part might be for non-annotation projects or older assignments
+        direct_project_assignments = UserQuestionAssignment.query.filter_by(user_id=user.id).all()
+        for assignment in direct_project_assignments:
+            question = Question.query.get(assignment.question_id)
+            if question and question.project:
+                assigned_projects.add(question.project.id)
+        
+        # 2. Get projects assigned through groups
+        user_group_memberships = UserGroupMembership.query.filter_by(user_id=user.id).all()
+        for membership in user_group_memberships:
+            group_projects = GroupProject.query.filter_by(group_id=membership.group_id).all()
+            for gp in group_projects:
+                if gp.project:
+                    assigned_projects.add(gp.project.id)
+        
+        # 3. Get projects assigned through TaskAssignment for annotation projects
+        # This is crucial for annotation projects since tasks are assigned, not questions directly
+        annotation_task_assignments = TaskAssignment.query.filter_by(user_id=user.id).all()
+        for task_assign in annotation_task_assignments:
+            if task_assign.task and task_assign.task.project:
+                assigned_projects.add(task_assign.task.project.id)
+
+        users_data.append({
+            'user': user,
+            'assigned_projects_count': len(assigned_projects),
+            'assigned_groups': [m.group for m in user_group_memberships if m.group]
+        })
+    return render_template('admin/users.html', users_data=users_data)
 
 @admin.route("/import-users", methods=['GET', 'POST'])
 @admin_required
@@ -519,64 +552,87 @@ def download_files(project_id):
         return redirect(url_for('admin.view_projects'))
 
 
-# Download answers per user (group assignments only)
+# Download answers per user
 @admin.route("/download-answers/<int:user_id>")
 def download_answers(user_id):
     user = User.query.get(user_id)
-    if user:
-        output = io.StringIO()
-        writer = csv.writer(output)
-
-        # Get user's question assignments from groups
-        assignments = UserQuestionAssignment.query.filter_by(user_id=user_id).all()
-
-        if assignments:
-            # Group assignments by project
-            projects_data = {}
-            for assignment in assignments:
-                question = assignment.question
-                project = question.belongs_to
-
-                if project.id not in projects_data:
-                    projects_data[project.id] = {
-                        'project': project,
-                        'questions': []
-                    }
-                projects_data[project.id]['questions'].append(question)
-
-            # Write data for each project
-            for project_data in projects_data.values():
-                project = project_data['project']
-                questions = project_data['questions']
-
-                writer.writerow(['Project Name', project.name])
-                writer.writerow(['Project Description', project.desc])
-                writer.writerow(['Question', 'Answer', 'File Path'])
-
-                for question in questions:
-                    answer_obj = QuestionAnswer.query.filter_by(user_id=user_id, question_id=question.id).first()
-                    answer = answer_obj.answer if answer_obj else 'Not answered'
-                    file_path = 'No File'
-                    if question.file_path:
-                        file_path = f"http://localhost:5000/static/uploads/{question.file_path}"
-                    writer.writerow([question.question, answer, file_path])
-                writer.writerow([''])  # Empty line
-        else:
-            writer.writerow(['No assignments found for this user'])
-
-        output.seek(0)
-
-        # Convert StringIO to BytesIO for send_file
-        mem = io.BytesIO()
-        mem.write(output.getvalue().encode())
-        mem.seek(0)
-
-        response = make_response(send_file(
-            mem, as_attachment=True, download_name='user_answers.txt', mimetype='text/plain'))
-        return response
-    else:
+    if not user:
         flash('User not found', 'danger')
-        return redirect(url_for('admin.view_groups'))
+        return redirect(url_for('admin.view_users')) # Assuming view_users is the correct redirect
+
+    # Fetch all answers by this user
+    user_answers = QuestionAnswer.query.filter_by(user_id=user_id).order_by(QuestionAnswer.submitted_date).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # CSV Header
+    header = [
+        'User Email',
+        'Project Name',
+        'Project Type',
+        'Question Text',
+        'Answer',
+        'Answer Type',
+        'Image Filename',
+        'Submitted Date',
+        'Is Completed Assignment'
+    ]
+    writer.writerow(header)
+
+    if user_answers:
+        for answer_obj in user_answers:
+            question = answer_obj.question
+            project = None
+            image_filename = 'N/A'
+            is_completed_assignment = False
+
+            if answer_obj.task_assignment_id: # This answer is linked to an annotation task assignment
+                task_assignment = TaskAssignment.query.get(answer_obj.task_assignment_id)
+                if task_assignment and task_assignment.task: # Ensure task and project exist
+                    project = task_assignment.task.project
+                    if task_assignment.task.image:
+                        image_filename = task_assignment.task.image.original_filename
+                    is_completed_assignment = task_assignment.is_completed
+            elif question and question.belongs_to: # This is a regular question directly linked to a project
+                project = question.belongs_to
+                # For regular questions, there's no direct image association in this context
+            
+            project_name = project.name if project else 'N/A'
+            project_type = 'Annotation' if (project and project.is_annotation_project) else 'Regular'
+            question_text = question.question if question else 'N/A'
+            answer_text = answer_obj.answer
+            answer_type = question.answer_type.name if question and question.answer_type else 'N/A'
+            submitted_date = answer_obj.submitted_date.strftime('%Y-%m-%d %H:%M:%S') if answer_obj.submitted_date else 'N/A'
+
+            writer.writerow([
+                user.email,
+                project_name,
+                project_type,
+                question_text,
+                answer_text,
+                answer_type,
+                image_filename,
+                submitted_date,
+                'Yes' if is_completed_assignment else 'No'
+            ])
+    else:
+        writer.writerow(['','','','No answers found for this user','','','','',''])
+
+    output.seek(0)
+
+    # Prepare for download
+    mem = io.BytesIO()
+    mem.write(output.getvalue().encode('utf-8')) # Ensure UTF-8 encoding
+    mem.seek(0)
+
+    response = make_response(send_file(
+        mem,
+        as_attachment=True,
+        download_name=f'user_{user.email}_answers.csv',
+        mimetype='text/csv'
+    ))
+    return response
 
 
 @admin.route("/profile", methods=['GET', 'POST'])

@@ -37,21 +37,21 @@
             </tr>
           </thead>
           <tbody>
-            {% for user in users %}
+            {% for user_data in users_data %}
               <tr>
                 <td>{{ loop.index }}</td>
-                <td>{{ user.full_name }}</td>
-                <td>{{ user.email }}</td>
+                <td>{{ user_data.user.full_name }}</td>
+                <td>{{ user_data.user.email }}</td>
                 <td>
-                  {% for membership in user.group_memberships %}
-                    <span class="badge badge-primary">{{ membership.group.name }}</span>{% if not loop.last %}, {% endif %}
+                  {% for group in user_data.assigned_groups %}
+                    <span class="badge badge-primary">{{ group.name }}</span>{% if not loop.last %}, {% endif %}
                   {% else %}
                     No Groups
                   {% endfor %}
                 </td>
-                <td>{{ user.assigned_projects | length }}</td>
+                <td>{{ user_data.assigned_projects_count }}</td>
                 <td>
-  							<a class="btn btn-success btn-sm w-100" href="{{ url_for('admin.download_answers', user_id=user.id) }}">Download</a>
+  							<a class="btn btn-success btn-sm w-100" href="{{ url_for('admin.download_answers', user_id=user_data.user.id) }}">Download</a>
                 </td>
               </tr>
             {% endfor %}

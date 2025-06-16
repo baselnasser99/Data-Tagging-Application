@@ -55,16 +55,16 @@
                 <div class="form-group">
                   <label for="total_questions">Total Questions</label>
                   <input type="number" class="form-control" id="total_questions"
-                         name="total_questions" value="5" min="1" max="20" required>
-                  <p class="help-block">Total number of questions you want to create for this project.</p>
+                         name="total_questions" value="0" min="0" max="20">
+                  <p class="help-block">Total number of questions you want to create for this project. Set to 0 for no initial questions.</p>
                 </div>
               </div>
 
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="assigned_group_id">Assign to Group</label>
-                  <select class="form-control" id="assigned_group_id" name="assigned_group_id" required>
-                    <option value="">Select a group...</option>
+                  <select class="form-control" id="assigned_group_id" name="assigned_group_id">
+                    <option value="">Select a group (Optional)...</option>
                     {% for group in groups %}
                       <option value="{{ group.id }}">{{ group.name }}</option>
                     {% endfor %}
@@ -169,7 +169,7 @@ $(document).ready(function() {
                     <div class="form-group">
                         <label for="question_${index}">Question ${index}:</label>
                         <input type="text" class="form-control" id="question_${index}" name="question_${index}"
-                               placeholder="Enter your question here" required>
+                               placeholder="Enter your question here">
                     </div>
                 </div>
             </div>
@@ -178,31 +178,29 @@ $(document).ready(function() {
 
     // Update questions when total_questions changes
     $('#total_questions').on('change', function() {
-        const totalQuestions = parseInt($(this).val());
+        let totalQuestions = parseInt($(this).val());
         const questionsContainer = $('#dynamic-questions');
         questionsContainer.empty();
 
         // Validate input
-        if (totalQuestions < 1) {
-            $(this).val(1);
-            totalQuestions = 1;
+        if (totalQuestions < 0) {
+            $(this).val(0);
+            totalQuestions = 0;
         } else if (totalQuestions > 20) {
             $(this).val(20);
             totalQuestions = 20;
         }
 
-        // Create question inputs
-        for (let i = 1; i <= totalQuestions; i++) {
-            questionsContainer.append(createQuestionInput(i));
+        // Create question inputs only if totalQuestions > 0
+        if (totalQuestions > 0) {
+            for (let i = 1; i <= totalQuestions; i++) {
+                questionsContainer.append(createQuestionInput(i));
+            }
         }
     });
     
-    // Initialize by marking the default 5 questions with the question-row class
-    $('#questions-container > .row').addClass('question-row');
-    
-    // Set initial question count
-    var initialCount = parseInt($('#questions_per_image').val());
-    updateQuestionSummary(initialCount);
+    // Initial call to set question inputs based on default value (now 0)
+    $('#total_questions').trigger('change');
 });
 </script>
 {% endblock %}

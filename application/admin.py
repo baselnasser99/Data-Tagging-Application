@@ -335,56 +335,80 @@ def import_users():
     return render_template('admin/import_users.html', groups=groups, projects=projects)
 
 @admin.route("/create-project", methods=['GET', 'POST'])
-@admin_required
+@project_admin_access_required
 def create_project():
-
     if request.method == 'POST':
         project_name = request.form.get("project_name")
         project_desc = request.form.get("project_desc")
+        assigned_group_id = request.form.get("assigned_group_id")
 
         project = Project(name=project_name,
                           desc=project_desc)
         db.session.add(project)
         db.session.commit()
 
-        # Save questions
-        total_questions = int(request.form.get("total_questions"))
-        for i in range(1, total_questions + 1):
-            file_key = f'question-{i}-file'
-            question_text = request.form.get(f"question-{i}")
-            file_path = request.files.get(f"question-{i}-file")
-            filename = None
-            if file_path:
-                filename = str(uuid.uuid4()) + \
-                    secure_filename(file_path.filename)
+        # If the current user is a project-admin, assign them as an admin for this new project
+        if session.get('role') == 'project-admin':
+            current_user_id = session.get('id')
+            if current_user_id:
+                from .models import ProjectAdmin # Import locally to avoid circular dependency
+                new_project_admin = ProjectAdmin(
+                    user_id=current_user_id,
+                    project_id=project.id,
+                    assigned_by=current_user_id # Self-assigned
+                )
+                db.session.add(new_project_admin)
+                # No commit here, will commit all at once later
 
-                file_path.save(os.path.join(
-                    'application', 'static', 'uploads', filename))
+        # Assign project to selected group (optional at creation)
+        if assigned_group_id:
+            group = UserGroup.query.get(assigned_group_id)
+            if group:
+                existing_assignment = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
+                if not existing_assignment:
+                    group_project = GroupProject(group_id=group.id, project_id=project.id)
+                    db.session.add(group_project)
+                    # No task distribution here; tasks are generated after images are uploaded
 
-            answer_type_value = request.form.get(f"dropdown-{i}")
-            answer_type = AnswerType.TEXT if answer_type_value == 'text' else AnswerType.MCQ
-            number_of_options = int(request.form.get(f"number_of_options-{i}", 0))
-            answer = request.form.get(f"answer-{i}")
+        # Save questions if any are provided
+        total_questions_str = request.form.get("total_questions")
+        if total_questions_str and int(total_questions_str) > 0:
+            total_questions = int(total_questions_str)
+            for i in range(1, total_questions + 1):
+                file_key = f'question-{i}-file'
+                question_text = request.form.get(f"question-{i}")
+                file_path = request.files.get(f"question-{i}-file")
+                filename = None
+                if file_path and file_path.filename:
+                    filename = str(uuid.uuid4()) + \
+                        secure_filename(file_path.filename)
 
-            # Create and save question
-            question = Question(
-                question=question_text,
-                file_path=filename,
-                project_id=project.id,
-                answer_type=answer_type,
-                number_of_options=number_of_options,
-                answer=answer
-            )
+                    file_path.save(os.path.join(
+                        'application', 'static', 'uploads', filename))
 
-            # Save MCQ options if applicable
-            if answer_type == AnswerType.MCQ:
-                for opt_num in range(1, number_of_options + 1):
-                    setattr(question, f"option{opt_num}", request.form.get(
-                        f"mcq-option-{opt_num}-{i}"))
+                answer_type_value = request.form.get(f"dropdown-{i}")
+                answer_type = AnswerType.TEXT if answer_type_value == 'text' else AnswerType.MCQ
+                number_of_options = int(request.form.get(f"number_of_options-{i}", 0))
+                answer = request.form.get(f"answer-{i}")
 
-            db.session.add(question)
+                # Create and save question
+                question = Question(
+                    question=question_text,
+                    file_path=filename,
+                    project_id=project.id,
+                    answer_type=answer_type,
+                    number_of_options=number_of_options,
+                    answer=answer
+                )
 
-        db.session.commit()
+                # Save MCQ options if applicable
+                if answer_type == AnswerType.MCQ:
+                    for opt_num in range(1, number_of_options + 1):
+                        setattr(question, f"option{opt_num}", request.form.get(
+                            f"mcq-option-{opt_num}-{i}"))
+
+                db.session.add(question)
+            db.session.commit() # Commit questions separately if needed, or after main project commit
 
         flash("Form data saved successfully!", "success")
         return redirect(url_for("admin.view_projects"))
@@ -471,6 +495,7 @@ def edit_project(project_id):
         project_data = request.form.to_dict(flat=True)
         project_name = project_data.get('project-name')
         project_desc = project_data.get('project-description')
+        print(f"DEBUG: Edit Project - Received project_name: {project_name}, project_desc: {project_desc}")
 
         project.name = project_name
         project.desc = project_desc
@@ -756,12 +781,55 @@ def create_group():
         flash("Group created successfully!", "success")
         return redirect(url_for("admin.view_groups"))
 
-    return render_template("admin/create_group.html")
 
+@admin.route("/manage-group/<int:group_id>", methods=['GET', 'POST'])
+@admin_required
+def manage_group(group_id):
+    group = UserGroup.query.get_or_404(group_id)
 
-@admin.route("/manage-group/<int:project_id>/<int:group_id>", methods=['GET', 'POST'])
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'add_user':
+            user_id = request.form.get('user_id')
+            user = User.query.get(user_id)
+
+            if user:
+                existing = UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).first()
+                if existing:
+                    flash('User is already in this group', 'warning')
+                else:
+                    membership = UserGroupMembership(user_id=user.id, group_id=group.id)
+                    db.session.add(membership)
+                    db.session.commit()
+                    flash('User added to group successfully!', 'success')
+            else:
+                flash('User not found', 'danger')
+
+        elif action == 'remove_user':
+            user_id = request.form.get('user_id')
+            user = User.query.get(user_id)
+            membership = UserGroupMembership.query.filter_by(user_id=user_id, group_id=group.id).first()
+            if membership and user:
+                db.session.delete(membership)
+                db.session.commit()
+                flash('User removed from group successfully!', 'success')
+            else:
+                flash('User not found in group or user object not found', 'danger')
+
+        return redirect(url_for("admin.manage_group", group_id=group_id))
+
+    current_member_ids = [m.user_id for m in group.members]
+    available_users = User.query.filter(
+        User.role == 'end-user',
+        ~User.id.in_(current_member_ids)
+    ).all()
+
+    return render_template("admin/manage_group.html", group=group, available_users=available_users)
+
+@admin.route("/project/<int:project_id>/manage-group/<int:group_id>", methods=['GET', 'POST'])
 @project_admin_required
-def manage_group(project_id, group_id):
+def manage_group_for_project(project_id, group_id):
     group = UserGroup.query.get_or_404(group_id)
 
     # Verify that the group is assigned to the project the admin has access to
@@ -771,7 +839,6 @@ def manage_group(project_id, group_id):
         return redirect(url_for('admin.project_groups', project_id=project_id))
 
     if request.method == 'POST':
-        print(f"DEBUG: POST request received in manage_group. Form data: {request.form}")
         action = request.form.get('action')
 
         if action == 'add_user':
@@ -779,7 +846,6 @@ def manage_group(project_id, group_id):
             user = User.query.get(user_id)
 
             if user:
-                # Check if user is already in group
                 existing = UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).first()
                 if existing:
                     flash('User is already in this group', 'warning')
@@ -787,26 +853,25 @@ def manage_group(project_id, group_id):
                     membership = UserGroupMembership(user_id=user.id, group_id=group.id)
                     db.session.add(membership)
                     db.session.commit()
-                    assign_questions_to_new_group_member(user, group) # Call new function
+                    assign_questions_to_new_group_member(user, group)
                     flash('User added to group successfully and assignments updated', 'success')
             else:
                 flash('User not found', 'danger')
 
         elif action == 'remove_user':
             user_id = request.form.get('user_id')
-            user = User.query.get(user_id) # Get the user object
+            user = User.query.get(user_id)
             membership = UserGroupMembership.query.filter_by(user_id=user_id, group_id=group.id).first()
             if membership and user:
-                remove_pending_assignments_from_removed_group_member(user, group) # Call new function
+                remove_pending_assignments_from_removed_group_member(user, group)
                 db.session.delete(membership)
                 db.session.commit()
                 flash('User removed from group successfully and pending assignments removed', 'success')
             else:
                 flash('User not found in group or user object not found', 'danger')
 
-        return redirect(url_for("admin.manage_group", project_id=project_id, group_id=group_id))
+        return redirect(url_for("admin.manage_group_for_project", project_id=project_id, group_id=group_id))
 
-    # Get all users not in this group
     current_member_ids = [m.user_id for m in group.members]
     available_users = User.query.filter(
         User.role == 'end-user',
@@ -892,18 +957,22 @@ def remove_pending_assignments_from_removed_group_member(user, group):
 
 
 @admin.route("/assign-project-to-group", methods=['GET', 'POST'])
-@admin_required
+@project_admin_access_required
 def assign_project_to_group():
     if request.method == 'POST':
+        print(f"DEBUG: assign_project_to_group - POST request received.")
         group_id = request.form.get('group_id')
         project_id = request.form.get('project_id')
+        print(f"DEBUG: assign_project_to_group - group_id: {group_id}, project_id: {project_id}")
         group = UserGroup.query.get(group_id)
         project = Project.query.get(project_id)
 
         if group and project:
+            print(f"DEBUG: assign_project_to_group - Group and Project found. Group: {group.name}, Project: {project.name}")
             # Check if project is already assigned to group
             existing = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
             if existing:
+                print(f"DEBUG: assign_project_to_group - Existing assignment found.")
                 flash('This project is already assigned to this group', 'warning')
                 return redirect(url_for("admin.assign_project_to_group"))
 
@@ -911,18 +980,54 @@ def assign_project_to_group():
             group_project = GroupProject(group_id=group.id, project_id=project.id)
             db.session.add(group_project)
             db.session.commit()
+            print(f"DEBUG: assign_project_to_group - GroupProject added and committed.")
 
-            # Distribute questions among group members
-            distribute_questions_to_group(group, project)
+            # Logic for distributing questions/tasks based on project type and content
+            if project.is_annotation_project:
+                images = ProjectImage.query.filter_by(project_id=project.id).all()
+                questions = Question.query.filter_by(project_id=project.id).all()
 
-            flash('Project assigned to group and questions distributed successfully', 'success')
+                if images and questions:
+                    # Only generate and assign tasks if images and questions exist
+                    new_tasks, tasks_created = _generate_project_tasks(project.id)
+                    group_members_users = [m.user for m in group.members if m.user]
+                    if new_tasks and tasks_created > 0 and group_members_users:
+                        assign_tasks_to_users(new_tasks, group_members_users, project.max_questions_per_user, project.answers_per_task)
+                        flash(f'Project "{project.name}" assigned to group "{group.name}" and {tasks_created} tasks distributed successfully!', 'success')
+                    else:
+                        flash(f'Project "{project.name}" assigned to group "{group.name}", but no tasks generated or assigned (no images/questions or group members). You can upload images and add questions later.', 'warning')
+                else:
+                    flash(f'Project "{project.name}" assigned to group "{group.name}". No images or questions found yet to generate tasks. Please upload images and add questions to the project.', 'warning')
+            else: # Regular survey project
+                questions = project.questions
+                if questions:
+                    distribute_questions_to_group(group, project)
+                    flash(f'Project "{project.name}" assigned to group "{group.name}" and questions distributed successfully!', 'success')
+                else:
+                    flash(f'Project "{project.name}" assigned to group "{group.name}". No questions found yet. Please add questions to the project.', 'warning')
+            
             return redirect(url_for("admin.assign_project_to_group"))
         else:
             flash('Invalid selection', 'danger')
-            return redirect(url_for("admin.assign_project_to_group"))
 
     groups = UserGroup.query.all()
-    projects = Project.query.all()
+    
+    current_user_id = session.get('id')
+    current_user_role = session.get('role')
+    print(f"DEBUG: assign_project_to_group (GET) - current_user_id: {current_user_id}, current_user_role: {current_user_role}")
+
+    if current_user_role == 'admin':
+        # System admins can assign any project
+        projects = Project.query.all()
+        print(f"DEBUG: assign_project_to_group (GET) - System Admin, total projects: {len(projects)}")
+    else:
+        # Project admins can only assign projects they manage
+        from .models import ProjectAdmin # Ensure ProjectAdmin is imported
+        managed_project_ids = [pa.project_id for pa in ProjectAdmin.query.filter_by(user_id=current_user_id).all()]
+        print(f"DEBUG: assign_project_to_group (GET) - Project Admin, managed_project_ids: {managed_project_ids}")
+        projects = Project.query.filter(Project.id.in_(managed_project_ids)).all()
+        print(f"DEBUG: assign_project_to_group (GET) - Project Admin, filtered projects: {len(projects)}")
+
     return render_template("admin/assign_project_to_group.html", groups=groups, projects=projects)
 
 
@@ -1027,11 +1132,6 @@ def create_annotation_project():
         total_questions = int(request.form.get("total_questions", 0))
         assigned_group_id = request.form.get("assigned_group_id")
 
-        # Validate total_questions
-        if total_questions <= 0:
-            flash("Please specify a valid number of questions!", "error")
-            return redirect(request.url)
-
         # Create the annotation project
         project = Project(
             name=project_name,
@@ -1040,56 +1140,57 @@ def create_annotation_project():
             is_annotation_project=True,
             max_questions_per_user=max_questions_per_user,
             answers_per_task=answers_per_task,
-            questions_per_image=total_questions  # Use total_questions directly
+            questions_per_image=total_questions # Set questions_per_image based on total_questions from form
         )
         db.session.add(project)
-        db.session.flush()  # Get the project ID
+        db.session.flush() # Get the project ID
 
-        # Assign project to selected group
+        # If the current user is a project-admin, assign them as an admin for this new project
+        if session.get('role') == 'project-admin':
+            current_user_id = session.get('id')
+            if current_user_id:
+                from .models import ProjectAdmin # Import locally to avoid circular dependency
+                new_project_admin = ProjectAdmin(
+                    user_id=current_user_id,
+                    project_id=project.id,
+                    assigned_by=current_user_id # Self-assigned
+                )
+                db.session.add(new_project_admin)
+                # No commit here, will commit all at once later
+
+        # Assign project to selected group (optional at creation)
         if assigned_group_id:
             group = UserGroup.query.get(assigned_group_id)
             if group:
-                # Check if project is already assigned to this group
-                existing_assignment = GroupProject.query.filter_by(
-                    group_id=group.id,
-                    project_id=project.id
-                ).first()
-                
+                existing_assignment = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
                 if not existing_assignment:
-                    # Create new group-project assignment
-                    group_project = GroupProject(
-                        group_id=group.id,
-                        project_id=project.id
-                    )
+                    group_project = GroupProject(group_id=group.id, project_id=project.id)
                     db.session.add(group_project)
-                    db.session.commit()
-                    
-                    # Distribute questions to group members
-                    distribute_questions_to_group(group, project)
+                    # No task distribution here; tasks are generated after images are uploaded
 
-        # Create the custom questions from form input
-        custom_questions = []
-        for i in range(1, total_questions + 1):
-            question_text = request.form.get(f"question_{i}")
-            if question_text:
-                custom_questions.append(question_text.strip())
+        # Create custom questions if any are provided
+        if total_questions > 0:
+            custom_questions = []
+            for i in range(1, total_questions + 1):
+                question_text = request.form.get(f"question_{i}")
+                if question_text:
+                    custom_questions.append(question_text.strip())
 
-        # Ensure we have exactly the specified number of questions
-        if len(custom_questions) != total_questions:
-            flash(f"Please provide exactly {total_questions} questions!", "error")
-            return redirect(request.url)
+            if len(custom_questions) != total_questions:
+                flash(f"Please provide exactly {total_questions} questions!", "error")
+                db.session.rollback()
+                return redirect(request.url)
 
-        # Create the questions in database
-        for i, question_text in enumerate(custom_questions, 1):
-            question = Question(
-                question=question_text,
-                answer_type=AnswerType.TEXT,
-                project_id=project.id
-            )
-            db.session.add(question)
+            for i, question_text in enumerate(custom_questions, 1):
+                question = Question(
+                    question=question_text,
+                    answer_type=AnswerType.TEXT,
+                    project_id=project.id
+                )
+                db.session.add(question)
 
-        db.session.commit()
-        flash(f"Annotation project '{project_name}' created with {total_questions} questions!", "success")
+        db.session.commit() # Commit all changes related to project and questions
+        flash(f"Annotation project '{project_name}' created successfully!", "success")
         return redirect(url_for("admin.upload_images", project_id=project.id))
 
     groups = UserGroup.query.all()

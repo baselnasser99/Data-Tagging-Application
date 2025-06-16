@@ -174,7 +174,6 @@
           <ul class="treeview-menu" style="display:block;">
             <li><a href="{{ url_for('admin.view_groups') }}">View Groups</a></li>
             <li><a href="{{ url_for('admin.create_group') }}">Create Group</a></li>
-            <li><a href="{{ url_for('admin.assign_project_to_group') }}">Assign Project to Group</a></li>
           </ul>
         </li>
         <li class="treeview">
@@ -189,6 +188,7 @@
             <li><a href="{{ url_for('admin.create_project') }}"><i class="fa fa-file-text-o text-blue"></i> Create Survey Project</a></li>
             <li><a href="{{ url_for('admin.create_annotation_project') }}"><i class="fa fa-image text-blue"></i> Create
                 Annotation Project</a></li>
+            <li><a href="{{ url_for('admin.assign_project_to_group') }}">Assign Project to Group</a></li>
           </ul>
         </li>
         {% endif %}
@@ -198,6 +198,11 @@
           <a href="{{ url_for('admin.my_projects') }}">
             <i class="fa fa-folder"></i> <span>My Projects</span>
           </a>
+        </li>
+        <li>
+            <a href="{{ url_for('admin.assign_project_to_group') }}">
+              <i class="fa fa-handshake-o"></i> <span>Assign Project to Group</span>
+            </a>
         </li>
         {# Project-specific links will appear on project dashboard and related pages #}
         {% endif %}

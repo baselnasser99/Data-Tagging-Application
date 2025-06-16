@@ -51,10 +51,7 @@
                 <td>{{ group.created_date.strftime('%Y-%m-%d %H:%M') if group.created_date else 'N/A' }}</td>
                 <td>
                   <div class="btn-group" role="group">
-                    <a href="{{ url_for('admin.manage_group', group_id=group.id) }}" 
-                       class="btn btn-info btn-sm" title="Manage Members">
-                      <i class="fa fa-users"></i> Manage
-                    </a>
+                    <a href="{{ url_for('admin.manage_group', group_id=group.id) }}" class="btn btn-primary btn-sm">Manage Group</a>
                     <a href="{{ url_for('admin.delete_group', group_id=group.id) }}" 
                        class="btn btn-danger btn-sm" 
                        onclick="return confirm('Are you sure you want to delete this group? This will remove all members and project assignments.')"

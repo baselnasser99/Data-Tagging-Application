@@ -204,6 +204,18 @@
               <i class="fa fa-handshake-o"></i> <span>Assign Project to Group</span>
             </a>
         </li>
+        <li class="treeview">
+          <a href="#">
+            <i class="fa fa-book"></i> <span>Create Projects</span>
+            <span class="pull-right-container">
+              <i class="fa fa-angle-left pull-right"></i>
+            </span>
+          </a>
+          <ul class="treeview-menu" style="display:block;">
+            <li><a href="{{ url_for('admin.create_project') }}"><i class="fa fa-file-text-o text-blue"></i> Create Survey Project</a></li>
+            <li><a href="{{ url_for('admin.create_annotation_project') }}"><i class="fa fa-image text-blue"></i> Create Annotation Project</a></li>
+          </ul>
+        </li>
         {# Project-specific links will appear on project dashboard and related pages #}
         {% endif %}
         {% if session['role'] == 'end-user' %}

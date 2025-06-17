@@ -780,7 +780,8 @@ def create_group():
 
         flash("Group created successfully!", "success")
         return redirect(url_for("admin.view_groups"))
-
+    # Handle GET request: render the group creation form
+    return render_template('admin/create_group.html')
 
 @admin.route("/manage-group/<int:group_id>", methods=['GET', 'POST'])
 @admin_required

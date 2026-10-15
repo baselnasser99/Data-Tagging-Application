@@ -383,10 +383,11 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
   padding: 10px 14px;
   margin-bottom: 10px;
 }
-.alert-success { border-left-color: var(--success); background: var(--success-bg); color: var(--ink); }
-.alert-danger  { border-left-color: var(--danger);  background: var(--danger-bg);  color: var(--ink); }
-.alert-warning { border-left-color: var(--warning); background: var(--warning-bg); color: var(--ink); }
-.alert-info    { border-left-color: var(--ink);     background: var(--info-bg);    color: var(--ink); }
+/* AdminLTE paints alerts with !important solid fills, so these must match it. */
+.alert-success { border-left-color: var(--success) !important; background: var(--success-bg) !important; color: var(--ink) !important; }
+.alert-danger  { border-left-color: var(--danger) !important;  background: var(--danger-bg) !important;  color: var(--ink) !important; }
+.alert-warning { border-left-color: var(--warning) !important; background: var(--warning-bg) !important; color: var(--ink) !important; }
+.alert-info    { border-left-color: var(--ink) !important;     background: var(--info-bg) !important;    color: var(--ink) !important; }
 
 /* ---------- small status labels ---------- */
 .badge, .label {

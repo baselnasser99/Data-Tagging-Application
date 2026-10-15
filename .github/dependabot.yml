@@ -1,11 +1,18 @@
 version: 2
 updates:
+  # Python libraries: one combined pull request per week instead of one per library
   - package-ecosystem: pip
     directory: "/"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    groups:
+      python-dependencies:
+        patterns: ["*"]
+  # GitHub Actions used by the test workflow: one combined pull request per month
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]

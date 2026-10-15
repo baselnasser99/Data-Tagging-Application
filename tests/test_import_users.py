@@ -31,12 +31,22 @@ def test_csv_import_skips_duplicates_and_invalid_rows(admin_client, end_user):
     assert b"0 users created, 1 duplicates skipped, 1 invalid rows skipped" in resp.data
 
 
-def test_csv_import_generates_password_when_missing_or_short(admin_client):
-    data = {"csv_file": _csv("full_name,email,password\nShort,short@example.com,123\n")}
+def test_csv_import_replaces_short_password_and_shows_it_to_admin(admin_client):
+    import re
+
+    data = {"csv_file": _csv("full_name,email,password\nShort,short@example.com,hello\n")}
     resp = admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data", follow_redirects=True)
-    assert b"Generated temporary password" in resp.data
+    assert b"shorter than 6 characters" in resp.data
+    temp = re.search(rb"temporary password was created: (\S+) ", resp.data).group(1).decode()
     user = User.query.filter_by(email="short@example.com").one()
-    assert not user.check_password("123")
+    assert not user.check_password("hello")
+    assert user.check_password(temp)  # the password shown actually works
+
+
+def test_csv_import_creates_password_when_missing(admin_client):
+    data = {"csv_file": _csv("full_name,email,password\nNone,none@example.com,\n")}
+    resp = admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data", follow_redirects=True)
+    assert b"had no password" in resp.data
 
 
 def test_csv_import_requires_expected_columns(admin_client):

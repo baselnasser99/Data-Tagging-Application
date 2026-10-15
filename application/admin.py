@@ -5,6 +5,7 @@ import os
 import uuid
 import zipfile
 import random
+import secrets
 import logging
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort
@@ -13,6 +14,7 @@ from werkzeug.utils import secure_filename
 
 from .extns import db
 from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, ProjectImage, AnnotationTask, TaskAssignment, ProjectAdmin
+from .auth import MIN_PASSWORD_LENGTH
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
@@ -204,10 +206,15 @@ def import_users():
                     users_to_assign.append(existing_user) # Add existing user for potential assignment
                     continue
                 
-                # Generate a random password if not provided or too short
-                if not password or len(password) < 6:
-                    password = ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=10))
-                    errors.append(f"Row {i+2}: No password provided for '{email}'. Generated temporary password.")
+                # Missing or too-short passwords are replaced with a random one.
+                # The admin must see it, otherwise the user could never sign in.
+                if not password or len(password) < MIN_PASSWORD_LENGTH:
+                    reason = "had no password" if not password else f"had a password shorter than {MIN_PASSWORD_LENGTH} characters"
+                    password = secrets.token_urlsafe(8)
+                    errors.append(
+                        f"Row {i+2}: {email} {reason}, so a temporary password was created: {password} "
+                        "Share it with them and ask them to change it after signing in."
+                    )
 
                 new_user = User()
                 new_user.register_end_user(full_name, email, password)

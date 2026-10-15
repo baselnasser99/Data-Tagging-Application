@@ -100,3 +100,8 @@ def test_custom_403_page(user_client):
     resp = user_client.get("/admin/dashboard")
     assert resp.status_code == 403
     assert b"Access denied" in resp.data
+
+
+def test_flash_messages_are_shown_once(admin_client):
+    resp = admin_client.post("/admin/create-group", data={"group_name": "Once"}, follow_redirects=True)
+    assert resp.data.count(b"Group created successfully") == 1

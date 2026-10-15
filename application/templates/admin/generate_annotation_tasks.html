@@ -31,7 +31,7 @@
                 <strong>{{ images|length }}</strong> images × <strong>{{ questions|length }}</strong> questions = 
                 <strong>{{ images|length * questions|length }}</strong> annotation tasks
               </p>
-              <p>Each task will be assigned to <strong>{{ project.answers_per_task }}</strong> different users.</p>
+              <p>Each task will be answered by <strong>{{ project.answers_per_task }}</strong> {{ "person" if project.answers_per_task == 1 else "different people" }}.</p>
             </div>
             
             <div class="form-group">

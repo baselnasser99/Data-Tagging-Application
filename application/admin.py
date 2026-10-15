@@ -13,9 +13,10 @@ from sqlalchemy import delete
 from werkzeug.utils import secure_filename
 
 from .extns import db
-from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, ProjectImage, AnnotationTask, TaskAssignment, ProjectAdmin
+from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, ProjectImage, AnnotationTask, TaskAssignment, ProjectAdmin, ExportLog
 from .auth import MIN_PASSWORD_LENGTH
 from . import distribution
+from . import export as dataset_export
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
@@ -437,6 +438,8 @@ def delete_project(project_id):
                 except:
                     pass  # Continue even if file deletion fails
                 db.session.delete(image)
+
+        ExportLog.query.filter_by(project_id=project_id).delete()
 
         # Delete group project assignments
         group_projects = GroupProject.query.filter_by(project_id=project_id).all()
@@ -1051,7 +1054,7 @@ def create_annotation_project():
         project_name = request.form.get("project_name")
         project_desc = request.form.get("project_desc")
         max_questions_per_user = int(request.form.get("max_questions_per_user", 100))
-        answers_per_task = int(request.form.get("answers_per_task", 1)) # Default to 1 for single completion
+        answers_per_task = max(1, int(request.form.get("answers_per_task", 1)))
         total_questions = int(request.form.get("total_questions", 0))
         assigned_group_id = request.form.get("assigned_group_id")
 
@@ -1091,25 +1094,36 @@ def create_annotation_project():
                     db.session.add(group_project)
                     # No task distribution here; tasks are generated after images are uploaded
 
-        # Create custom questions if any are provided
+        # Create the questions. Each can be free text or multiple choice
+        # (multiple choice makes answers comparable, see the agreement score).
         if total_questions > 0:
-            custom_questions = []
+            parsed = []
             for i in range(1, total_questions + 1):
-                question_text = request.form.get(f"question_{i}")
-                if question_text:
-                    custom_questions.append(question_text.strip())
+                text = (request.form.get(f"question_{i}") or "").strip()
+                if not text:
+                    continue
+                kind = request.form.get(f"question_type_{i}", "text")
+                options = [o.strip() for o in (request.form.get(f"question_options_{i}") or "").splitlines() if o.strip()]
+                if kind == "mcq" and not 2 <= len(options) <= 6:
+                    flash(f'Question {i} is multiple choice, so it needs between 2 and 6 options, one per line.', "error")
+                    db.session.rollback()
+                    return redirect(request.url)
+                parsed.append((text, kind, options))
 
-            if len(custom_questions) != total_questions:
+            if len(parsed) != total_questions:
                 flash(f"Please provide exactly {total_questions} questions!", "error")
                 db.session.rollback()
                 return redirect(request.url)
 
-            for i, question_text in enumerate(custom_questions, 1):
+            for text, kind, options in parsed:
                 question = Question(
-                    question=question_text,
-                    answer_type=AnswerType.TEXT,
-                    project_id=project.id
+                    question=text,
+                    answer_type=AnswerType.MCQ if kind == "mcq" else AnswerType.TEXT,
+                    number_of_options=len(options) if kind == "mcq" else 0,
+                    project_id=project.id,
                 )
+                for n, option in enumerate(options if kind == "mcq" else [], start=1):
+                    setattr(question, f"option{n}", option[:50])
                 db.session.add(question)
 
         db.session.commit() # Commit all changes related to project and questions
@@ -1315,8 +1329,39 @@ def view_annotation_project(project_id):
     return render_template("admin/view_annotation_project.html",
                          project=project,
                          stats=stats,
+                         workload=distribution.workload_summary(project),
+                         exports=ExportLog.query.filter_by(project_id=project.id).order_by(ExportLog.id.desc()).limit(10).all(),
                          images=images[:10],  # Show first 10 images as preview
                          questions=questions)
+
+@admin.route("/project/<int:project_id>/export.<file_format>")
+@project_admin_required
+def export_project(project_id, file_format):
+    """Download every answer of an annotation project as CSV or JSON."""
+    import json
+    from flask import current_app
+    from flask_login import current_user
+
+    project = db.get_or_404(Project, project_id)
+    if file_format not in ("csv", "json"):
+        abort(404)
+    if not project.is_annotation_project:
+        flash("Dataset export is available for annotation projects. Use the text download for surveys.", "warning")
+        return redirect(url_for("admin.view_projects"))
+
+    data = dataset_export.build_project_export(project)
+    db.session.add(ExportLog(project_id=project.id, user_id=current_user.id,
+                             file_format=file_format, answer_count=data["totals"]["answers"]))
+    db.session.commit()
+    current_app.logger.info("EXPORT project=%s format=%s by user=%s", project.id, file_format, current_user.id)
+
+    slug = secure_filename(project.name.lower().replace(" ", "-")) or f"project-{project.id}"
+    if file_format == "csv":
+        body, mimetype = dataset_export.to_csv(data).encode("utf-8"), "text/csv"
+    else:
+        body, mimetype = json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8"), "application/json"
+    return send_file(io.BytesIO(body), as_attachment=True, download_name=f"{slug}.{file_format}", mimetype=mimetype)
+
 
 # Project Admin Specific Routes
 @admin.route("/my-projects")

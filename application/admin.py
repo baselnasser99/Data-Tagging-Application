@@ -1289,6 +1289,12 @@ def generate_annotation_tasks(project_id):
             flash("Selected group not found!", "error")
             return redirect(request.url)
 
+        # Record that this group works on the project, so the project shows up
+        # on the group's dashboards and in later redistribution.
+        if not GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first():
+            db.session.add(GroupProject(group_id=group.id, project_id=project.id, questions_distributed=True))
+            db.session.commit()
+
         # Assign these newly generated tasks to users in the selected group
         users_in_group = [m.user for m in group.members if m.user]
         if not users_in_group:

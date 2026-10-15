@@ -1,0 +1,42 @@
+{% from "includes/brand.html" import mark %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} – {{ app_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/auth.css') }}" rel="stylesheet">
+</head>
+<body>
+  <div class="auth">
+    <section class="auth-intro" aria-label="About {{ app_name }}">
+      <a class="brand" href="{{ url_for('auth.login') }}">{{ mark() }} {{ app_name }}</a>
+
+      <div class="auth-intro-body">
+        <div class="specimen" aria-hidden="true">
+          <div class="tile is-done"></div>
+          <div class="tile is-done"></div>
+          <div class="tile is-done"></div>
+          <div class="tile"></div>
+          <div class="tile is-selected"><span class="corners"></span><span class="tag">bicycle</span></div>
+          <div class="tile"></div>
+        </div>
+        <p class="specimen-caption">Image 5 of 6, question 2 of 3</p>
+
+        <h1>Label your data as a team, without the spreadsheet.</h1>
+        <p>Upload a dataset, write your questions once, and the work is split fairly across your annotators. When someone leaves, their unfinished items go back to the team.</p>
+      </div>
+    </section>
+
+    <main class="auth-panel">
+      <div class="auth-form">
+        <a class="brand brand-compact" href="{{ url_for('auth.login') }}">{{ mark() }} {{ app_name }}</a>
+        {% block form %}{% endblock %}
+      </div>
+    </main>
+  </div>
+</body>
+</html>

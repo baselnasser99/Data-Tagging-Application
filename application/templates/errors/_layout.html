@@ -1,17 +1,20 @@
+{% from "includes/brand.html" import mark %}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Error{% endblock %} · Data Tagging Application</title>
-  <link href="{{ url_for('static', filename='vendor/bootstrap5/css/bootstrap.min.css') }}" rel="stylesheet">
+  <title>{% block title %}Error{% endblock %} – {{ app_name }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/auth.css') }}" rel="stylesheet">
 </head>
-<body class="bg-light d-flex align-items-center min-vh-100">
-  <main class="container text-center py-5">
-    <p class="display-1 fw-bold text-secondary mb-0">{% block code %}{% endblock %}</p>
-    <h1 class="h3 mb-3">{% block heading %}{% endblock %}</h1>
-    <p class="text-muted mb-4">{% block message %}{% endblock %}</p>
-    <a class="btn btn-primary" href="{{ url_for('auth.login') }}">Back to the application</a>
+<body class="error-page">
+  <main>
+    <a class="brand" href="{{ url_for('auth.login') }}">{{ mark() }} {{ app_name }}</a>
+    <p class="error-code">Error {% block code %}{% endblock %}</p>
+    <h1>{% block heading %}{% endblock %}</h1>
+    <p>{% block message %}{% endblock %}</p>
+    <a class="button" href="{{ url_for('auth.login') }}">Go to your dashboard</a>
   </main>
 </body>
 </html>

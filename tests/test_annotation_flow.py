@@ -121,6 +121,10 @@ def test_generate_tasks_creates_item_question_pairs_and_assigns_them(admin_clien
         per_user[a.user_id] += 1
     assert max(per_user.values()) - min(per_user.values()) <= 1  # evenly split
 
+    # The group is now linked to the project, so it shows on dashboards.
+    from application.models import GroupProject
+    assert GroupProject.query.filter_by(group_id=group.id, project_id=project.id).count() == 1
+
 
 def test_full_annotation_cycle_and_export(app, admin_client, group_with_members):
     group, members = group_with_members

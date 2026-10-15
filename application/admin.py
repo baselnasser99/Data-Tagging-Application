@@ -5,7 +5,7 @@ import os
 import uuid
 import zipfile
 import random
-from functools import wraps
+import logging
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort
 from sqlalchemy import delete
@@ -13,72 +13,34 @@ from werkzeug.utils import secure_filename
 
 from .extns import db
 from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, ProjectImage, AnnotationTask, TaskAssignment, ProjectAdmin
-from .auth import is_project_admin
+from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
+log = logging.getLogger(__name__)
+
+IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
 
 
-def admin_required(func):
-    @wraps(func)
-    def decorated_function(*args, **kwargs):
-        if 'id' not in session:
-            flash('Please log in to access admin features.', 'warning')
-            return redirect(url_for('auth.login'))
+def upload_dir(*parts):
+    """Create (if needed) and return a folder inside the upload root.
 
-        if session.get('role') != 'admin':
-            flash('Admin access required.', 'danger')
-            return redirect(url_for('auth.login'))
+    The upload root is ``static/uploads`` unless UPLOAD_ROOT is configured.
+    """
+    from flask import current_app
+    root = current_app.config.get("UPLOAD_ROOT") or os.path.join(current_app.static_folder, "uploads")
+    path = os.path.join(root, *parts)
+    os.makedirs(path, exist_ok=True)
+    return path
 
-        return func(*args, **kwargs)
 
-    return decorated_function
+def upload_path(filename):
+    """Absolute path for a file stored directly in the upload root."""
+    return os.path.join(upload_dir(), filename)
 
-def project_admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get('id'):
-            flash('Please log in first.', 'warning')
-            return redirect(url_for('auth.login'))
-        
-        project_id = kwargs.get('project_id')
-        if session.get('role') == 'admin':
-            # System admins have access to all projects
-            return f(*args, **kwargs)
 
-        # Check if user is a project admin for this specific project
-        if not project_id or not is_project_admin(project_id):
-            flash('You do not have permission to access this project.', 'danger')
-            return redirect(url_for('admin.my_projects'))
-        
-        # Store the last accessed project ID in session for convenience
-        session['last_project_id'] = project_id
+def public_file_url(filename):
+    return url_for("static", filename=f"uploads/{filename}", _external=True)
 
-        return f(*args, **kwargs)
-    decorated_function.__name__ = f.__name__
-    return decorated_function
-
-def project_admin_access_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get('id'):
-            flash('Please log in first.', 'warning')
-            return redirect(url_for('auth.login'))
-        
-        # System admins always have access
-        if session.get('role') == 'admin':
-            return f(*args, **kwargs)
-            
-        # Check if user is a project admin for any project
-        user_id = session.get('id')
-        is_any_project_admin = ProjectAdmin.query.filter_by(user_id=user_id).first() is not None
-        
-        if not is_any_project_admin:
-            flash('Project admin access required.', 'danger')
-            return redirect(url_for('auth.login'))
-            
-        return f(*args, **kwargs)
-    decorated_function.__name__ = f.__name__
-    return decorated_function
 
 @admin.route("/dashboard")
 @admin_required
@@ -150,7 +112,7 @@ def users():
         # This part might be for non-annotation projects or older assignments
         direct_project_assignments = UserQuestionAssignment.query.filter_by(user_id=user.id).all()
         for assignment in direct_project_assignments:
-            question = Question.query.get(assignment.question_id)
+            question = db.session.get(Question, assignment.question_id)
             if question and question.belongs_to:
                 assigned_projects.add(question.belongs_to.id)
         
@@ -270,7 +232,7 @@ def import_users():
 
         # Process assignments for all users (new and existing) that were successfully identified/created from CSV
         if selected_group_id:
-            group = UserGroup.query.get(selected_group_id)
+            group = db.session.get(UserGroup, selected_group_id)
             if group:
                 group_assignments_made = 0
                 for user in users_to_assign:
@@ -288,7 +250,7 @@ def import_users():
                 flash("Selected user group not found for assignment.", 'warning')
 
         if selected_project_id:
-            project = Project.query.get(selected_project_id)
+            project = db.session.get(Project, selected_project_id)
             if project:
                 project_assignments_made = 0
                 if project.is_annotation_project:
@@ -313,7 +275,7 @@ def import_users():
                                     question_id=question.id,
                                     group_project_id=f"imported-{project.id}" # A unique identifier for imported users not tied to a group
                                 )
-           
+                                db.session.add(assignment)
                                 project_assignments_made += 1
                     db.session.commit()
                     if project_assignments_made > 0:
@@ -362,7 +324,7 @@ def create_project():
 
         # Assign project to selected group (optional at creation)
         if assigned_group_id:
-            group = UserGroup.query.get(assigned_group_id)
+            group = db.session.get(UserGroup, assigned_group_id)
             if group:
                 existing_assignment = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
                 if not existing_assignment:
@@ -383,8 +345,7 @@ def create_project():
                     filename = str(uuid.uuid4()) + \
                         secure_filename(file_path.filename)
 
-                    file_path.save(os.path.join(
-                        'application', 'static', 'uploads', filename))
+                    file_path.save(upload_path(filename))
 
                 answer_type_value = request.form.get(f"dropdown-{i}")
                 answer_type = AnswerType.TEXT if answer_type_value == 'text' else AnswerType.MCQ
@@ -423,10 +384,10 @@ def view_projects():
     return render_template("admin/view_projects.html", projects=projects)
 
 
-@admin.route("/delete-project/<int:project_id>")
+@admin.route("/delete-project/<int:project_id>", methods=["POST"])
 @admin_required
 def delete_project(project_id):
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
 
     try:
         # Delete annotation-related data if this is an annotation project
@@ -489,14 +450,13 @@ def delete_project(project_id):
 @admin.route("/edit-project/<int:project_id>", methods=['GET', 'POST'])
 @project_admin_required
 def edit_project(project_id):
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
 
     if request.method == 'POST':
         project_data = request.form.to_dict(flat=True)
         project_name = project_data.get('project-name')
         project_desc = project_data.get('project-description')
-        print(f"DEBUG: Edit Project - Received project_name: {project_name}, project_desc: {project_desc}")
-
+        log.debug(f"Edit Project - Received project_name: {project_name}, project_desc: {project_desc}")
         project.name = project_name
         project.desc = project_desc
 
@@ -505,14 +465,14 @@ def edit_project(project_id):
         for key, file in files.items():
             if key.startswith('questionfile-'):
                 question_id = int(key.split('-')[1])
-                question = Question.query.get(question_id)
+                question = db.session.get(Question, question_id)
                 if question:
                     file = request.files.get(key)
                     filename = None
                     if file:
                         filename = str(uuid.uuid4()) + \
                             secure_filename(file.filename)
-                        file_path = os.path.join('application', 'static', 'uploads', filename)
+                        file_path = upload_path(filename)
                         file.save(file_path)
 
                     if file.filename:
@@ -533,7 +493,7 @@ def edit_project(project_id):
 @admin.route("/view-questions/<int:project_id>")
 @project_admin_required
 def view_questions(project_id):
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
     # This route is now for both System Admins and Project Admins to view questions
     return render_template("admin/view_questions.html", project=project)
 
@@ -544,7 +504,7 @@ def view_questions(project_id):
 @admin.route("/download-files/<int:project_id>")
 @project_admin_required
 def download_files(project_id):
-    project = Project.query.get(project_id)
+    project = db.session.get(Project, project_id)
     if project:
         output = io.StringIO()
         output.write(f"Project Name: {project.name}\n")
@@ -554,7 +514,7 @@ def download_files(project_id):
             output.write(f"  Question: {question.question}\n")
             file_path = "No File"
             if question.file_path:
-                file_path = f"http://localhost:5000/static/uploads/{question.file_path}"
+                file_path = public_file_url(question.file_path)
             output.write(f"  Question File: {file_path}\n")
 
             question_answers = QuestionAnswer.query.filter_by(question_id=question.id)
@@ -582,10 +542,10 @@ def download_files(project_id):
 @admin.route("/download-answers/<int:user_id>")
 @admin_required
 def download_answers(user_id):
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         flash('User not found', 'danger')
-        return redirect(url_for('admin.view_users')) # Assuming view_users is the correct redirect
+        return redirect(url_for('admin.users'))
 
     # Fetch all answers by this user
     user_answers = QuestionAnswer.query.filter_by(user_id=user_id).order_by(QuestionAnswer.submitted_date).all()
@@ -615,7 +575,7 @@ def download_answers(user_id):
             is_completed_assignment = False
 
             if answer_obj.task_assignment_id: # This answer is linked to an annotation task assignment
-                task_assignment = TaskAssignment.query.get(answer_obj.task_assignment_id)
+                task_assignment = db.session.get(TaskAssignment, answer_obj.task_assignment_id)
                 if task_assignment and task_assignment.task: # Ensure task and project exist
                     project = task_assignment.task.project
                     if task_assignment.task.image:
@@ -643,29 +603,22 @@ def download_answers(user_id):
                 submitted_date,
                 'Yes' if is_completed_assignment else 'No'
             ])
-        else:
-             writer.writerow(['','','','No answers found for this user','','','','',''])
+    else:
+        writer.writerow(['', '', '', 'No answers found for this user', '', '', '', '', ''])
 
-        output.seek(0)
-
-    # Prepare for download
-        mem = io.BytesIO()
-        mem.write(output.getvalue().encode('utf-8')) # Ensure UTF-8 encoding
-        mem.seek(0)
-
-        response = make_response(send_file(
+    mem = io.BytesIO(output.getvalue().encode('utf-8'))
+    return make_response(send_file(
         mem,
         as_attachment=True,
-        download_name=f'user_{user.email}_answers.csv',
+        download_name=f'user_{user.id}_answers.csv',
         mimetype='text/csv'
     ))
-        return response
 
 
 @admin.route("/profile", methods=['GET', 'POST'])
 @admin_required
 def admin_profile():
-    admin_user = User.query.get(session['id'])
+    admin_user = db.session.get(User, session['id'])
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -726,7 +679,7 @@ def full_download():
             output.write(f"  Question: {question.question}\n")
             file_path = "No File"
             if question.file_path:
-                file_path = f"http://localhost:5000/static/uploads/{question.file_path}"
+                file_path = public_file_url(question.file_path)
             output.write(f"  Question File: {file_path}\n")
 
             question_answers = QuestionAnswer.query.filter_by(question_id=question.id)
@@ -786,14 +739,14 @@ def create_group():
 @admin.route("/manage-group/<int:group_id>", methods=['GET', 'POST'])
 @admin_required
 def manage_group(group_id):
-    group = UserGroup.query.get_or_404(group_id)
+    group = db.get_or_404(UserGroup, group_id)
 
     if request.method == 'POST':
         action = request.form.get('action')
 
         if action == 'add_user':
             user_id = request.form.get('user_id')
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
 
             if user:
                 existing = UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).first()
@@ -809,7 +762,7 @@ def manage_group(group_id):
 
         elif action == 'remove_user':
             user_id = request.form.get('user_id')
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             membership = UserGroupMembership.query.filter_by(user_id=user_id, group_id=group.id).first()
             if membership and user:
                 db.session.delete(membership)
@@ -831,7 +784,7 @@ def manage_group(group_id):
 @admin.route("/project/<int:project_id>/manage-group/<int:group_id>", methods=['GET', 'POST'])
 @project_admin_required
 def manage_group_for_project(project_id, group_id):
-    group = UserGroup.query.get_or_404(group_id)
+    group = db.get_or_404(UserGroup, group_id)
 
     # Verify that the group is assigned to the project the admin has access to
     group_project_link = GroupProject.query.filter_by(group_id=group_id, project_id=project_id).first()
@@ -844,7 +797,7 @@ def manage_group_for_project(project_id, group_id):
 
         if action == 'add_user':
             user_id = request.form.get('user_id')
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
 
             if user:
                 existing = UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).first()
@@ -861,7 +814,7 @@ def manage_group_for_project(project_id, group_id):
 
         elif action == 'remove_user':
             user_id = request.form.get('user_id')
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             membership = UserGroupMembership.query.filter_by(user_id=user_id, group_id=group.id).first()
             if membership and user:
                 remove_pending_assignments_from_removed_group_member(user, group)
@@ -961,19 +914,19 @@ def remove_pending_assignments_from_removed_group_member(user, group):
 @project_admin_access_required
 def assign_project_to_group():
     if request.method == 'POST':
-        print(f"DEBUG: assign_project_to_group - POST request received.")
+        log.debug(f"assign_project_to_group - POST request received.")
         group_id = request.form.get('group_id')
         project_id = request.form.get('project_id')
-        print(f"DEBUG: assign_project_to_group - group_id: {group_id}, project_id: {project_id}")
-        group = UserGroup.query.get(group_id)
-        project = Project.query.get(project_id)
+        log.debug(f"assign_project_to_group - group_id: {group_id}, project_id: {project_id}")
+        group = db.session.get(UserGroup, group_id)
+        project = db.session.get(Project, project_id)
 
         if group and project:
-            print(f"DEBUG: assign_project_to_group - Group and Project found. Group: {group.name}, Project: {project.name}")
+            log.debug(f"assign_project_to_group - Group and Project found. Group: {group.name}, Project: {project.name}")
             # Check if project is already assigned to group
             existing = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
             if existing:
-                print(f"DEBUG: assign_project_to_group - Existing assignment found.")
+                log.debug(f"assign_project_to_group - Existing assignment found.")
                 flash('This project is already assigned to this group', 'warning')
                 return redirect(url_for("admin.assign_project_to_group"))
 
@@ -981,8 +934,7 @@ def assign_project_to_group():
             group_project = GroupProject(group_id=group.id, project_id=project.id)
             db.session.add(group_project)
             db.session.commit()
-            print(f"DEBUG: assign_project_to_group - GroupProject added and committed.")
-
+            log.debug(f"assign_project_to_group - GroupProject added and committed.")
             # Logic for distributing questions/tasks based on project type and content
             if project.is_annotation_project:
                 images = ProjectImage.query.filter_by(project_id=project.id).all()
@@ -1015,20 +967,18 @@ def assign_project_to_group():
     
     current_user_id = session.get('id')
     current_user_role = session.get('role')
-    print(f"DEBUG: assign_project_to_group (GET) - current_user_id: {current_user_id}, current_user_role: {current_user_role}")
-
+    log.debug(f"assign_project_to_group (GET) - current_user_id: {current_user_id}, current_user_role: {current_user_role}")
     if current_user_role == 'admin':
         # System admins can assign any project
         projects = Project.query.all()
-        print(f"DEBUG: assign_project_to_group (GET) - System Admin, total projects: {len(projects)}")
+        log.debug(f"assign_project_to_group (GET) - System Admin, total projects: {len(projects)}")
     else:
         # Project admins can only assign projects they manage
         from .models import ProjectAdmin # Ensure ProjectAdmin is imported
         managed_project_ids = [pa.project_id for pa in ProjectAdmin.query.filter_by(user_id=current_user_id).all()]
-        print(f"DEBUG: assign_project_to_group (GET) - Project Admin, managed_project_ids: {managed_project_ids}")
+        log.debug(f"assign_project_to_group (GET) - Project Admin, managed_project_ids: {managed_project_ids}")
         projects = Project.query.filter(Project.id.in_(managed_project_ids)).all()
-        print(f"DEBUG: assign_project_to_group (GET) - Project Admin, filtered projects: {len(projects)}")
-
+        log.debug(f"assign_project_to_group (GET) - Project Admin, filtered projects: {len(projects)}")
     return render_template("admin/assign_project_to_group.html", groups=groups, projects=projects)
 
 
@@ -1038,7 +988,7 @@ def distribute_questions_to_group(group, project):
     questions = project.questions
 
     if not members or not questions:
-        print(f"No members ({len(members)}) or questions ({len(questions)}) for distribution in project {project.name}.")
+        log.debug(f"No members ({len(members)}) or questions ({len(questions)}) for distribution in project {project.name}.")
         return
 
     # Create a unique identifier for this group-project combination
@@ -1059,8 +1009,7 @@ def distribute_questions_to_group(group, project):
             # Distribute these tasks to the current group members
             assign_tasks_to_users(all_project_tasks, members, project.max_questions_per_user, project.answers_per_task)
         else:
-            print(f"No annotation tasks found for project {project.name} during group distribution.")
-
+            log.debug(f"No annotation tasks found for project {project.name} during group distribution.")
     else: # This is a regular survey project
         # For survey projects, each user in the group should receive ALL questions from the project
         for member in members:
@@ -1078,8 +1027,7 @@ def distribute_questions_to_group(group, project):
                     group_project_id=group_project_id
                 )
                 db.session.add(assignment)
-        print(f"Assigned all {len(questions)} questions to each of {len(members)} members for survey project {project.name}.")
-
+        log.debug(f"Assigned all {len(questions)} questions to each of {len(members)} members for survey project {project.name}.")
     # Mark questions as distributed (this flag might need review based on exact workflow, but keeping for now)
     group_project_link = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
     if group_project_link:
@@ -1088,10 +1036,10 @@ def distribute_questions_to_group(group, project):
     db.session.commit()
 
 
-@admin.route("/delete-group/<int:group_id>")
+@admin.route("/delete-group/<int:group_id>", methods=["POST"])
 @admin_required
 def delete_group(group_id):
-    group = UserGroup.query.get_or_404(group_id)
+    group = db.get_or_404(UserGroup, group_id)
 
     # Delete all related records
     # Delete question assignments for this group's projects
@@ -1161,7 +1109,7 @@ def create_annotation_project():
 
         # Assign project to selected group (optional at creation)
         if assigned_group_id:
-            group = UserGroup.query.get(assigned_group_id)
+            group = db.session.get(UserGroup, assigned_group_id)
             if group:
                 existing_assignment = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
                 if not existing_assignment:
@@ -1202,7 +1150,7 @@ def create_annotation_project():
 @project_admin_required
 def upload_images(project_id):
     """Upload images for annotation project"""
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
 
     if not project.is_annotation_project:
         flash("This is not an annotation project!", "error")
@@ -1220,36 +1168,48 @@ def upload_images(project_id):
 
         if zip_file and zip_file.filename.lower().endswith(('.zip')):
             # Create upload directory
-            upload_dir = os.path.join('application', 'static', 'uploads', 'images', str(project_id))
-            os.makedirs(upload_dir, exist_ok=True)
+            upload_dir_path = upload_dir('images', str(project_id))
 
-            # Extract and save images
+            existing_names = {
+                img.original_filename
+                for img in ProjectImage.query.filter_by(project_id=project_id).all()
+            }
             images_saved = 0
-            with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-                for file_info in zip_ref.filelist:
-                    if not file_info.is_dir() and file_info.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
-                        # Extract file
-                        zip_ref.extract(file_info, upload_dir)
-
-                        # Generate unique filename
+            duplicates_skipped = 0
+            try:
+                with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                    for file_info in zip_ref.infolist():
                         original_filename = os.path.basename(file_info.filename)
+                        if (file_info.is_dir()
+                                or file_info.filename.startswith('__MACOSX/')
+                                or original_filename.startswith('.')
+                                or not original_filename.lower().endswith(IMAGE_EXTENSIONS)):
+                            continue
+                        # Nested folders are flattened; duplicate names are skipped.
+                        if original_filename in existing_names:
+                            duplicates_skipped += 1
+                            continue
+
                         unique_filename = f"{uuid.uuid4()}_{secure_filename(original_filename)}"
+                        final_path = os.path.join(upload_dir_path, unique_filename)
+                        with zip_ref.open(file_info) as src, open(final_path, 'wb') as dst:
+                            dst.write(src.read())
 
-                        # Move to final location
-                        extracted_path = os.path.join(upload_dir, file_info.filename)
-                        final_path = os.path.join(upload_dir, unique_filename)
-                        os.rename(extracted_path, final_path)
-
-                        # Save to database
-                        project_image = ProjectImage(
+                        db.session.add(ProjectImage(
                             project_id=project_id,
                             filename=unique_filename,
                             original_filename=original_filename,
-                            file_path=final_path
-                        )
-                        db.session.add(project_image)
+                            file_path=final_path,
+                        ))
+                        existing_names.add(original_filename)
                         images_saved += 1
+            except zipfile.BadZipFile:
+                db.session.rollback()
+                flash("That file is not a valid ZIP archive.", "error")
+                return redirect(request.url)
 
+            if duplicates_skipped:
+                flash(f"Skipped {duplicates_skipped} files whose names already exist in this project.", "warning")
             db.session.commit()
             flash(f"Successfully uploaded {images_saved} images!", "success")
             return redirect(url_for("admin.generate_annotation_tasks", project_id=project.id))
@@ -1261,7 +1221,7 @@ def upload_images(project_id):
 
 def _generate_project_tasks(project_id):
     """Helper function to generate all annotation tasks (image x question combinations) for a project."""
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
     images = ProjectImage.query.filter_by(project_id=project_id).all()
     questions = Question.query.filter_by(project_id=project_id).all()
 
@@ -1290,7 +1250,7 @@ def _generate_project_tasks(project_id):
                 tasks_created += 1
     db.session.commit() # Commit new tasks
 
-    print(f"Generated {tasks_created} new annotation tasks for project {project_id}.")
+    log.debug(f"Generated {tasks_created} new annotation tasks for project {project_id}.")
     return new_tasks, tasks_created
 
 
@@ -1298,7 +1258,7 @@ def _generate_project_tasks(project_id):
 @project_admin_required
 def generate_annotation_tasks(project_id):
     """Generate annotation tasks and assign them to users"""
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
 
     if not project.is_annotation_project:
         flash("This is not an annotation project!", "error")
@@ -1317,7 +1277,7 @@ def generate_annotation_tasks(project_id):
         # Use the helper function to generate tasks
         new_tasks, tasks_created = _generate_project_tasks(project_id)
 
-        group = UserGroup.query.get(selected_group_id)
+        group = db.session.get(UserGroup, selected_group_id)
         if not group:
             flash("Selected group not found!", "error")
             return redirect(request.url)
@@ -1351,7 +1311,7 @@ def assign_tasks_to_users(tasks, users, max_questions_per_user, answers_per_task
     user_task_counts = {user.id: 0 for user in users}
     
     if not users:
-        print("No users available for assignment.")
+        log.debug("No users available for assignment.")
         return 0
 
     try:
@@ -1362,8 +1322,7 @@ def assign_tasks_to_users(tasks, users, max_questions_per_user, answers_per_task
         
         user_cycle = cycle(users)
         
-        print(f"   - Total tasks to assign: {len(tasks_sorted)} | Users: {len(users)} | Max/user: {max_questions_per_user} | Answers/Task: {answers_per_task}")
-        
+        log.debug(f"   - Total tasks to assign: {len(tasks_sorted)} | Users: {len(users)} | Max/user: {max_questions_per_user} | Answers/Task: {answers_per_task}")
         for task in tasks_sorted:
             # Skip if task already fully answered (should be 0 after clearing tasks)
             if task.current_answers >= task.required_answers:
@@ -1406,19 +1365,17 @@ def assign_tasks_to_users(tasks, users, max_questions_per_user, answers_per_task
                     users_assigned_this_task_current_run.add(current_user.id) # Mark user as having this task
 
             if assigned_for_this_task < task.required_answers:
-                print(f"⚠️  Task {task.id} (Q: {task.question.question[:20]}) could not be assigned to {task.required_answers} different users. Assigned to {assigned_for_this_task} users.")
-
+                log.warning(f"Task {task.id} (Q: {task.question.question[:20]}) could not be assigned to {task.required_answers} different users. Assigned to {assigned_for_this_task} users.")
         db.session.commit() # Commit all assignments at once
 
-        print(f"✅ Assignment completed:")
-        print(f"   - Total assignments created: {assignments_created}")
-        print(f"   - Average tasks per user: {assignments_created / len(users) if users else 0:.1f}")
-
+        log.debug(f"Assignment completed:")
+        log.debug(f"   - Total assignments created: {assignments_created}")
+        log.debug(f"   - Average tasks per user: {assignments_created / len(users) if users else 0:.1f}")
         return assignments_created
 
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error during task assignment: {str(e)}")
+        log.warning(f"Error during task assignment: {str(e)}")
         return 0
 
 
@@ -1426,7 +1383,7 @@ def assign_tasks_to_users(tasks, users, max_questions_per_user, answers_per_task
 @project_admin_required
 def view_annotation_project(project_id):
     """View annotation project details and progress"""
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
 
     if not project.is_annotation_project:
         flash("This is not an annotation project!", "error")
@@ -1516,7 +1473,7 @@ def my_projects():
 @admin.route("/project/<int:project_id>/dashboard")
 @project_admin_required
 def project_dashboard(project_id):
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
     
     # Get project statistics
     questions_count = Question.query.filter_by(project_id=project_id).count()
@@ -1565,19 +1522,19 @@ def project_dashboard(project_id):
 @admin.route("/project/<int:project_id>/admins")
 @project_admin_required
 def project_admins(project_id):
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
     project_admins = ProjectAdmin.query.filter_by(project_id=project_id).all()
     return render_template("admin/project_admins.html", project=project, project_admins=project_admins)
 
 @admin.route("/project/<int:project_id>/admins/add", methods=['POST'])
 @project_admin_required
 def add_project_admin(project_id):
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
     email = request.form.get('email')
     
     # Verify the current user is either a system admin or a project admin for this project
     current_user_id = session['id']
-    current_user = User.query.get(current_user_id)
+    current_user = db.session.get(User, current_user_id)
     
     # Only system admins or project admins for this project can add other project admins
     if not (current_user.role == 'admin' or is_project_admin(project_id)):
@@ -1625,9 +1582,9 @@ def add_project_admin(project_id):
 @admin.route("/project/<int:project_id>/admins/<int:admin_id>/remove", methods=['POST'])
 @project_admin_required
 def remove_project_admin(project_id, admin_id):
-    project_admin = ProjectAdmin.query.get_or_404(admin_id)
+    project_admin = db.get_or_404(ProjectAdmin, admin_id)
     current_user_id = session['id']
-    current_user = User.query.get(current_user_id)
+    current_user = db.session.get(User, current_user_id)
     
     # Ensure the project admin being removed is for the current project
     if project_admin.project_id != project_id:
@@ -1647,13 +1604,13 @@ def remove_project_admin(project_id, admin_id):
         # (System admins can remove any project admin)
         if project_admin.assigned_by != current_user_id:
             # Check if the user being removed was assigned by a system admin
-            assigner = User.query.get(project_admin.assigned_by)
+            assigner = db.session.get(User, project_admin.assigned_by)
             if assigner and assigner.role == 'admin':
                 flash('You cannot remove a project admin assigned by a system admin.', 'danger')
                 return redirect(url_for('admin.project_admins', project_id=project_id))
     
     # Get the user whose project admin role is being removed
-    user = User.query.get(project_admin.user_id)
+    user = db.session.get(User, project_admin.user_id)
     
     # Remove the specific project admin assignment
     db.session.delete(project_admin)
@@ -1673,11 +1630,11 @@ def remove_project_admin(project_id, admin_id):
 @project_admin_required
 def create_project_admin(project_id):
     """Create a new user and assign them as a project admin"""
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
     
     # Verify the current user is either a system admin or a project admin for this project
     current_user_id = session['id']
-    current_user = User.query.get(current_user_id)
+    current_user = db.session.get(User, current_user_id)
     
     # Only system admins or project admins for this project can add other project admins
     if not (current_user.role == 'admin' or is_project_admin(project_id)):
@@ -1713,7 +1670,7 @@ def create_project_admin(project_id):
 @admin.route("/project/<int:project_id>/groups")
 @project_admin_required
 def project_groups(project_id):
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
     # In a real implementation, you'd fetch groups assigned to this project
     assigned_groups = [gp.group for gp in project.assigned_groups]
     return render_template("admin/project_groups.html", project=project, assigned_groups=assigned_groups)
@@ -1721,7 +1678,7 @@ def project_groups(project_id):
 @admin.route("/project/<int:project_id>/results")
 @project_admin_required
 def project_results(project_id):
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
     # In a real implementation, you'd fetch and process results for this project
     return render_template("admin/project_results.html", project=project)
 
@@ -1729,7 +1686,7 @@ def project_results(project_id):
 @admin.route("/project/<int:project_id>/edit-questions", methods=['GET', 'POST'])
 @project_admin_required
 def edit_project_questions(project_id):
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -1747,7 +1704,7 @@ def edit_project_questions(project_id):
             for key, value in project_data.items():
                 if key.startswith('question-'):
                     question_id = int(key.split('-')[1])
-                    question = Question.query.get(question_id)
+                    question = db.session.get(Question, question_id)
                     if question:
                         question.question = value
 
@@ -1803,10 +1760,7 @@ def edit_project_questions(project_id):
                         if file_key in files and files[file_key].filename != '':
                              file = files[file_key]
                              filename = str(uuid.uuid4()) + secure_filename(file.filename)
-                             upload_dir = os.path.join('application', 'static', 'uploads')
-                             os.makedirs(upload_dir, exist_ok=True)
-                             file_path = os.path.join(upload_dir, filename)
-                             file.save(file_path)
+                             file.save(upload_path(filename))
                              question.file_path = filename
 
 
@@ -1861,7 +1815,7 @@ def edit_project_questions(project_id):
 
         elif action == 'delete_question':
             question_id_to_delete = request.form.get('question_id_to_delete')
-            question = Question.query.get(question_id_to_delete)
+            question = db.session.get(Question, question_id_to_delete)
             if question and question.project_id == project.id:
                 # Delete related answers first
                 QuestionAnswer.query.filter_by(question_id=question.id).delete()

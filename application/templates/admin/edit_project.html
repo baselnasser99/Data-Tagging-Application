@@ -17,6 +17,7 @@
 </section>
 <section style="margin-top: 20px; padding: 10px;">
   <form action="{{ url_for('admin.edit_project', project_id=project.id) }}" method="POST" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="row">
       {% include "flash_messages.html" %}
       <div class="col-xs-12 col-sm-12 col-md-5 col-lg-4 border p-4 rounded bg-white shadow-sm">

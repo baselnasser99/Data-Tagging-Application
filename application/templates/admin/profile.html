@@ -49,6 +49,7 @@
           <h3 class="box-title">Update Email Address</h3>
         </div>
         <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
             <input type="hidden" name="action" value="update_email">
             <div class="form-group">
@@ -76,6 +77,7 @@
           <h3 class="box-title">Change Password</h3>
         </div>
         <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
             <input type="hidden" name="action" value="update_password">
             

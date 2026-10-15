@@ -32,6 +32,7 @@
               <div class="card-body py-5 px-md-5">
                 {% include "flash_messages.html" %}
                 <form action="{{ url_for("auth.register") }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label class="form-label">Full Name</label>
                         <input class="form-control" type="text" name="fullname" required>
@@ -69,6 +70,7 @@
             <h2 class="fw-bold mb-3">Register To Website</h2>
             {% include "flash_messages.html" %}
             <form action="{{ url_for("auth.register") }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="mb-3">
                     <label class="form-label fs-5">Full Name</label>
                     <input class="form-control" type="text" name="fullname" required>

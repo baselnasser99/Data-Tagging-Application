@@ -1,24 +1,20 @@
-# Use the official Python image as the base image
-FROM python:3.8
+FROM python:3.11-slim
 
-# Set the working directory in the container
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-# Copy the dependencies file to the working directory
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install any dependencies
-RUN pip install -r requirements.txt
-
-# Copy the content of the local src directory to the working directory
 COPY . .
 
-# Expose the port that the app runs on
+# Run as an unprivileged user
+RUN useradd --create-home appuser \
+    && mkdir -p /app/application/static/uploads /app/logs \
+    && chown -R appuser /app/application/static/uploads /app/logs
+USER appuser
+
 EXPOSE 5000
-
-ENV FLASK_APP=app.py
-ENV FLASK_RUN_HOST=0.0.0.0
-ENV FLASK_RUN_PORT=5000
-
-# Start the Flask app
-CMD ["flask", "run"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "app:app"]

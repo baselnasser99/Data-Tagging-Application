@@ -1,0 +1,260 @@
+"""Project editing, question management and the manager (project-admin) role."""
+import io
+
+import pytest
+
+from application.models import (
+    AnnotationTask,
+    AnswerType,
+    Project,
+    ProjectAdmin,
+    ProjectImage,
+    Question,
+    QuestionAnswer,
+    TaskAssignment,
+    User,
+    UserGroup,
+    UserGroupMembership,
+)
+from tests.conftest import login
+
+
+@pytest.fixture
+def survey(db):
+    project = Project(name="Survey", desc="d")
+    db.session.add(project)
+    db.session.flush()
+    q = Question(question="Original?", project_id=project.id)
+    db.session.add(q)
+    db.session.commit()
+    return project
+
+
+@pytest.fixture
+def annotation_project(db, make_user):
+    """Annotation project with 2 images, 1 question and a 2-person group."""
+    project = Project(name="Annot", desc="d", is_annotation_project=True, answers_per_task=1)
+    db.session.add(project)
+    db.session.flush()
+    db.session.add(Question(question="Label?", project_id=project.id))
+    for i in range(2):
+        db.session.add(
+            ProjectImage(project_id=project.id, filename=f"{i}.png", original_filename=f"{i}.png", file_path=f"/x/{i}.png")
+        )
+    group = UserGroup(name="Team")
+    db.session.add(group)
+    db.session.flush()
+    members = [make_user() for _ in range(2)]
+    for m in members:
+        db.session.add(UserGroupMembership(user_id=m.id, group_id=group.id))
+    db.session.commit()
+    return project, group, members
+
+
+# ---- editing ---------------------------------------------------------------
+
+def test_edit_project_details_and_question_file(admin_client, survey):
+    q = survey.questions[0]
+    resp = admin_client.post(
+        f"/admin/edit-project/{survey.id}",
+        data={
+            "project-name": "Renamed",
+            "project-description": "New description",
+            f"questionfile-{q.id}": (io.BytesIO(b"img"), "pic.png"),
+        },
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert b"updated successfully" in resp.data
+    assert survey.name == "Renamed" and survey.desc == "New description"
+    assert q.file_path.endswith("pic.png")
+
+
+def test_update_question_text_and_switch_to_mcq(admin_client, survey):
+    q = survey.questions[0]
+    admin_client.post(
+        f"/admin/project/{survey.id}/edit-questions",
+        data={
+            "action": "update_questions",
+            f"question-{q.id}": "Updated?",
+            f"dropdown-{q.id}": "mcq",
+            f"number_of_options-{q.id}": "2",
+            f"mcq-option-1-{q.id}": "Yes",
+            f"mcq-option-2-{q.id}": "No",
+            f"mcq-correct-answer-{q.id}": "Yes",
+        },
+    )
+    assert q.question == "Updated?"
+    assert q.answer_type == AnswerType.MCQ
+    assert (q.option1, q.option2, q.answer) == ("Yes", "No", "Yes")
+
+
+def test_changing_type_with_existing_answers_requires_confirmation(db, admin_client, survey, end_user):
+    q = survey.questions[0]
+    db.session.add(QuestionAnswer(user_id=end_user.id, question_id=q.id, answer="kept"))
+    db.session.commit()
+    resp = admin_client.post(
+        f"/admin/project/{survey.id}/edit-questions",
+        data={"action": "update_questions", f"question-{q.id}": q.question, f"dropdown-{q.id}": "mcq"},
+        follow_redirects=True,
+    )
+    assert b"Cannot change question type" in resp.data
+    assert q.answer_type == AnswerType.TEXT
+    assert QuestionAnswer.query.count() == 1
+
+
+def test_add_and_delete_question(admin_client, survey):
+    admin_client.post(
+        f"/admin/project/{survey.id}/edit-questions",
+        data={
+            "action": "add_question",
+            "new_question_text": "Pick one",
+            "new_question_type": "mcq",
+            "new_question_num_options": "2",
+            "new_question_option_1": "A",
+            "new_question_option_2": "B",
+        },
+    )
+    new_q = Question.query.filter_by(question="Pick one").one()
+    assert new_q.answer_type == AnswerType.MCQ and new_q.option2 == "B"
+
+    admin_client.post(
+        f"/admin/project/{survey.id}/edit-questions",
+        data={"action": "delete_question", "question_id_to_delete": new_q.id},
+    )
+    assert Question.query.filter_by(question="Pick one").first() is None
+
+
+def test_update_annotation_settings(admin_client, annotation_project):
+    project, _, _ = annotation_project
+    admin_client.post(
+        f"/admin/project/{project.id}/edit-questions",
+        data={"action": "update_project_settings", "questions_per_image": "3", "max_questions_per_user": "7", "answers_per_task": "2"},
+    )
+    assert (project.questions_per_image, project.max_questions_per_user, project.answers_per_task) == (3, 7, 2)
+
+
+# ---- assigning annotation projects ------------------------------------------
+
+def test_assign_annotation_project_to_group_generates_and_distributes_tasks(admin_client, annotation_project):
+    project, group, members = annotation_project
+    resp = admin_client.post(
+        "/admin/assign-project-to-group", data={"group_id": group.id, "project_id": project.id}, follow_redirects=True
+    )
+    assert b"2 tasks distributed" in resp.data
+    assert AnnotationTask.query.filter_by(project_id=project.id).count() == 2
+    assert TaskAssignment.query.count() == 2
+
+
+def test_annotator_sees_annotation_project(app, admin_client, annotation_project):
+    project, group, members = annotation_project
+    admin_client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": project.id})
+    client = app.test_client()
+    login(client, members[0].email)
+    resp = client.get("/user/my-projects")
+    assert b"Annot" in resp.data
+    assert client.get("/user/dashboard").status_code == 200
+
+
+def test_import_users_straight_into_annotation_project(admin_client, annotation_project):
+    project, group, members = annotation_project
+    admin_client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": project.id})
+    csv_data = "full_name,email,password\nNew,new@example.com,secret123\n"
+    resp = admin_client.post(
+        "/admin/import-users",
+        data={"csv_file": (io.BytesIO(csv_data.encode()), "u.csv"), "project_id": str(project.id)},
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    new_user = User.query.filter_by(email="new@example.com").one()
+    assert new_user is not None
+
+
+def test_import_users_into_survey_project_assigns_questions(admin_client, survey):
+    from application.models import UserQuestionAssignment
+
+    csv_data = "full_name,email,password\nNew,new@example.com,secret123\n"
+    admin_client.post(
+        "/admin/import-users",
+        data={"csv_file": (io.BytesIO(csv_data.encode()), "u.csv"), "project_id": str(survey.id)},
+        content_type="multipart/form-data",
+    )
+    new_user = User.query.filter_by(email="new@example.com").one()
+    assert UserQuestionAssignment.query.filter_by(user_id=new_user.id).count() == 1
+
+
+# ---- manager (project-admin) role ------------------------------------------
+
+def test_admin_can_create_a_manager_for_a_project(admin_client, survey):
+    resp = admin_client.post(
+        f"/admin/project/{survey.id}/admins/create",
+        data={"fullname": "Manny", "email": "manny@example.com", "password": "secret123"},
+        follow_redirects=True,
+    )
+    assert b"created successfully" in resp.data
+    manager = User.query.filter_by(email="manny@example.com").one()
+    assert manager.role == "project-admin" and manager.is_project_admin(survey.id)
+
+
+def test_only_one_manager_per_project(admin_client, survey, make_project_admin):
+    make_project_admin(survey)
+    resp = admin_client.post(
+        f"/admin/project/{survey.id}/admins/create",
+        data={"fullname": "Second", "email": "second@example.com", "password": "secret123"},
+        follow_redirects=True,
+    )
+    assert b"Only one manager" in resp.data
+
+
+def test_promote_existing_user_and_remove_again(admin_client, survey, end_user):
+    resp = admin_client.post(
+        f"/admin/project/{survey.id}/admins/add", data={"email": end_user.email}, follow_redirects=True
+    )
+    assert b"added successfully" in resp.data
+    assert end_user.role == "project-admin"
+
+    pa = ProjectAdmin.query.filter_by(user_id=end_user.id).one()
+    admin_client.post(f"/admin/project/{survey.id}/admins/{pa.id}/remove")
+    assert ProjectAdmin.query.count() == 0
+    assert end_user.role == "end-user"  # demoted when no projects remain
+
+
+def test_add_manager_with_unknown_email(admin_client, survey):
+    resp = admin_client.post(
+        f"/admin/project/{survey.id}/admins/add", data={"email": "ghost@example.com"}, follow_redirects=True
+    )
+    assert b"User not found" in resp.data
+
+
+def test_manager_cannot_remove_themselves(app, survey, make_project_admin):
+    manager = make_project_admin(survey)
+    pa = ProjectAdmin.query.filter_by(user_id=manager.id).one()
+    client = app.test_client()
+    login(client, manager.email)
+    resp = client.post(f"/admin/project/{survey.id}/admins/{pa.id}/remove", follow_redirects=True)
+    assert b"cannot remove yourself" in resp.data
+    assert ProjectAdmin.query.count() == 1
+
+
+def test_manager_can_create_projects_they_then_manage(app, survey, make_project_admin):
+    manager = make_project_admin(survey)
+    client = app.test_client()
+    login(client, manager.email)
+    client.post(
+        "/admin/create-annotation-project",
+        data={"project_name": "Mine", "project_desc": "d", "total_questions": "1", "question_1": "Q?"},
+    )
+    mine = Project.query.filter_by(name="Mine").one()
+    assert manager.is_project_admin(mine.id)
+
+
+# ---- end-user survey view (non-group) --------------------------------------
+
+def test_end_user_answers_project_directly_and_downloads(user_client, survey, end_user):
+    q = survey.questions[0]
+    assert user_client.get(f"/user/project/{survey.id}").status_code == 200
+    user_client.post(f"/user/project/{survey.id}", data={f"answer_{q.id}": "Direct answer"})
+    assert QuestionAnswer.query.filter_by(user_id=end_user.id).one().answer == "Direct answer"
+    resp = user_client.get(f"/user/download-project/{survey.id}")
+    assert b"Direct answer" in resp.data

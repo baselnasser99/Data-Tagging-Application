@@ -69,9 +69,11 @@
 															</a>
 													</td> -->
 													<td>
-															<a href="{{ url_for('admin.delete_project', project_id=project.id) }}" class="btn btn-danger btn-sm">
-																	Delete
-															</a>
+															<form method="POST" action="{{ url_for('admin.delete_project', project_id=project.id) }}" style="display: inline;"
+																	onsubmit="return confirm('Delete this project and all of its answers? This cannot be undone.')">
+																	<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+																	<button type="submit" class="btn btn-danger btn-sm">Delete</button>
+															</form>
 													</td>
 													<td>
 															<a href="{{ url_for('admin.download_files', project_id=project.id) }}" class="btn btn-success btn-sm">

@@ -1,43 +1,11 @@
-# Survey Management System - Requirements
-# Core Flask web framework and dependencies
+# Runtime dependencies
 Flask==3.0.3
 Flask-SQLAlchemy==3.1.1
-
-# Database drivers
-PyMySQL==1.1.1
+Flask-Login==0.6.3
+Flask-WTF==1.2.1
 SQLAlchemy==2.0.36
-
-# Security and password hashing
+PyMySQL==1.1.1
+cryptography==43.0.3      # needed by PyMySQL for MySQL 8 authentication
 Werkzeug==3.0.4
-
-# Python standard library modules (included with Python - no installation needed):
-# csv - Built-in module for CSV file handling
-# io - Built-in module for I/O operations
-# os - Built-in module for operating system interface
-# uuid - Built-in module for UUID generation
-# functools - Built-in module for functional programming tools
-# sqlite3 - Built-in module for SQLite database
-# datetime - Built-in module for date and time handling
-# sys - Built-in module for system-specific parameters
-# getpass - Built-in module for secure password input
-# enum - Built-in module for enumerations
-# zipfile - Built-in module for ZIP file handling
-# random - Built-in module for random number generation
-
-# Optional: For production deployment
-# gunicorn==23.0.0
-# python-dotenv==1.0.1
-
-# Optional: For development and testing
-# pytest==8.3.4
-# pytest-flask==1.3.0
-
-# Optional: For enhanced security in production
-# flask-talisman==1.1.0
-# flask-limiter==3.5.0
-
-# Frontend dependencies (loaded via CDN/static files):
-# Chart.js - Loaded via CDN in templates
-# Bootstrap CSS/JS - Included as static files
-# AdminLTE - Included as static files
-# jQuery - Included as static files
+python-dotenv==1.0.1
+gunicorn==23.0.0

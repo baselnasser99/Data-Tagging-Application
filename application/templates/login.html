@@ -32,6 +32,7 @@
               <div class="card-body py-5 px-md-5">
                 {% include "flash_messages.html" %}
                 <form action="{{ url_for("auth.login") }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <!-- Email input -->
                   <div data-mdb-input-init class="form-outline mb-4">
                     <label class="form-label" for="form3Example3">Email address</label>

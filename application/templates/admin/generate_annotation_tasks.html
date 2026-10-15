@@ -23,6 +23,7 @@
         </div>
         
         <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
             <div class="alert alert-success">
               <h4><i class="fa fa-check-circle"></i> Ready to Generate Tasks!</h4>

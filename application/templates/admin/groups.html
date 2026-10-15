@@ -52,12 +52,11 @@
                 <td>
                   <div class="btn-group" role="group">
                     <a href="{{ url_for('admin.manage_group', group_id=group.id) }}" class="btn btn-primary btn-sm">Manage Group</a>
-                    <a href="{{ url_for('admin.delete_group', group_id=group.id) }}" 
-                       class="btn btn-danger btn-sm" 
-                       onclick="return confirm('Are you sure you want to delete this group? This will remove all members and project assignments.')"
-                       title="Delete Group">
-                      <i class="fa fa-trash"></i> Delete
-                    </a>
+                    <form method="POST" action="{{ url_for('admin.delete_group', group_id=group.id) }}" style="display: inline;"
+                          onsubmit="return confirm('Are you sure you want to delete this group? This will remove all members and project assignments.')">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-danger btn-sm" title="Delete Group"><i class="fa fa-trash"></i> Delete</button>
+                    </form>
                   </div>
                 </td>
               </tr>

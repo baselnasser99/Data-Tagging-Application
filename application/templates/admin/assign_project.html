@@ -19,6 +19,7 @@
     <div class="row">
       <div class="col-lg-12">
         <form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="row">
             <div class="form-group col-md-6 col-xs-12">
               <label>Select User</label>

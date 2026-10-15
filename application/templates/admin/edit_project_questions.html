@@ -25,6 +25,7 @@
                         <h3 class="box-title">Project Settings</h3>
                     </div>
                     <form method="POST" action="{{ url_for('admin.edit_project_questions', project_id=project.id) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="action" value="update_project_settings">
                         <div class="box-body">
                             <div class="row">
@@ -75,6 +76,7 @@
                         </div>
                     </div>
                     <form method="POST" action="{{ url_for('admin.edit_project_questions', project_id=project.id) }}" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="action" value="add_question">
                         <div class="box-body">
                             <div class="row">
@@ -172,6 +174,7 @@
                         <h3 class="box-title">Existing Questions</h3>
                     </div>
                     <form method="POST" action="{{ url_for('admin.edit_project_questions', project_id=project.id) }}" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="action" value="update_questions">
                         <div class="box-body">
                             {% for question in project.questions %}
@@ -331,6 +334,7 @@
             </div>
             <div class="modal-footer">
                 <form method="POST" action="{{ url_for('admin.edit_project_questions', project_id=project.id) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="action" value="delete_question">
                     <input type="hidden" name="question_id_to_delete" id="question_id_to_delete">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>

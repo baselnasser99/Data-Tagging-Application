@@ -1,0 +1,5 @@
+{% extends "errors/_layout.html" %}
+{% block title %}Request rejected{% endblock %}
+{% block code %}400{% endblock %}
+{% block heading %}Request rejected{% endblock %}
+{% block message %}{{ reason or 'The form was missing a security token or it expired. Go back, reload the page and try again.' }}{% endblock %}

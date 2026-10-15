@@ -15,7 +15,6 @@
     </ol>
   </section>
   <section>
-    {% include 'flash_messages.html' %}
   </section>
 
   <section style="margin-top: 20px; padding: 10px;">
@@ -28,6 +27,7 @@
           </div>
           {% if available_users %}
           <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="box-body">
               <input type="hidden" name="action" value="add_user">
               <div class="form-group">
@@ -99,6 +99,7 @@
                     <td>{{ membership.joined_date.strftime('%Y-%m-%d %H:%M') if membership.joined_date else 'N/A' }}</td>
                     <td>
                       <form method="POST" style="display: inline;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="action" value="remove_user">
                         <input type="hidden" name="user_id" value="{{ membership.user.id }}">
                         <button type="submit" 

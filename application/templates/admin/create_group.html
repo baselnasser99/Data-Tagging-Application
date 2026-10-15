@@ -15,7 +15,6 @@
     </ol>
   </section>
   <section>
-    {% include 'flash_messages.html' %}
   </section>
 
   <section style="margin-top: 20px; padding: 10px;">
@@ -26,6 +25,7 @@
             <h3 class="box-title">Group Details</h3>
           </div>
           <form action="{{ url_for('admin.create_group') }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="box-body">
               <div class="form-group">
                 <label for="group_name">Group Name *</label>

@@ -1,24 +1,35 @@
 services:
   db:
-    image: mysql:5.7
+    image: mysql:8.0
+    env_file: .env
     environment:
-      MYSQL_DATABASE: assignment
-      MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "3307:3306"
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-tagging_db}
+      MYSQL_USER: ${MYSQL_USER:-tagging}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   web:
     build: .
-    command: flask run --host=0.0.0.0
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-tagging}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-tagging_db}
     ports:
       - "5000:5000"
     depends_on:
-      - db
-    environment:
-      FLASK_ENV: development
-      DATABASE_URL: mysql+pymysql://root:root@db/assignment
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/application/static/uploads
+      - logs:/app/logs
 
 volumes:
   mysql_data:
+  uploads:
+  logs:

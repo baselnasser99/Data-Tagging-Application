@@ -242,6 +242,9 @@
     {% endif %}
 
     <div class="content-wrapper">
+      <div class="flash-area" style="padding: 15px 15px 0;">
+        {% include "flash_messages.html" %}
+      </div>
       {% block content %}
       {% endblock %}
 

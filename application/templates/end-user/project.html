@@ -12,12 +12,12 @@
     </ol>
   </section>
   <section>
-    {% include 'flash_messages.html' %}
   </section>
   <section class="content">
     <div class="row">
       <div class="col-xs-12">
         <form action="{{ url_for('user.view_project', project_id=project.id) }}" method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           {% for question in project.questions %}
             <div class="card mb-4">
               <div class="card-body">

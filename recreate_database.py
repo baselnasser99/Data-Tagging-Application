@@ -51,20 +51,19 @@ def recreate_database():
             db.create_all()
             print("Database schema created successfully.")
             
-            # Create default admin user
-            print("Creating default admin user...")
-            admin_full_name = "John Doe"
-            admin_email = "admin@email.com"
-            admin_password = "123"
-            
-            admin_user = User.query.filter(User.email == admin_email).first()
-            if not admin_user:
-                admin_user = User()
-                admin_user.register_admin(admin_full_name, admin_email, admin_password)
-                print("Default admin user created.")
+            # The first administrator comes from ADMIN_EMAIL / ADMIN_PASSWORD
+            # (see .env.example); no default password is ever used.
+            admin_email = os.environ.get("ADMIN_EMAIL")
+            admin_password = os.environ.get("ADMIN_PASSWORD")
+            if admin_email and admin_password:
+                if not User.query.filter(User.email == admin_email).first():
+                    User().register_admin(os.environ.get("ADMIN_NAME", "Administrator"), admin_email, admin_password)
+                    print(f"Admin user {admin_email} created.")
+                else:
+                    print("Admin user already exists.")
             else:
-                print("Admin user already exists.")
-            
+                print("ADMIN_EMAIL / ADMIN_PASSWORD not set; no admin created. Run admin_manager.py to add one.")
+
             print("Database recreation completed successfully!")
         else:
             print(f"Unsupported database URI: {db_uri}")

@@ -3,30 +3,20 @@ import io
 from flask import send_file, make_response, Blueprint, request, redirect, url_for, flash, render_template, session, abort
 from .models import Project, Question, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer
 from .extns import db
-from functools import wraps
+import logging
+
+from .permissions import user_required
 from werkzeug.security import generate_password_hash, check_password_hash
 
 end_user = Blueprint('user', __name__, url_prefix='/user')
-
-def user_required(func):
-    @wraps(func)
-    def decorated_function(*args, **kwargs):
-        if 'id' not in session:
-            abort(403)
-
-        if session['role'] != 'end-user':
-            abort(403)
-
-        return func(*args, **kwargs)
-
-    return decorated_function
-
+log = logging.getLogger(__name__)
 
 @end_user.route("/dashboard")
+@user_required
 def dashboard():
     if 'id' in session:
         user_id = session['id']
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if user:
             # Count group memberships
             group_memberships = len(user.group_memberships)
@@ -79,7 +69,7 @@ def dashboard():
 @user_required
 def my_projects():
     user_id = session['id']
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
 
     if user:
         # Get group-assigned projects (only assignment method now)
@@ -143,7 +133,7 @@ def my_projects():
 @end_user.route("/download-project/<int:project_id>", methods=['GET'])
 @user_required
 def csv_download(project_id):
-    project = Project.query.get(project_id)
+    project = db.session.get(Project, project_id)
     if project:
         output = io.StringIO()
         writer = csv.writer(output)
@@ -158,7 +148,7 @@ def csv_download(project_id):
             answer = question_answers.answer if question_answers else None
             file_path = 'No File'
             if question.file_path:
-                file_path = f"http://localhost:5000/static/uploads/{question.file_path}"
+                file_path = url_for('static', filename=f'uploads/{question.file_path}', _external=True)
             writer.writerow([question.question, answer, file_path])
 
         output.seek(0)
@@ -179,13 +169,13 @@ def csv_download(project_id):
 @end_user.route("/project/<int:project_id>", methods=['GET', 'POST'])
 @user_required
 def view_project(project_id):
-    project = Project.query.get(project_id)
+    project = db.session.get(Project, project_id)
     if request.method == 'POST':
         for key, value in request.form.items():
             if key.startswith('answer_'):
                 _, question_id = key.split('_')
-                question = Question.query.get(question_id)
-                user = User.query.get(session['id'])
+                question = db.session.get(Question, question_id)
+                user = db.session.get(User, session['id'])
                 answer = value
                 qa = QuestionAnswer(user_id=user.id, question_id=question.id, answer=answer)
 
@@ -215,7 +205,7 @@ def change_password():
         confirm_password = request.form.get('confirm_password')
 
         user_id = session['id']
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
 
         if not user:
             flash('User not found', 'danger')
@@ -276,8 +266,8 @@ def view_group_project(group_project_id):
                 ).first()
 
                 if assignment:
-                    question = Question.query.get(question_id)
-                    user = User.query.get(user_id)
+                    question = db.session.get(Question, question_id)
+                    user = db.session.get(User, user_id)
                     answer = value
 
                     # Check if answer already exists
@@ -328,7 +318,7 @@ def annotation_tasks():
 @user_required
 def annotation_task(assignment_id):
     """Complete an annotation task"""
-    assignment = TaskAssignment.query.get_or_404(assignment_id)
+    assignment = db.get_or_404(TaskAssignment, assignment_id)
 
     # Verify this assignment belongs to the current user
     if assignment.user_id != session["id"]:
@@ -340,7 +330,11 @@ def annotation_task(assignment_id):
     project = task.project
 
     if request.method == "POST":
-        answer_text = request.form.get("answer")
+        answer_text = (request.form.get("answer") or "").strip()
+
+        if assignment.is_completed:
+            flash("You have already answered this task.", "info")
+            return redirect(url_for("user.annotation_tasks"))
 
         if answer_text:
             # Save the answer linked to this specific task assignment
@@ -382,8 +376,8 @@ def annotate_image(image_id, project_id, batch_index=0):
     """Complete questions for a specific image in batches"""
     user_id = session["id"]
 
-    image = ProjectImage.query.get_or_404(image_id)
-    project = Project.query.get_or_404(project_id)
+    image = db.get_or_404(ProjectImage, image_id)
+    project = db.get_or_404(Project, project_id)
 
     # Determine batch size (e.g., questions_per_image from project settings)
     batch_size = project.questions_per_image if project.questions_per_image > 0 else 5
@@ -428,10 +422,9 @@ def annotate_image(image_id, project_id, batch_index=0):
 
     total_uncompleted_questions = len(all_uncompleted_assignments)
 
-    print(f"DEBUG: Total uncompleted questions: {total_uncompleted_questions}")
-    print(f"DEBUG: Batch size: {batch_size}")
-    print(f"DEBUG: Current batch index: {batch_index}")
-
+    log.debug(f"Total uncompleted questions: {total_uncompleted_questions}")
+    log.debug(f"Batch size: {batch_size}")
+    log.debug(f"Current batch index: {batch_index}")
     if not all_uncompleted_assignments and batch_index == 0:
         flash("No new tasks found for this image!", "info")
         return redirect(url_for("user.annotation_tasks"))
@@ -442,12 +435,10 @@ def annotate_image(image_id, project_id, batch_index=0):
     start_index = batch_index * batch_size
     end_index = start_index + batch_size
 
-    print(f"DEBUG: Start index: {start_index}, End index: {end_index}")
-
+    log.debug(f"Start index: {start_index}, End index: {end_index}")
     current_batch_assignments = all_uncompleted_assignments[start_index:end_index]
 
-    print(f"DEBUG: Assignments in current batch: {len(current_batch_assignments)}")
-
+    log.debug(f"Assignments in current batch: {len(current_batch_assignments)}")
     if not current_batch_assignments and total_uncompleted_questions > 0:
         flash("All questions for this image have been answered!", "success")
         return redirect(url_for("user.annotation_tasks"))

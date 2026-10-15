@@ -5,4 +5,10 @@ venv*/
 __pycache__/
 application/__pycache__/
 application/static/uploads*/
-instance/database.db
+instance/database.db.env
+logs/
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+*.db

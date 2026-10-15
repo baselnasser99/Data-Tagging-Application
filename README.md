@@ -1,5 +1,7 @@
 # 🖼️ Image Annotation & Survey Management System
 
+[![Tests](https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml/badge.svg)](https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml)
+
 A modern web-based platform for managing both image annotation projects and general survey/questionnaire projects, built with Flask. This system allows administrators to create various project types, upload images, define questions (including Multiple Choice), assign tasks to users via groups, and monitor progress. End users can log in, view their assigned tasks, and provide answers efficiently.
 
 ---
@@ -57,10 +59,7 @@ The system supports three distinct user roles:
 As a **System Admin**, you can:
 
 1.  **Log in to the Admin Dashboard**
-    -   Default credentials:
-        -   Email: `admin@email.com`
-        -   Password: `123`
-    -   **Strongly recommended:** Change these credentials immediately after first login for security.
+    -   There is no default account. The first administrator is created on startup from the `ADMIN_EMAIL` and `ADMIN_PASSWORD` settings in your `.env` file (see [Installation & Setup](#installation--setup)).
 2.  **Manage Projects**:
     -   Create new "Survey" or "Image Annotation" projects.
     -   Edit existing projects, including project settings (e.g., questions per image, answers per task for annotation projects).
@@ -112,71 +111,61 @@ As an **End User**, you can:
 
 ### Prerequisites
 
--   Python 3.7+
--   pip
+-   Python 3.11+
 -   Git
--   Docker (Optional, for containerized deployment)
+-   Docker (optional, for containerized deployment)
 
-### Manual Installation
+### Configuration
 
-1.  **Clone the repository**
-    ```bash
-    git clone <repository-url>
-    cd Thesis-Final2
-    ```
+All settings come from environment variables. Copy the example file and edit it:
 
-2.  **Install dependencies**
-    ```bash
-    pip install -r requirements.txt
-    ```
+```bash
+cp .env.example .env
+```
 
-3.  **Run database migrations**
-    ```bash
-    python migrate_db.py
-    python migrate_annotation_db.py
-    ```
-    *Note: If you encounter issues with existing data or schema, you might need to run `python recreate_database.py` (this will delete all existing data).*
+At minimum set `SECRET_KEY`, `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Without `DATABASE_URL` the app uses a local SQLite file, which is fine for trying it out.
 
-4.  **Start the application**
-    ```bash
-    python app.py
-    ```
+### Run locally
 
-5.  **Access the application**
-    -   Open your browser and go to: [http://127.0.0.1:5000](http://127.0.0.1:5000)
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+flask --app app run --debug
+```
+
+Open [http://127.0.0.1:5000](http://127.0.0.1:5000) and sign in with the admin email and password from `.env`.
+
+### Run with Docker (Flask + MySQL 8)
+
+```bash
+cp .env.example .env    # then edit the passwords
+docker compose up --build
+```
+
+The app is served by Gunicorn at [http://localhost:5000](http://localhost:5000). Database data, uploads and logs are kept in Docker volumes.
 
 ---
 
-## Docker Usage
-
-### Build the Docker Image
+## Running the tests
 
 ```bash
-docker build -t annotation-app .
+pip install -r requirements-dev.txt
+pytest --cov
 ```
 
-### Run the Docker Container
-
-```bash
-docker run -d -p 5000:5000 --name annotation-app annotation-app
-```
-
--   The app will be available at: [http://localhost:5000](http://localhost:5000)
-
-### (Optional) Run Database Migrations in Docker
-
-```bash
-docker exec -it annotation-app python migrate_db.py
-docker exec -it annotation-app python migrate_annotation_db.py
-```
+The suite covers authentication and access control, CSRF protection, CSV user import, groups, ZIP upload, task generation and distribution, the annotation workflow and exports. GitHub Actions runs it on every push (see the badge at the top).
 
 ---
 
 ## Security Notes
 
--   All passwords are securely hashed.
--   Role-based access control: Admins, Project Admins, and End Users have distinct dashboards and permissions.
--   Change the default admin credentials immediately after first login.
+-   Passwords are hashed with Werkzeug (PBKDF2/scrypt); no plaintext passwords are stored.
+-   Sessions use Flask-Login with HTTP-only, SameSite cookies and an idle timeout (`SESSION_IDLE_MINUTES`).
+-   Every form is protected against cross-site request forgery (Flask-WTF CSRF tokens).
+-   Role-based access control: Admins, Project Admins and End Users have distinct dashboards and permissions.
+-   Sign-ins, failed sign-ins and logouts are written to `logs/audit.log`.
+-   No secrets or default accounts are stored in the code.
 
 ---
 

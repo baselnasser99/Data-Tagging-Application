@@ -1,10 +1,11 @@
 from sqlalchemy import Column, String, Integer, Text, ForeignKey, Enum
 import enum
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from .extns import db
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     id = Column(Integer, primary_key=True)
     full_name = Column(String(50), nullable=False)
     email = Column(String(30), unique=True, nullable=False)

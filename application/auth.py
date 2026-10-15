@@ -1,75 +1,89 @@
-from flask import Blueprint, render_template, redirect, request, url_for, flash, session
-from .extns import db
-from .models import User, ProjectAdmin
-from werkzeug.security import check_password_hash, generate_password_hash
+import logging
+from urllib.parse import urlsplit
+
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask_login import current_user, login_user, logout_user
+
+from .models import User
 
 auth = Blueprint("auth", __name__)
+audit = logging.getLogger("audit")
 
-def is_project_admin(project_id):
-    """Helper function to check if current user is admin for a specific project"""
-    if not session.get('id'):
-        return False
-    
-    user = User.query.get(session['id'])
-    if not user:
-        return False
-        
-    return user.is_project_admin(project_id)
+MIN_PASSWORD_LENGTH = 6
+
+HOME_BY_ROLE = {
+    "admin": "admin.dashboard",
+    "project-admin": "admin.my_projects",
+    "end-user": "user.dashboard",
+}
 
 
-@auth.route("/", methods=['GET', 'POST'])
-@auth.route("/login", methods=['GET', 'POST'])
+def _home_for(user):
+    return url_for(HOME_BY_ROLE.get(user.role, "auth.login"))
+
+
+def _safe_next(target):
+    """Only allow redirects to paths on this site (prevents open redirects)."""
+    if not target:
+        return None
+    parts = urlsplit(target)
+    if parts.scheme or parts.netloc or not target.startswith("/"):
+        return None
+    return target
+
+
+@auth.route("/", methods=["GET", "POST"])
+@auth.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == 'POST':
-        email = request.form.get("email")
-        password = request.form.get("password")
-
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip()
+        password = request.form.get("password") or ""
         user = User.query.filter_by(email=email).first()
 
-        if not user or not check_password_hash(user.password_hash, password):
+        if not user or not user.check_password(password):
+            audit.info("LOGIN_FAILED email=%s ip=%s", email, request.remote_addr)
             flash("Email address or password is incorrect!", "danger")
             return redirect(url_for("auth.login"))
 
-        session['id'] = user.id
-        session['role'] = user.role
-        session['name'] = user.full_name
-        session['email'] = user.email
+        session.clear()
+        login_user(user)
+        session.permanent = True  # enables the idle timeout
+        # Kept for templates that display the signed-in user's details.
+        session["id"] = user.id
+        session["role"] = user.role
+        session["name"] = user.full_name
+        session["email"] = user.email
+        audit.info("LOGIN_OK user_id=%s email=%s ip=%s", user.id, user.email, request.remote_addr)
 
-        if user.role == 'admin':
-            return redirect(url_for("admin.dashboard"))
-        elif user.role == 'project-admin':
-            return redirect(url_for("admin.my_projects"))
-        elif user.role == 'end-user':
-            return redirect(url_for('user.dashboard'))
+        return redirect(_safe_next(request.args.get("next")) or _home_for(user))
 
-        return redirect(url_for("auth.login"))
-    
-    if session:
-        role = session.get('role')
-        if role == 'admin':
-            return redirect(url_for("admin.dashboard"))
-        elif role == 'project-admin':
-            return redirect(url_for("admin.my_projects"))
-        elif role == 'end-user':
-            return redirect(url_for('user.dashboard'))
+    if current_user.is_authenticated:
+        return redirect(_home_for(current_user))
     return render_template("login.html")
 
 
-@auth.route("/register", methods=['GET', 'POST'])
+@auth.route("/register", methods=["GET", "POST"])
 def register():
+    if request.method == "POST":
+        fullname = (request.form.get("fullname") or "").strip()
+        email = (request.form.get("email") or "").strip()
+        password = request.form.get("password") or ""
 
-    if request.method == 'POST':
-        fullname = request.form.get("fullname")
-        email = request.form.get("email")
-        password = request.form.get("password")
+        if not fullname or not email:
+            flash("Full name and email are required.", "danger")
+            return redirect(url_for("auth.register"))
 
-        user = User.query.filter(User.email == email).first()
+        if len(password) < MIN_PASSWORD_LENGTH:
+            flash(f"Password must be at least {MIN_PASSWORD_LENGTH} characters long.", "danger")
+            return redirect(url_for("auth.register"))
 
-        if user:
+        if User.query.filter(User.email == email).first():
             flash("Email Address already exist!", "danger")
             return redirect(url_for("auth.register"))
 
-        User().register_end_user(fullname, email, password)
+        user = User()
+        user.register_end_user(fullname, email, password)
+        audit.info("REGISTER user_id=%s email=%s", user.id, email)
 
         flash("Account Created Successfully!", "success")
         return redirect(url_for("auth.login"))
@@ -79,21 +93,9 @@ def register():
 
 @auth.route("/logout")
 def logout():
-    if 'id' in session:
-        session.pop('id')
-        session.pop('role')
-        session.pop('name', None)
-        session.pop('email', None)
-        flash('Logged out!', 'warning')
-
-    return redirect(url_for('auth.login'))
-
-
-@auth.route("/test-admin")
-def test_admin():
-    """Test route to check if admin user exists"""
-    admin_user = User.query.filter_by(email="admin@email.com").first()
-    if admin_user:
-        return f"Admin user exists: {admin_user.full_name}, Role: {admin_user.role}"
-    else:
-        return "Admin user not found"
+    if current_user.is_authenticated:
+        audit.info("LOGOUT user_id=%s", current_user.id)
+        logout_user()
+        session.clear()
+        flash("Logged out!", "warning")
+    return redirect(url_for("auth.login"))

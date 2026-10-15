@@ -43,6 +43,7 @@
         </div>
         
         <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
             <div class="alert alert-info">
               <h4>{{ question.question }}</h4>

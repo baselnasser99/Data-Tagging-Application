@@ -15,7 +15,6 @@
     </ol>
   </section>
   <section>
-    {% include 'flash_messages.html' %}
   </section>
   <section class="content">
     <div class="row">
@@ -35,6 +34,7 @@
         </div>
         
         <form action="{{ url_for('user.view_group_project', group_project_id=project.group_project_id) }}" method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           {% for question in project.questions %}
             <div class="box box-default">
               <div class="box-header with-border">

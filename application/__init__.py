@@ -40,6 +40,7 @@ def create_app(config_object=None):
     app.register_blueprint(end_user)
 
     app.jinja_env.globals["getattr_safe"] = getattr_safe
+    app.jinja_env.globals["app_name"] = app.config["APP_NAME"]
 
     _register_error_handlers(app)
 

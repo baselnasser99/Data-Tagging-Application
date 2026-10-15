@@ -1,0 +1,271 @@
+/* Sign-in, registration and error pages.
+   Tokens: ink #1C2733, canvas #EDF0F3, surface #FFFFFF, line #D4DAE1,
+   muted #56616F, marker #F5CF3A. Typeface: Atkinson Hyperlegible. */
+:root {
+  --ink: #1C2733;
+  --ink-soft: #2E3B4A;
+  --canvas: #EDF0F3;
+  --surface: #FFFFFF;
+  --line: #D4DAE1;
+  --muted: #56616F;
+  --marker: #F5CF3A;
+  --danger: #B42318;
+  --danger-bg: #FDECEA;
+  --success: #1F7A4D;
+  --success-bg: #E7F4EC;
+  --info-bg: #E8EEF6;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; height: 100%; }
+
+body {
+  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--canvas);
+}
+
+a { color: var(--ink); text-underline-offset: 3px; }
+a:hover { color: var(--ink-soft); }
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--marker);
+}
+
+.auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 1fr);
+  min-height: 100vh;
+}
+
+/* ---- left: what the product does ---- */
+.auth-intro {
+  display: flex;
+  flex-direction: column;
+  padding: 40px 56px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 20px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.auth-intro-body {
+  margin: auto 0;
+  max-width: 34rem;
+}
+
+.auth-intro h1 {
+  font-size: 40px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 40px 0 16px;
+}
+
+.auth-intro p {
+  font-size: 18px;
+  color: var(--muted);
+  margin: 0;
+  max-width: 30rem;
+}
+
+/* The specimen: a small batch of items, one of them selected and tagged. */
+.specimen {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 420px;
+}
+
+.tile {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 4px;
+  background: #DCE1E7;
+  overflow: hidden;
+}
+
+/* simple "photo" shapes: a horizon and a sun or a block */
+.tile::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 38%;
+  background: #C9D0D8;
+}
+.tile::after {
+  content: "";
+  position: absolute;
+  width: 22%; aspect-ratio: 1;
+  border-radius: 50%;
+  top: 18%; left: 64%;
+  background: #C3CAD3;
+}
+.tile:nth-child(2)::after { border-radius: 2px; width: 30%; left: 18%; top: 30%; }
+.tile:nth-child(4)::after { left: 12%; }
+.tile:nth-child(6)::after { border-radius: 2px; width: 18%; height: 40%; aspect-ratio: auto; left: 42%; top: 22%; }
+
+.tile.is-done { opacity: .55; }
+
+.tile.is-selected { overflow: visible; background: #D3D9E0; }
+.tile.is-selected .corners {
+  position: absolute;
+  inset: -6px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--ink), var(--ink)) top left / 14px 2.5px,
+    linear-gradient(var(--ink), var(--ink)) top left / 2.5px 14px,
+    linear-gradient(var(--ink), var(--ink)) top right / 14px 2.5px,
+    linear-gradient(var(--ink), var(--ink)) top right / 2.5px 14px,
+    linear-gradient(var(--ink), var(--ink)) bottom left / 14px 2.5px,
+    linear-gradient(var(--ink), var(--ink)) bottom left / 2.5px 14px,
+    linear-gradient(var(--ink), var(--ink)) bottom right / 14px 2.5px,
+    linear-gradient(var(--ink), var(--ink)) bottom right / 2.5px 14px;
+  background-repeat: no-repeat;
+}
+
+.tag {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 3px;
+  background: var(--marker);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.specimen-caption {
+  margin: 28px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ---- right: the form ---- */
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 360px;
+}
+
+.auth-form h2 {
+  font-size: 28px;
+  line-height: 1.2;
+  margin: 0 0 8px;
+}
+
+.auth-form .lede {
+  margin: 0 0 28px;
+  color: var(--muted);
+}
+
+.field { margin-bottom: 20px; }
+
+.field label {
+  display: block;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.field .hint {
+  display: block;
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.field input {
+  width: 100%;
+  height: 46px;
+  padding: 0 12px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid #AEB7C2;
+  border-radius: 4px;
+}
+
+.field input:focus-visible { border-color: var(--ink); }
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 48px;
+  margin-top: 8px;
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.button:hover { background: var(--ink-soft); color: #fff; }
+
+.switch {
+  margin: 24px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.switch a { font-weight: 700; }
+
+.alert {
+  margin: 0 0 20px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--ink);
+  border-radius: 2px;
+  background: var(--info-bg);
+  font-size: 15px;
+}
+.alert-danger { border-color: var(--danger); background: var(--danger-bg); }
+.alert-success { border-color: var(--success); background: var(--success-bg); }
+.alert-warning { border-color: #A15C07; background: #FDF3E1; }
+
+.brand-compact { display: none; margin-bottom: 32px; }
+
+@media (max-width: 900px) {
+  .auth { grid-template-columns: 1fr; }
+  .auth-intro { display: none; }
+  .auth-panel { border-left: 0; align-items: flex-start; padding-top: 48px; }
+  .brand-compact { display: inline-flex; }
+}
+
+/* ---- error pages ---- */
+.error-page {
+  display: flex;
+  align-items: center;
+  min-height: 100vh;
+  padding: 40px 24px;
+}
+.error-page main { max-width: 34rem; margin: 0 auto; }
+.error-code { font-size: 15px; font-weight: 700; color: var(--muted); margin: 32px 0 4px; }
+.error-page h1 { font-size: 32px; line-height: 1.2; margin: 0 0 12px; }
+.error-page p { color: var(--muted); margin: 0 0 28px; }
+.error-page .button { width: auto; padding: 0 24px; }

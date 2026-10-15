@@ -1,0 +1,7 @@
+{# Brand mark: the four corner brackets of a selection box, the gesture of tagging an item. #}
+{% macro mark(size=28) -%}
+<svg class="brand-mark" width="{{ size }}" height="{{ size }}" viewBox="0 0 28 28" aria-hidden="true" focusable="false">
+  <path d="M2 9V2h7M19 2h7v7M26 19v7h-7M9 26H2v-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/>
+  <rect x="10" y="10" width="8" height="8" rx="1" fill="#F5CF3A"/>
+</svg>
+{%- endmacro %}

@@ -1,248 +1,106 @@
-<html>
-
+{% from "includes/brand.html" import mark %}
+{% macro nav(endpoint, icon, label) -%}
+  {% set active = request.endpoint == endpoint %}
+  <li class="{{ 'active' if active }}">
+    <a href="{{ url_for(endpoint) }}" {% if active %}aria-current="page"{% endif %}>
+      <i class="fa fa-{{ icon }} fa-fw" aria-hidden="true"></i> <span>{{ label }}</span>
+    </a>
+  </li>
+{%- endmacro %}
+<!doctype html>
+<html lang="en">
 <head>
-  <title>Question & Answer</title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
 
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Flask-Admin dashboard login template">
-  <meta name="author" content="Jonathan Ars">
-
-  <!-- jQuery 2.2.3 -->
-  <script src="{{url_for('static',filename='new/plugins/jQuery/jquery-2.2.3.min.js')}}"></script>
-
-  <!-- Bootstrap 3.3.6 -->
-  <link href="{{url_for('static',filename='new/css/bootstrap.min.css')}}" rel="stylesheet">
-  </link>
-  <!-- Font Awesome -->
+  <script src="{{ url_for('static', filename='new/plugins/jQuery/jquery-2.2.3.min.js') }}"></script>
+  <link href="{{ url_for('static', filename='new/css/bootstrap.min.css') }}" rel="stylesheet">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-  <!-- Ionicons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
-  <!-- Theme style -->
-  <link href="{{url_for('static',filename='new/css/AdminLTE.min.css')}}" rel="stylesheet">
-  </link>
-  <!-- AdminLTE Skins. Choose a skin from the css/skins folder instead of downloading all of them to reduce the load. -->
-  <link href="{{url_for('static',filename='new/css/skins/_all-skins.min.css')}}" rel="stylesheet">
-  </link>
-  <!-- iCheck -->
-  <link href="{{url_for('static',filename='new/plugins/iCheck/flat/blue.css')}}" rel="stylesheet">
-  </link>
-  <!-- Morris chart -->
-  <link href="{{url_for('static',filename='new/plugins/morris/morris.css')}}" rel="stylesheet">
-  </link>
-  <!-- jvectormap -->
-  <link href="{{url_for('static',filename='new/plugins/jvectormap/jquery-jvectormap-1.2.2.css')}}" rel="stylesheet">
-  </link>
-  <!-- Date Picker -->
-  <link href="{{url_for('static',filename='new/plugins/datepicker/datepicker3.css')}}" rel="stylesheet">
-  </link>
-  <!-- Daterange picker -->
-  <link href="{{url_for('static',filename='new/plugins/daterangepicker/daterangepicker.css')}}" rel="stylesheet">
-  </link>
-  <!-- bootstrap wysihtml5 - text editor -->
-  <link href="{{url_for('static',filename='new/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css')}}"
-    rel="stylesheet">
-  </link>
+  <link href="{{ url_for('static', filename='new/css/AdminLTE.min.css') }}" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Application theme: loaded last so it refines the AdminLTE defaults -->
+  <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
 </head>
 
-<body class="hold-transition skin-blue sidebar-mini">
-  {% if 'id' in session %}
-  <!-- TOP NAVBAR -->
+<body class="hold-transition sidebar-mini">
+  <a class="skip-link" href="#main">Skip to content</a>
   <div class="wrapper">
+    {% if current_user.is_authenticated %}
     <header class="main-header">
-      <a href="#" class="logo">
-        <!-- mini logo for sidebar mini 50x50 pixels -->
-        <span class="logo-mini"><b>Q&A</b></span>
-        <!-- logo for regular state and mobile devices -->
-        <span class="logo-lg"><b>Question & Answer</b></span>
+      <a href="{{ url_for('auth.login') }}" class="logo">
+        <span class="logo-mini">{{ mark(24) }}</span>
+        <span class="logo-lg">{{ mark(24) }} {{ app_name }}</span>
       </a>
 
-      <!-- Header Navbar: style can be found in header.less -->
-      <nav class="navbar navbar-static-top">
-        <!-- Sidebar toggle button-->
+      <nav class="navbar navbar-static-top" aria-label="Account">
         <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
-          <span class="sr-only">Toggle navigation</span>
+          <span class="sr-only">Show or hide the menu</span>
         </a>
 
         <div class="navbar-custom-menu">
           <ul class="nav navbar-nav">
-            <!-- Notifications: style can be found in dropdown.less -->
-            <li class="dropdown notifications-menu">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                <i class="fa fa-bell-o"></i>
-                <span class="label label-warning">10</span>
-              </a>
-              <ul class="dropdown-menu">
-                <li class="header">You have 10 notifications</li>
-                <li>
-                  <!-- inner menu: contains the actual data -->
-                  <ul class="menu">
-                    <li>
-                      <a href="#">
-                        <i class="fa fa-users text-aqua"></i> 5 new members joined today
-                      </a>
-                    </li>
-                    <li>
-                      <a href="#">
-                        <i class="fa fa-warning text-yellow"></i> Very long description here that may not fit into the
-                        page and may cause design problems
-                      </a>
-                    </li>
-                    <li>
-                      <a href="#">
-                        <i class="fa fa-users text-red"></i> 5 new members joined
-                      </a>
-                    </li>
-                    <li>
-                      <a href="#">
-                        <i class="fa fa-shopping-cart text-green"></i> 25 sales made
-                      </a>
-                    </li>
-                    <li>
-                      <a href="#">
-                        <i class="fa fa-user text-red"></i> You changed your username
-                      </a>
-                    </li>
-                  </ul>
-                </li>
-                <li class="footer"><a href="#">View all</a></li>
-              </ul>
-            </li>
-
-            <!-- Control Sidebar Toggle Button -->
-            <li>
-              <a href="#" data-toggle="control-sidebar"><i class="fa fa-gears"></i></a>
-            </li>
-
             <li class="dropdown user user-menu">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                <i class="fa fa-user-circle" style="color: white; font-size: 1.4em;"></i>
-                <span class="hidden-xs"></span>
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class="avatar" aria-hidden="true">{{ current_user.full_name[:1] | upper }}</span>
+                <span class="hidden-xs">{{ current_user.full_name }}</span>
+                <i class="fa fa-angle-down" aria-hidden="true"></i>
               </a>
-              <ul class="dropdown-menu" style="width: 150px;">
-                <li class="dropdown-menu-item">
-                  <div class="text-center" style="padding: 10px;">
-                    <strong>{{ session['name'] }} </strong>
-                    <div>
+              <ul class="dropdown-menu dropdown-menu-right account-menu">
+                <li class="account-who">
+                  <strong>{{ current_user.full_name }}</strong>
+                  <span>{{ current_user.email }}</span>
                 </li>
-                <li class="dropdown-menu-item">
-                  {% if session['role'] == 'end-user' %}
-                  <a href="{{ url_for('user.profile') }}" class="">Profile</a>
-                  {% elif session['role'] == 'admin' %}
-                  <a href="{{ url_for('admin.admin_profile') }}" class="">My Profile</a>
+                <li>
+                  {% if current_user.role == 'end-user' %}
+                  <a href="{{ url_for('user.profile') }}">Profile and password</a>
+                  {% elif current_user.role == 'admin' %}
+                  <a href="{{ url_for('admin.admin_profile') }}">Profile and password</a>
                   {% endif %}
                 </li>
-                <li class="dropdown-menu-item">
-                  <a href="{{ url_for('auth.logout') }}">Sign out</a>
-                </li>
+                <li><a href="{{ url_for('auth.logout') }}">Sign out</a></li>
               </ul>
             </li>
           </ul>
-
         </div>
       </nav>
     </header>
-    <!-- / TOP NAVBAR -->
 
-    <!-- LEFT MENU -->
     <aside class="main-sidebar">
+      <nav aria-label="Main">
       <ul class="sidebar-menu">
-        {% if session['role'] == 'admin' %}
-        <li>
-          <a href="{{ url_for('admin.dashboard') }}">
-            <i class="fa fa-home"></i> <span>Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('admin.users') }}">
-            <i class="fa fa-users"></i> <span>Users</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('admin.admin_profile') }}">
-            <i class="fa fa-user-circle"></i> <span>My Profile</span>
-          </a>
-        </li>
-        <li class="treeview">
-          <a href="#">
-            <i class="fa fa-users"></i> <span>Groups</span>
-            <span class="pull-right-container">
-              <i class="fa fa-angle-left pull-right"></i>
-            </span>
-          </a>
-          <ul class="treeview-menu" style="display:block;">
-            <li><a href="{{ url_for('admin.view_groups') }}">View Groups</a></li>
-            <li><a href="{{ url_for('admin.create_group') }}">Create Group</a></li>
-          </ul>
-        </li>
-        <li class="treeview">
-          <a href="#">
-            <i class="fa fa-book"></i> <span>Projects</span>
-            <span class="pull-right-container">
-              <i class="fa fa-angle-left pull-right"></i>
-            </span>
-          </a>
-          <ul class="treeview-menu" style="display:block;">
-            <li><a href="{{ url_for('admin.view_projects') }}">View Projects</a></li>
-            <li><a href="{{ url_for('admin.create_project') }}"><i class="fa fa-file-text-o text-blue"></i> Create Survey Project</a></li>
-            <li><a href="{{ url_for('admin.create_annotation_project') }}"><i class="fa fa-image text-blue"></i> Create
-                Annotation Project</a></li>
-            <li><a href="{{ url_for('admin.assign_project_to_group') }}">Assign Project to Group</a></li>
-          </ul>
-        </li>
-        {% endif %}
-        {% if session['role'] == 'project-admin' %}
-        <li class="header">PROJECT ADMIN NAVIGATION</li>
-        <li>
-          <a href="{{ url_for('admin.my_projects') }}">
-            <i class="fa fa-folder"></i> <span>My Projects</span>
-          </a>
-        </li>
-        <li>
-            <a href="{{ url_for('admin.assign_project_to_group') }}">
-              <i class="fa fa-handshake-o"></i> <span>Assign Project to Group</span>
-            </a>
-        </li>
-        <li class="treeview">
-          <a href="#">
-            <i class="fa fa-book"></i> <span>Create Projects</span>
-            <span class="pull-right-container">
-              <i class="fa fa-angle-left pull-right"></i>
-            </span>
-          </a>
-          <ul class="treeview-menu" style="display:block;">
-            <li><a href="{{ url_for('admin.create_project') }}"><i class="fa fa-file-text-o text-blue"></i> Create Survey Project</a></li>
-            <li><a href="{{ url_for('admin.create_annotation_project') }}"><i class="fa fa-image text-blue"></i> Create Annotation Project</a></li>
-          </ul>
-        </li>
-        {# Project-specific links will appear on project dashboard and related pages #}
-        {% endif %}
-        {% if session['role'] == 'end-user' %}
-        <li>
-          <a href="{{ url_for('user.dashboard') }}">
-            <i class="fa fa-home"></i> <span>Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('user.my_projects') }}">
-            <i class="fa fa-folder"></i> <span>My Group Projects</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('user.annotation_tasks') }}">
-            <i class="fa fa-image text-blue"></i> <span>Annotation Tasks</span>
-          </a>
-        </li>
+        {% if current_user.role == 'admin' %}
+        {{ nav('admin.dashboard', 'home', 'Dashboard') }}
+        <li class="header">Projects</li>
+        {{ nav('admin.view_projects', 'folder-open-o', 'All projects') }}
+        {{ nav('admin.create_annotation_project', 'picture-o', 'New annotation project') }}
+        {{ nav('admin.create_project', 'list-ul', 'New survey project') }}
+        {{ nav('admin.assign_project_to_group', 'share', 'Assign to a group') }}
+        <li class="header">People</li>
+        {{ nav('admin.users', 'user-o', 'Users') }}
+        {{ nav('admin.import_users', 'upload', 'Import users from CSV') }}
+        {{ nav('admin.view_groups', 'users', 'Groups') }}
+        {{ nav('admin.create_group', 'plus', 'New group') }}
+        {% elif current_user.role == 'project-admin' %}
+        {{ nav('admin.my_projects', 'folder-open-o', 'My projects') }}
+        {{ nav('admin.create_annotation_project', 'picture-o', 'New annotation project') }}
+        {{ nav('admin.create_project', 'list-ul', 'New survey project') }}
+        {{ nav('admin.assign_project_to_group', 'share', 'Assign to a group') }}
+        {% elif current_user.role == 'end-user' %}
+        {{ nav('user.dashboard', 'home', 'Overview') }}
+        {{ nav('user.annotation_tasks', 'picture-o', 'Image tasks') }}
+        {{ nav('user.my_projects', 'folder-open-o', 'Group projects') }}
         {% endif %}
       </ul>
-      </section>
-      <!-- /.sidebar -->
+      </nav>
     </aside>
     {% endif %}
 
-    <div class="content-wrapper">
-      <div class="flash-area" style="padding: 15px 15px 0;">
+    <main class="content-wrapper" id="main" tabindex="-1">
+      <div class="flash-area">
         {% include "flash_messages.html" %}
       </div>
       {% block content %}
@@ -250,49 +108,16 @@
 
       {% block scripts %}
       {% endblock %}
-    </div>
+    </main>
 
     <footer class="main-footer">
-      <strong>Copyright &copy; 2025</strong>
+      {{ app_name }}, built as a diploma project at the University of Pécs.
     </footer>
   </div>
 
-  <!-- jQuery UI 1.11.4 -->
-  <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
-  <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
-  <script>
-    $.widget.bridge('uibutton', $.ui.button);
-  </script>
-  <!-- Bootstrap 3.3.6 -->
-  <script src="{{url_for('static',filename='new/js/bootstrap.min.js')}}"></script>
-  <!-- Morris.js charts -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
-  <script src="{{url_for('static',filename='new/plugins/morris/morris.min.js')}}"></script>
-  <!-- Sparkline -->
-  <script src="{{url_for('static',filename='new/plugins/sparkline/jquery.sparkline.min.js')}}"></script>
-  <!-- jvectormap -->
-  <script src="{{url_for('static',filename='new/plugins/jvectormap/jquery-jvectormap-1.2.2.min.js')}}"></script>
-  <script src="{{url_for('static',filename='new/plugins/jvectormap/jquery-jvectormap-world-mill-en.js')}}"></script>
-  <!-- jQuery Knob Chart -->
-  <script src="{{url_for('static',filename='new/plugins/knob/jquery.knob.js')}}"></script>
-  <!-- daterangepicker -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.11.2/moment.min.js"></script>
-  <script src="{{url_for('static',filename='new/plugins/daterangepicker/daterangepicker.js')}}"></script>
-  <!-- datepicker -->
-  <script src="{{url_for('static',filename='new/plugins/datepicker/bootstrap-datepicker.js')}}"></script>
-  <!-- Bootstrap WYSIHTML5 -->
-  <script
-    src="{{url_for('static',filename='new/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.all.min.js')}}"></script>
-  <!-- Slimscroll -->
-  <script src="{{url_for('static',filename='new/plugins/slimScroll/jquery.slimscroll.min.js')}}"></script>
-  <!-- FastClick -->
-  <script src="{{url_for('static',filename='new/plugins/fastclick/fastclick.js')}}"></script>
-  <!-- AdminLTE App -->
-  <script src="{{url_for('static',filename='new/js/app.min.js')}}"></script>
-  <!-- AdminLTE for demo purposes -->
-  <script src="{{url_for('static',filename='new/js/demo.js')}}"></script>
-  <script src="{{url_for('static',filename='new/js/pages/dashboard.js')}}"></script>
-
+  <script src="{{ url_for('static', filename='new/js/bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='new/plugins/slimScroll/jquery.slimscroll.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='new/plugins/fastclick/fastclick.js') }}"></script>
+  <script src="{{ url_for('static', filename='new/js/app.min.js') }}"></script>
 </body>
-
 </html>

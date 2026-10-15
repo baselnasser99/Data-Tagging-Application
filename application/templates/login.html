@@ -1,64 +1,20 @@
-<html>
-<head>
-  <title>Question & Answer</title>
-
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Flask-Admin dashboard login template">
-  <meta name="author" content="Jonathan Ars">
-
-  <link href="{{url_for('static',filename='vendor/bootstrap5/css/bootstrap.min.css')}}" rel="stylesheet"></link>
-</head>
-<body>
-<section class="">
-    <div class="px-4 py-5 px-md-5 text-center text-lg-start" style="height: 100vh;background-color: hsl(0, 0%, 96%);margin: auto;display: flex;align-items: center;">
-      <div class="container">
-        <div class="row gx-lg-5 align-items-center">
-          <div class="col-lg-6 mb-5 mb-lg-0">
-            <h1 class="my-5 display-3 fw-bold ls-tight">
-              Welcome to the Question & Answer
-            </h1>
-            <p style="color: hsl(217, 10%, 50.8%)">
-              Lorem ipsum dolor sit amet consectetur adipisicing elit.
-              Eveniet, itaque accusantium odio, soluta, corrupti aliquam
-              quibusdam tempora at cupiditate quis eum maiores libero
-              veritatis? Dicta facilis sint aliquid ipsum atque?
-            </p>
-          </div>
-  
-          <div class="col-lg-6 mb-5 mb-lg-0">
-            <div class="card">
-              <div class="card-body py-5 px-md-5">
-                {% include "flash_messages.html" %}
-                <form action="{{ url_for("auth.login") }}" method="POST">
+{% extends "includes/auth_layout.html" %}
+{% block title %}Sign in{% endblock %}
+{% block form %}
+<h2>Sign in</h2>
+<p class="lede">Use the email address your project coordinator registered.</p>
+{% include "flash_messages.html" %}
+<form action="{{ url_for('auth.login', next=request.args.get('next')) }}" method="POST" novalidate>
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <!-- Email input -->
-                  <div data-mdb-input-init class="form-outline mb-4">
-                    <label class="form-label" for="form3Example3">Email address</label>
-                    <input type="email" name="email" class="form-control" required />
-                  </div>
-  
-                  <!-- Password input -->
-                  <div data-mdb-input-init class="form-outline mb-4">
-                    <label class="form-label" for="form3Example4">Password</label>
-                    <input type="password" name="password" class="form-control" required />
-                  </div>
-
-                  <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-block mb-4 w-100">Sign in</button>
-    
-                  <div class="text-center">
-                    <p>Not a member? <a href="{{ url_for("auth.register") }}">Register</a></p>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-</section>
-
-<script src="{{url_for('static',filename='new/js/bootstrap.min.js')}}"></script>
-</body>
-</html>
+  <div class="field">
+    <label for="email">Email address</label>
+    <input id="email" type="email" name="email" autocomplete="email" required autofocus>
+  </div>
+  <div class="field">
+    <label for="password">Password</label>
+    <input id="password" type="password" name="password" autocomplete="current-password" required>
+  </div>
+  <button type="submit" class="button">Sign in</button>
+</form>
+<p class="switch">New to {{ app_name }}? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
+{% endblock %}

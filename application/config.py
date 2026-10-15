@@ -17,6 +17,9 @@ def _bool(name, default=False):
 
 
 class Config:
+    # Name shown in the browser tab, header and sign-in page.
+    APP_NAME = os.environ.get("APP_NAME", "Data Tagging")
+
     # A random key is generated when SECRET_KEY is not set. That is safe, but
     # every restart logs everyone out, so production must set SECRET_KEY.
     SECRET_KEY = os.environ.get("SECRET_KEY") or secrets.token_hex(32)

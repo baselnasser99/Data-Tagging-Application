@@ -1,67 +1,71 @@
 {% extends "base.html" %}
 
-{% block title %}Annotation Tasks{% endblock %}
+{% block title %}Image tasks – {{ app_name }}{% endblock %}
 
 {% block content %}
 <section class="content-header">
-  <h1>Annotation Tasks</h1>
-  <ol class="breadcrumb">
-    <li><a href="{{ url_for('user.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-    <li class="active"><i class="fa fa-image"></i> Annotation Tasks</li>
-  </ol>
+  <h1>Image tasks</h1>
 </section>
 
 <section class="content">
-      <div class="row">
-    {% if assignments %}
-    {% for assignment in assignments %}
-        <div class="col-md-4 col-sm-6 col-xs-12" style="margin-bottom: 20px;">
-          <div class="box box-default">
-            <div class="box-header with-border">
-              <h4 class="box-title">
-            {{ assignment.task.image.original_filename[:20] }}{% if assignment.task.image.original_filename|length > 20 %}...{% endif %}
-              </h4>
-              <div class="box-tools pull-right">
-            {% if assignment.is_completed %}
-            <span class="badge bg-green">Completed</span>
+  {% if assignments %}
+  {# One card per image: answer all of an image's questions in one sitting. #}
+  {% set groups = assignments | groupby('task.image_id') %}
+  <div class="row">
+    {% for image_id, items in groups %}
+    {% set first = items[0] %}
+    {% set image = first.task.image %}
+    {% set project = first.task.project %}
+    {% set pending = items | rejectattr('is_completed') | list %}
+    <div class="col-md-4 col-sm-6 col-xs-12">
+      <div class="box">
+        <div class="box-header with-border">
+          <h2 class="box-title" title="{{ image.original_filename }}">
+            {{ image.original_filename[:28] }}{% if image.original_filename|length > 28 %}…{% endif %}
+          </h2>
+          <div class="box-tools pull-right">
+            {% if pending %}
+            <span class="badge bg-yellow">{{ pending|length }} to answer</span>
             {% else %}
-            <span class="badge bg-yellow">Pending</span>
+            <span class="badge bg-green">Done</span>
             {% endif %}
-              </div>
-            </div>
-            <div class="box-body text-center">
-          <img src="{{ url_for('static', filename='uploads/images/' + assignment.task.project.id|string + '/' + assignment.task.image.filename) }}"
-                   class="img-responsive center-block"
-                   style="height: 150px; width: 100%; object-fit: cover; border-radius: 5px;">
-
-              <div style="margin-top: 10px;">
-            <h6><strong>Question:</strong></h6>
-                <p class="text-sm" style="margin: 2px 0;">
-                  {{ assignment.task.question.question[:40] }}{% if assignment.task.question.question|length > 40 %}...{% endif %}
-                </p>
-              </div>
-
-          <div class="box-footer">
-            <a href="{{ url_for('user.annotation_task', assignment_id=assignment.id) }}" class="btn btn-primary btn-block">
-              <i class="fa fa-pencil"></i> Answer Question
-              </a>
           </div>
+        </div>
+        <div class="box-body">
+          <img src="{{ url_for('static', filename='uploads/images/' + project.id|string + '/' + image.filename) }}"
+               alt="{{ image.original_filename }}" loading="lazy"
+               style="display: block; width: 100%; height: 170px; object-fit: cover; border-radius: 4px;">
+          <p class="text-muted" style="margin: 10px 0 6px;">{{ project.name }}</p>
+          <ul class="list-unstyled" style="margin: 0;">
+            {% for a in items %}
+            <li style="padding: 3px 0;">
+              <i class="fa {{ 'fa-check text-green' if a.is_completed else 'fa-circle-o text-muted' }}" aria-hidden="true"></i>
+              <span class="sr-only">{{ 'Answered:' if a.is_completed else 'To answer:' }}</span>
+              {{ a.task.question.question }}
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="box-footer">
+          {% if pending %}
+          <a href="{{ url_for('user.annotate_image', image_id=image.id, project_id=project.id) }}" class="btn btn-primary btn-block">
+            Answer {{ pending|length }} {{ 'question' if pending|length == 1 else 'questions' }}
+          </a>
+          {% else %}
+          <span class="text-muted">All questions for this image are answered.</span>
+          {% endif %}
         </div>
       </div>
     </div>
-      {% endfor %}
-      {% else %}
-    <div class="col-md-12">
-      <div class="box box-info">
-        <div class="box-header with-border">
-          <h3 class="box-title"><i class="fa fa-info-circle"></i> No Annotation Tasks</h3>
-        </div>
-        <div class="box-body">
-          <p>You currently have no annotation tasks assigned to you. Please contact your administrator.</p>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="box">
+    <div class="empty-state">
+      <strong>No image tasks yet</strong>
+      You will see images here once a coordinator adds you to a group with an annotation project.
     </div>
   </div>
-    </div>
-    {% endif %}
-  </div>
+  {% endif %}
 </section>
 {% endblock %}

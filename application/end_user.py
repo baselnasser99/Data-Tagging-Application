@@ -487,16 +487,12 @@ def annotate_image(image_id, project_id, batch_index=0):
         else:
             flash("No new answers were submitted in this batch.", "warning")
 
-        # Determine next page
-        next_batch_index = batch_index + 1
-        if next_batch_index * batch_size < total_uncompleted_questions:
-            return redirect(url_for("user.annotate_image",
-                                    image_id=image.id,
-                                    project_id=project.id,
-                                    batch_index=next_batch_index))
-        else:
-            flash("All questions for this image have been answered!", "success")
-            return redirect(url_for("user.annotation_tasks"))
+        # Answered questions drop out of the "uncompleted" list, so the next
+        # batch always starts at the beginning of what is left.
+        if total_uncompleted_questions - answers_submitted_in_batch > 0:
+            return redirect(url_for("user.annotate_image", image_id=image.id, project_id=project.id))
+        flash("All questions for this image have been answered!", "success")
+        return redirect(url_for("user.annotation_tasks"))
 
     total_pages = (total_uncompleted_questions + batch_size - 1) // batch_size
     has_next_page = (batch_index + 1) < total_pages

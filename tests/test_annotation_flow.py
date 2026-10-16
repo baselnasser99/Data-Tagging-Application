@@ -119,7 +119,8 @@ def test_generate_tasks_creates_item_question_pairs_and_assigns_them(admin_clien
     per_user = {m.id: 0 for m in members}
     for a in assignments:
         per_user[a.user_id] += 1
-    assert max(per_user.values()) - min(per_user.values()) <= 1  # evenly split
+    # handed out per image (2 questions each), so loads differ by at most one image
+    assert max(per_user.values()) - min(per_user.values()) <= 2
 
     # The group is now linked to the project, so it shows on dashboards.
     from application.models import GroupProject
@@ -191,3 +192,35 @@ def test_annotate_image_batch_view(app, admin_client, group_with_members):
     data = {f"answer_{a.id}": f"answer {a.id}" for a in mine}
     client.post(f"/user/annotate-image/{image_id}/{project.id}", data=data)
     assert all(a.is_completed for a in mine)
+
+
+def test_answering_an_image_in_several_batches_skips_nothing(app, db, admin_client, group_with_members):
+    """Regression: page 2 used to skip questions because answered ones dropped out of the list."""
+    group, members = group_with_members
+    resp = admin_client.post("/admin/create-annotation-project", data={
+        "project_name": "Batches", "project_desc": "d", "answers_per_task": "1",
+        "max_questions_per_user": "100", "total_questions": "3",
+        "question_1": "A?", "question_2": "B?", "question_3": "C?",
+    })
+    project = Project.query.filter_by(name="Batches").one()
+    project.questions_per_image = 1  # one question per page
+    db.session.commit()
+    _upload(admin_client, project, {"one.png": b"x"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+
+    mine = TaskAssignment.query.all()
+    owner = mine[0].user
+    assert all(a.user_id == owner.id for a in mine)  # one image -> one person
+    client = app.test_client()
+    login(client, owner.email)
+    image_id = mine[0].task.image_id
+    base = f"/user/annotate-image/{image_id}/{project.id}"
+    for step in range(3):
+        page = client.get(f"/user/annotate-image/{image_id}/{project.id}")
+        open_ids = [a.id for a in TaskAssignment.query.filter_by(is_completed=False)]
+        resp = client.post(f"/user/annotate-image/{image_id}/{project.id}", data={f"answer_{open_ids[0]}": "x"})
+        # next batch is the start of what is left, never "page 2"
+        if step < 2:
+            assert resp.headers["Location"].endswith(base)
+    assert all(a.is_completed for a in TaskAssignment.query.all())
+    assert b"Done" in client.get("/user/annotation-tasks").data

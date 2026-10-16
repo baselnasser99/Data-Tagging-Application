@@ -11,8 +11,10 @@ Vocabulary
 Guarantees, each covered by tests in tests/test_distribution.py:
     1. Uniqueness: a user never receives the same task twice.
     2. Cap: nobody holds more than ``max_questions_per_user`` assignments in a project.
-    3. Fairness: each open slot goes to the eligible user with the lowest load
-       (ties broken by total assignments, then user id, so results are reproducible).
+    3. Fairness: work goes to the eligible user with the lowest load (ties broken
+       by total assignments, then user id, so results are reproducible). Work is
+       handed out per image, so loads stay within one image's worth of questions.
+    3b. One sitting per image: whoever gets an image gets all of its open questions.
     4. Completeness: when someone leaves, their unfinished assignments are released
        and immediately offered to the remaining members; finished work is never touched.
     5. Integrity: regenerating tasks only adds missing (image, question) pairs;
@@ -20,7 +22,6 @@ Guarantees, each covered by tests in tests/test_distribution.py:
 """
 from __future__ import annotations
 
-import heapq
 from collections import Counter
 from dataclasses import dataclass, field
 
@@ -155,8 +156,10 @@ def apply_answers_per_task(project: Project) -> None:
 def assign_open_slots(project: Project, users: list[User] | None = None) -> DistributionResult:
     """Fill every task's missing answer slots with the least-loaded eligible users.
 
-    A slot is "missing" when a task has fewer assignments than ``required_answers``.
-    Tasks with the most missing slots are served first so coverage grows evenly.
+    Work is handed out **per image**: when a person receives an image, they get
+    every question for it that still needs an answer, so they answer all of an
+    image's questions in one sitting instead of seeing it again later for a
+    different question. Images with the most missing answers are served first.
     """
     result = DistributionResult()
     users = eligible_users(project) if users is None else users
@@ -165,11 +168,10 @@ def assign_open_slots(project: Project, users: list[User] | None = None) -> Dist
 
     cap = project.max_questions_per_user or 0
     loads = user_loads(project, users)
-    # heap entries: (open load, total load, user id)
-    heap = [(loads[u.id][0], loads[u.id][1], u.id) for u in users if loads[u.id][1] < cap]
-    heapq.heapify(heap)
+    open_load = {u.id: loads[u.id][0] for u in users}
+    total = {u.id: loads[u.id][1] for u in users}
 
-    tasks = AnnotationTask.query.filter_by(project_id=project.id).all()
+    tasks = AnnotationTask.query.filter_by(project_id=project.id).order_by(AnnotationTask.id).all()
     holders: dict[int, set[int]] = {t.id: set() for t in tasks}
     for task_id, user_id in (
         db.session.query(TaskAssignment.task_id, TaskAssignment.user_id)
@@ -182,30 +184,34 @@ def assign_open_slots(project: Project, users: list[User] | None = None) -> Dist
     def missing(task):
         return max(0, (task.required_answers or 1) - len(holders[task.id]))
 
-    pending = sorted((t for t in tasks if missing(t) > 0), key=lambda t: (-missing(t), t.id))
+    by_image: dict[int, list] = {}
+    for task in tasks:
+        by_image.setdefault(task.image_id, []).append(task)
 
-    for task in pending:
-        for _ in range(missing(task)):
-            skipped = []
-            chosen = None
-            while heap:
-                entry = heapq.heappop(heap)
-                if entry[2] in holders[task.id]:
-                    skipped.append(entry)
-                    continue
-                chosen = entry
+    def image_missing(image_tasks):
+        return sum(missing(t) for t in image_tasks)
+
+    for image_id in sorted(by_image, key=lambda i: (-image_missing(by_image[i]), i)):
+        image_tasks = by_image[image_id]
+        while image_missing(image_tasks):
+            # People who still lack at least one open question of this image
+            # and have room under the cap; least busy first.
+            candidates = [
+                u.id for u in users
+                if total[u.id] < cap
+                and any(missing(t) and u.id not in holders[t.id] for t in image_tasks)
+            ]
+            if not candidates:
+                result.unfilled_slots += image_missing(image_tasks)
                 break
-            for entry in skipped:
-                heapq.heappush(heap, entry)
-            if chosen is None:
-                result.unfilled_slots += 1
-                continue
-            open_load, total, uid = chosen
-            db.session.add(TaskAssignment(task_id=task.id, user_id=uid))
-            holders[task.id].add(uid)
-            result.assignments_created += 1
-            if total + 1 < cap:
-                heapq.heappush(heap, (open_load + 1, total + 1, uid))
+            uid = min(candidates, key=lambda i: (open_load[i], total[i], i))
+            for task in image_tasks:
+                if missing(task) and uid not in holders[task.id] and total[uid] < cap:
+                    db.session.add(TaskAssignment(task_id=task.id, user_id=uid))
+                    holders[task.id].add(uid)
+                    open_load[uid] += 1
+                    total[uid] += 1
+                    result.assignments_created += 1
 
     db.session.commit()
 
@@ -230,11 +236,13 @@ def _shortage_warning(project: Project, n_users: int) -> str:
 
 
 def rebalance(project: Project, users: list[User] | None = None) -> DistributionResult:
-    """Move unstarted assignments from the busiest to the least busy users.
+    """Move unstarted work from the busiest person to the least busy one.
 
-    Runs until open loads differ by at most one, or no legal move remains
-    (a move is legal when the receiver does not already hold that task and is
-    under the cap). Completed assignments are never moved.
+    Work moves one image at a time (all of that person's unstarted questions
+    for the image), keeping the "one image, one sitting" property. A move is
+    made only if it narrows the gap between the two people, the receiver holds
+    none of those tasks yet, and stays under the cap. Completed assignments
+    are never moved. Stops when no move narrows the gap.
     """
     result = DistributionResult()
     users = eligible_users(project) if users is None else users
@@ -246,28 +254,42 @@ def rebalance(project: Project, users: list[User] | None = None) -> Distribution
         loads = user_loads(project, users)
         by_open = sorted(users, key=lambda u: (loads[u.id][0], u.id))
         light, heavy = by_open[0], by_open[-1]
-        if loads[heavy.id][0] - loads[light.id][0] <= 1 or loads[light.id][1] >= cap:
+        gap = loads[heavy.id][0] - loads[light.id][0]
+        if gap <= 1:
             break
+
         light_tasks = {
             tid for (tid,) in db.session.query(TaskAssignment.task_id)
             .join(AnnotationTask)
             .filter(AnnotationTask.project_id == project.id, TaskAssignment.user_id == light.id)
         }
-        movable = (
+        heavy_open = (
             _project_assignments(project.id)
-            .filter(
-                TaskAssignment.user_id == heavy.id,
-                TaskAssignment.is_completed.is_(False),
-                ~TaskAssignment.task_id.in_(light_tasks) if light_tasks else true(),
-            )
-            .order_by(TaskAssignment.id.desc())
-            .first()
+            .filter(TaskAssignment.user_id == heavy.id, TaskAssignment.is_completed.is_(False))
+            .all()
         )
-        if movable is None:
+        bundles: dict[int, list] = {}
+        for assignment in heavy_open:
+            bundles.setdefault(assignment.task.image_id, []).append(assignment)
+
+        move = None
+        for image_id in sorted(bundles, key=lambda i: (len(bundles[i]), -i)):
+            bundle = bundles[image_id]
+            size = len(bundle)
+            if size >= gap:  # moving it would not narrow the gap
+                continue
+            if any(a.task_id in light_tasks for a in bundle):
+                continue
+            if loads[light.id][1] + size > cap:
+                continue
+            move = bundle
             break
-        movable.user_id = light.id
+        if move is None:
+            break
+        for assignment in move:
+            assignment.user_id = light.id
         db.session.commit()
-        result.assignments_moved += 1
+        result.assignments_moved += len(move)
     return result
 
 

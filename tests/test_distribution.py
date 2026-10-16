@@ -110,8 +110,19 @@ def test_every_slot_is_filled_and_load_is_even(setup):
     distribution.distribute(project)
     load = open_load(project)
     assert sum(load.values()) == 30
-    assert max(load.values()) - min(load.values()) <= 1
+    # work is handed out per image (3 questions), so loads stay within one image
+    assert max(load.values()) - min(load.values()) <= 3
     assert stranded_slots(project) == 0
+
+
+def test_whoever_gets_an_image_gets_all_its_questions(setup):
+    """One sitting per image: an image's questions are not split between people."""
+    project, _, _ = setup(n_images=7, n_questions=3, n_users=3)
+    distribution.distribute(project)
+    owners = {}
+    for a in assignments(project):
+        owners.setdefault(a.task.image_id, set()).add(a.user_id)
+    assert all(len(people) == 1 for people in owners.values())
 
 
 def test_no_user_gets_the_same_task_twice(setup):

@@ -13,8 +13,10 @@ from sqlalchemy import delete
 from werkzeug.utils import secure_filename
 
 from .extns import db
-from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, ProjectImage, AnnotationTask, TaskAssignment, ProjectAdmin
+from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, ProjectImage, AnnotationTask, TaskAssignment, ProjectAdmin, ExportLog
 from .auth import MIN_PASSWORD_LENGTH
+from . import distribution
+from . import export as dataset_export
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
@@ -38,6 +40,25 @@ def upload_dir(*parts):
 def upload_path(filename):
     """Absolute path for a file stored directly in the upload root."""
     return os.path.join(upload_dir(), filename)
+
+
+def flash_distribution(result, success_message=None):
+    """Show what a distribution run did, plus any warnings."""
+    if success_message:
+        flash(success_message, "success")
+    details = []
+    if result.tasks_created:
+        details.append(f"{result.tasks_created} new tasks created")
+    if result.assignments_created:
+        details.append(f"{result.assignments_created} assignments given out")
+    if result.assignments_released:
+        details.append(f"{result.assignments_released} unfinished assignments released")
+    if result.assignments_moved:
+        details.append(f"{result.assignments_moved} assignments moved to balance workloads")
+    if details:
+        flash("Task distribution: " + ", ".join(details) + ".", "info")
+    for warning in result.warnings:
+        flash(warning, "warning")
 
 
 def public_file_url(filename):
@@ -261,14 +282,13 @@ def import_users():
             if project:
                 project_assignments_made = 0
                 if project.is_annotation_project:
-                    all_tasks = AnnotationTask.query.filter_by(project_id=project.id).all()
-                    if all_tasks:
-                        # Use assign_tasks_to_users for annotation projects
-                        assignments_created = assign_tasks_to_users(all_tasks, users_to_assign, project.max_questions_per_user, project.answers_per_task)
-                        if assignments_created > 0:
-                            flash(f"Assigned {assignments_created} annotation tasks to users for project '{project.name}'.", 'success')
-                        else:
-                            flash(f"No new annotation tasks assigned to users for project '{project.name}' (they might already be assigned or no tasks available).", 'info')
+                    if AnnotationTask.query.filter_by(project_id=project.id).first():
+                        users = {u.id: u for u in distribution.eligible_users(project)}
+                        users.update({u.id: u for u in users_to_assign})
+                        result = distribution.assign_open_slots(project, users=list(users.values()))
+                        flash_distribution(result)
+                        if not result.assignments_created:
+                            flash(f"No open tasks were left to assign in '{project.name}'.", 'info')
                     else:
                         flash(f"No annotation tasks found for project '{project.name}'. Generate tasks first.", 'warning')
                 else:
@@ -419,6 +439,8 @@ def delete_project(project_id):
                     pass  # Continue even if file deletion fails
                 db.session.delete(image)
 
+        ExportLog.query.filter_by(project_id=project_id).delete()
+
         # Delete group project assignments
         group_projects = GroupProject.query.filter_by(project_id=project_id).all()
         for group_project in group_projects:
@@ -492,6 +514,9 @@ def edit_project(project_id):
 
         db.session.commit()
         flash('Project details updated successfully!', 'success')
+        if project.is_annotation_project:
+            distribution.apply_answers_per_task(project)
+            flash_distribution(distribution.distribute(project))
         return redirect(url_for("admin.view_projects"))
 
     return render_template("admin/edit_project.html", project=project)
@@ -763,7 +788,8 @@ def manage_group(group_id):
                     membership = UserGroupMembership(user_id=user.id, group_id=group.id)
                     db.session.add(membership)
                     db.session.commit()
-                    flash('User added to group successfully!', 'success')
+                    result = assign_questions_to_new_group_member(user, group)
+                    flash_distribution(result, 'User added to group successfully!')
             else:
                 flash('User not found', 'danger')
 
@@ -774,7 +800,8 @@ def manage_group(group_id):
             if membership and user:
                 db.session.delete(membership)
                 db.session.commit()
-                flash('User removed from group successfully!', 'success')
+                result = remove_pending_assignments_from_removed_group_member(user, group)
+                flash_distribution(result, 'User removed from group successfully!')
             else:
                 flash('User not found in group or user object not found', 'danger')
 
@@ -814,8 +841,8 @@ def manage_group_for_project(project_id, group_id):
                     membership = UserGroupMembership(user_id=user.id, group_id=group.id)
                     db.session.add(membership)
                     db.session.commit()
-                    assign_questions_to_new_group_member(user, group)
-                    flash('User added to group successfully and assignments updated', 'success')
+                    result = assign_questions_to_new_group_member(user, group)
+                    flash_distribution(result, 'User added to group successfully and assignments updated')
             else:
                 flash('User not found', 'danger')
 
@@ -824,10 +851,10 @@ def manage_group_for_project(project_id, group_id):
             user = db.session.get(User, user_id)
             membership = UserGroupMembership.query.filter_by(user_id=user_id, group_id=group.id).first()
             if membership and user:
-                remove_pending_assignments_from_removed_group_member(user, group)
                 db.session.delete(membership)
                 db.session.commit()
-                flash('User removed from group successfully and pending assignments removed', 'success')
+                result = remove_pending_assignments_from_removed_group_member(user, group)
+                flash_distribution(result, 'User removed from group; their unfinished tasks were handed to the rest of the team')
             else:
                 flash('User not found in group or user object not found', 'danger')
 
@@ -843,78 +870,46 @@ def manage_group_for_project(project_id, group_id):
 
 
 def assign_questions_to_new_group_member(user, group):
-    """
-    Assigns all active questions/tasks from projects assigned to the group
-    to the newly added user.
-    """
-    assigned_projects = GroupProject.query.filter_by(group_id=group.id).all()
-    for gp in assigned_projects:
-        project = gp.project
-        group_project_id_str = f"{group.id}-{project.id}"
+    """Give a new group member their share of the group's projects.
 
-        if not project.is_annotation_project:
-            # Regular project: assign all questions
-            for question in project.questions:
-                existing_assignment = UserQuestionAssignment.query.filter_by(
-                    user_id=user.id,
-                    question_id=question.id,
-                    group_project_id=group_project_id_str
-                ).first()
-                if not existing_assignment:
-                    assignment = UserQuestionAssignment(
-                        user_id=user.id,
-                        question_id=question.id,
-                        group_project_id=group_project_id_str
-                    )
-                    db.session.add(assignment)
-        else:
-            # Annotation project: assign tasks
-            all_tasks = AnnotationTask.query.filter_by(project_id=project.id).all()
-            # The assign_tasks_to_users function already handles existing assignments and max_questions_per_user
-            # We need to pass a list containing only the new user
-            assign_tasks_to_users(all_tasks, [user], project.max_questions_per_user, project.answers_per_task)
+    Survey projects: every member answers every question.
+    Annotation projects: open slots are filled and workloads rebalanced
+    (see application/distribution.py).
+    """
+    for gp in GroupProject.query.filter_by(group_id=group.id).all():
+        project = gp.project
+        if project is None or project.is_annotation_project:
+            continue
+        group_project_id_str = f"{group.id}-{project.id}"
+        for question in project.questions:
+            if not UserQuestionAssignment.query.filter_by(
+                user_id=user.id, question_id=question.id, group_project_id=group_project_id_str
+            ).first():
+                db.session.add(UserQuestionAssignment(
+                    user_id=user.id, question_id=question.id, group_project_id=group_project_id_str
+                ))
     db.session.commit()
+    return distribution.on_member_added(user, group.id)
 
 
 def remove_pending_assignments_from_removed_group_member(user, group):
+    """Clean up after a member has left a group (call after deleting the membership).
+
+    Survey projects: unanswered question assignments are removed.
+    Annotation projects: unfinished tasks are released and redistributed to the
+    remaining members. Completed work is always kept.
     """
-    Removes pending (unanswered/incomplete) assignments for a user
-    from projects associated with the group they are being removed from.
-    Completed answers are kept.
-    """
-    assigned_projects = GroupProject.query.filter_by(group_id=group.id).all()
-    for gp in assigned_projects:
+    for gp in GroupProject.query.filter_by(group_id=group.id).all():
         project = gp.project
-        group_project_id_str = f"{group.id}-{project.id}"
-
-        if not project.is_annotation_project:
-            # Regular project: remove pending UserQuestionAssignment
-            pending_assignments = UserQuestionAssignment.query.filter_by(
-                user_id=user.id,
-                group_project_id=group_project_id_str
-            ).all()
-            for assignment in pending_assignments:
-                # Check if there's an answer for this assignment
-                existing_answer = QuestionAnswer.query.filter_by(
-                    user_id=user.id,
-                    question_id=assignment.question_id
-                ).first()
-                if not existing_answer: # Only delete if no answer exists
-                    db.session.delete(assignment)
-        else:
-            # Annotation project: remove pending TaskAssignment
-            # Find tasks associated with this project
-            project_tasks = AnnotationTask.query.filter_by(project_id=project.id).all()
-            project_task_ids = [task.id for task in project_tasks]
-
-            pending_task_assignments = TaskAssignment.query.filter(
-                TaskAssignment.user_id == user.id,
-                TaskAssignment.task_id.in_(project_task_ids),
-                TaskAssignment.is_completed == False # Only remove pending ones
-            ).all()
-            for task_assignment in pending_task_assignments:
-                db.session.delete(task_assignment)
+        if project is None or project.is_annotation_project:
+            continue
+        for assignment in UserQuestionAssignment.query.filter_by(
+            user_id=user.id, group_project_id=f"{group.id}-{project.id}"
+        ).all():
+            if not QuestionAnswer.query.filter_by(user_id=user.id, question_id=assignment.question_id).first():
+                db.session.delete(assignment)
     db.session.commit()
+    return distribution.on_member_removed(user, group.id)
 
 
 @admin.route("/assign-project-to-group", methods=['GET', 'POST'])
@@ -944,20 +939,11 @@ def assign_project_to_group():
             log.debug(f"assign_project_to_group - GroupProject added and committed.")
             # Logic for distributing questions/tasks based on project type and content
             if project.is_annotation_project:
-                images = ProjectImage.query.filter_by(project_id=project.id).all()
-                questions = Question.query.filter_by(project_id=project.id).all()
-
-                if images and questions:
-                    # Only generate and assign tasks if images and questions exist
-                    new_tasks, tasks_created = _generate_project_tasks(project.id)
-                    group_members_users = [m.user for m in group.members if m.user]
-                    if new_tasks and tasks_created > 0 and group_members_users:
-                        assign_tasks_to_users(new_tasks, group_members_users, project.max_questions_per_user, project.answers_per_task)
-                        flash(f'Project "{project.name}" assigned to group "{group.name}" and {tasks_created} tasks distributed successfully!', 'success')
-                    else:
-                        flash(f'Project "{project.name}" assigned to group "{group.name}", but no tasks generated or assigned (no images/questions or group members). You can upload images and add questions later.', 'warning')
+                if project.images and project.questions:
+                    result = distribution.distribute(project)
+                    flash_distribution(result, f'Project "{project.name}" assigned to group "{group.name}".')
                 else:
-                    flash(f'Project "{project.name}" assigned to group "{group.name}". No images or questions found yet to generate tasks. Please upload images and add questions to the project.', 'warning')
+                    flash(f'Project "{project.name}" assigned to group "{group.name}". Upload images and add questions to create tasks.', 'warning')
             else: # Regular survey project
                 questions = project.questions
                 if questions:
@@ -1006,17 +992,8 @@ def distribute_questions_to_group(group, project):
     db.session.commit()
 
     if project.is_annotation_project:
-        # For annotation projects, tasks are generated and assigned via _generate_project_tasks and assign_tasks_to_users
-        # This function should primarily handle non-annotation project question distribution if called directly.
-        # If it's called for an annotation project, it means questions were added/deleted via edit_project_questions,
-        # and _generate_project_tasks would have already been called. So, we just need to re-assign those tasks.
-        # Fetch all tasks related to this project that need assignment
-        all_project_tasks = AnnotationTask.query.filter_by(project_id=project.id).all()
-        if all_project_tasks:
-            # Distribute these tasks to the current group members
-            assign_tasks_to_users(all_project_tasks, members, project.max_questions_per_user, project.answers_per_task)
-        else:
-            log.debug(f"No annotation tasks found for project {project.name} during group distribution.")
+        distribution.distribute(project)
+
     else: # This is a regular survey project
         # For survey projects, each user in the group should receive ALL questions from the project
         for member in members:
@@ -1047,27 +1024,20 @@ def distribute_questions_to_group(group, project):
 @admin_required
 def delete_group(group_id):
     group = db.get_or_404(UserGroup, group_id)
+    project_ids = [gp.project_id for gp in group.assigned_projects]
+    member_ids = [m.user_id for m in group.members]
 
-    # Delete all related records
-    # Delete question assignments for this group's projects
-    for group_project in group.assigned_projects:
-        group_project_id = f"{group.id}-{group_project.project_id}"
-        assignments = UserQuestionAssignment.query.filter_by(group_project_id=group_project_id).all()
-        for assignment in assignments:
-            db.session.delete(assignment)
+    # Survey question assignments that belonged to this group
+    for project_id in project_ids:
+        UserQuestionAssignment.query.filter_by(group_project_id=f"{group.id}-{project_id}").delete()
 
-    # Delete group project assignments
-    for group_project in group.assigned_projects:
-        db.session.delete(group_project)
-
-    # Delete group memberships
-    for membership in group.members:
-        db.session.delete(membership)
-
-    # Delete the group itself
+    # Memberships and project links are removed by the model's cascade rules
     db.session.delete(group)
     db.session.commit()
 
+    # Members who no longer reach a project hand their unfinished tasks back
+    result = distribution.on_group_detached(group_id, project_ids, member_ids)
+    flash_distribution(result)
     flash("Group deleted successfully!", "info")
     return redirect(url_for("admin.view_groups"))
 
@@ -1084,7 +1054,7 @@ def create_annotation_project():
         project_name = request.form.get("project_name")
         project_desc = request.form.get("project_desc")
         max_questions_per_user = int(request.form.get("max_questions_per_user", 100))
-        answers_per_task = int(request.form.get("answers_per_task", 1)) # Default to 1 for single completion
+        answers_per_task = max(1, int(request.form.get("answers_per_task", 1)))
         total_questions = int(request.form.get("total_questions", 0))
         assigned_group_id = request.form.get("assigned_group_id")
 
@@ -1124,25 +1094,36 @@ def create_annotation_project():
                     db.session.add(group_project)
                     # No task distribution here; tasks are generated after images are uploaded
 
-        # Create custom questions if any are provided
+        # Create the questions. Each can be free text or multiple choice
+        # (multiple choice makes answers comparable, see the agreement score).
         if total_questions > 0:
-            custom_questions = []
+            parsed = []
             for i in range(1, total_questions + 1):
-                question_text = request.form.get(f"question_{i}")
-                if question_text:
-                    custom_questions.append(question_text.strip())
+                text = (request.form.get(f"question_{i}") or "").strip()
+                if not text:
+                    continue
+                kind = request.form.get(f"question_type_{i}", "text")
+                options = [o.strip() for o in (request.form.get(f"question_options_{i}") or "").splitlines() if o.strip()]
+                if kind == "mcq" and not 2 <= len(options) <= 6:
+                    flash(f'Question {i} is multiple choice, so it needs between 2 and 6 options, one per line.', "error")
+                    db.session.rollback()
+                    return redirect(request.url)
+                parsed.append((text, kind, options))
 
-            if len(custom_questions) != total_questions:
+            if len(parsed) != total_questions:
                 flash(f"Please provide exactly {total_questions} questions!", "error")
                 db.session.rollback()
                 return redirect(request.url)
 
-            for i, question_text in enumerate(custom_questions, 1):
+            for text, kind, options in parsed:
                 question = Question(
-                    question=question_text,
-                    answer_type=AnswerType.TEXT,
-                    project_id=project.id
+                    question=text,
+                    answer_type=AnswerType.MCQ if kind == "mcq" else AnswerType.TEXT,
+                    number_of_options=len(options) if kind == "mcq" else 0,
+                    project_id=project.id,
                 )
+                for n, option in enumerate(options if kind == "mcq" else [], start=1):
+                    setattr(question, f"option{n}", option[:50])
                 db.session.add(question)
 
         db.session.commit() # Commit all changes related to project and questions
@@ -1226,41 +1207,6 @@ def upload_images(project_id):
     return render_template("admin/upload_images.html", project=project)
 
 
-def _generate_project_tasks(project_id):
-    """Helper function to generate all annotation tasks (image x question combinations) for a project."""
-    project = db.get_or_404(Project, project_id)
-    images = ProjectImage.query.filter_by(project_id=project_id).all()
-    questions = Question.query.filter_by(project_id=project_id).all()
-
-    # Clear existing tasks and assignments for this project before regenerating
-    existing_tasks = AnnotationTask.query.filter_by(project_id=project_id).all()
-    for task in existing_tasks:
-        TaskAssignment.query.filter_by(task_id=task.id).delete() # Delete task assignments first
-        db.session.delete(task)
-    db.session.commit() # Commit deletions before adding new tasks
-
-    tasks_created = 0
-    new_tasks = []
-    if images and questions:
-        for image in images:
-            for question in questions:
-                task = AnnotationTask(
-                    project_id=project_id,
-                    image_id=image.id,
-                    question_id=question.id,
-                    required_answers=project.answers_per_task,
-                    current_answers=0,
-                    is_completed=False
-                )
-                db.session.add(task)
-                new_tasks.append(task) # Collect new tasks to return
-                tasks_created += 1
-    db.session.commit() # Commit new tasks
-
-    log.debug(f"Generated {tasks_created} new annotation tasks for project {project_id}.")
-    return new_tasks, tasks_created
-
-
 @admin.route("/generate-annotation-tasks/<int:project_id>", methods=["GET", "POST"])
 @project_admin_required
 def generate_annotation_tasks(project_id):
@@ -1281,9 +1227,6 @@ def generate_annotation_tasks(project_id):
             flash("Please select a user group!", "error")
             return redirect(request.url)
 
-        # Use the helper function to generate tasks
-        new_tasks, tasks_created = _generate_project_tasks(project_id)
-
         group = db.session.get(UserGroup, selected_group_id)
         if not group:
             flash("Selected group not found!", "error")
@@ -1295,16 +1238,11 @@ def generate_annotation_tasks(project_id):
             db.session.add(GroupProject(group_id=group.id, project_id=project.id, questions_distributed=True))
             db.session.commit()
 
-        # Assign these newly generated tasks to users in the selected group
-        users_in_group = [m.user for m in group.members if m.user]
-        if not users_in_group:
-            flash("No active users in the selected group to assign tasks to.", "warning")
-            # We still redirect to project dashboard even if no assignments are made
-            return redirect(url_for("admin.view_annotation_project", project_id=project.id))
+        if not group.members:
+            flash("The selected group has no members yet. Tasks were created and will be assigned when people join.", "warning")
 
-        assignments_created = assign_tasks_to_users(new_tasks, users_in_group, project.max_questions_per_user, project.answers_per_task)
-
-        flash(f"Created {tasks_created} annotation tasks and {assignments_created} user assignments!", "success")
+        result = distribution.distribute(project)
+        flash_distribution(result, f"Tasks are ready for '{project.name}'.")
         return redirect(url_for("admin.view_annotation_project", project_id=project.id))
 
     return render_template("admin/generate_annotation_tasks.html",
@@ -1312,84 +1250,6 @@ def generate_annotation_tasks(project_id):
                          images=images,
                          questions=questions,
                          groups=groups)
-
-
-def assign_tasks_to_users(tasks, users, max_questions_per_user, answers_per_task):
-    """
-    Efficient algorithm to assign annotation tasks to users.
-    Prioritizes incomplete tasks and distributes them in a round-robin fashion
-    to maximize completion and information gain.
-    """
-    assignments_created = 0
-    user_task_counts = {user.id: 0 for user in users}
-    
-    if not users:
-        log.debug("No users available for assignment.")
-        return 0
-
-    try:
-        from itertools import cycle
-        import random
-        tasks_sorted = list(tasks)
-        random.shuffle(tasks_sorted)
-        
-        user_cycle = cycle(users)
-        
-        log.debug(f"   - Total tasks to assign: {len(tasks_sorted)} | Users: {len(users)} | Max/user: {max_questions_per_user} | Answers/Task: {answers_per_task}")
-        for task in tasks_sorted:
-            # Skip if task already fully answered (should be 0 after clearing tasks)
-            if task.current_answers >= task.required_answers:
-                continue
-
-            assigned_for_this_task = 0
-            users_assigned_this_task_current_run = set() # Track users assigned *this specific task* in this run
-
-            # Get existing assignments for this task, if any, to avoid re-assigning
-            existing_assignments_for_task = TaskAssignment.query.filter_by(task_id=task.id).all()
-            for existing_assign in existing_assignments_for_task:
-                users_assigned_this_task_current_run.add(existing_assign.user_id)
-                assigned_for_this_task += 1
-            
-            # If we've already met the required answers for this task, skip
-            if assigned_for_this_task >= task.required_answers:
-                continue
-
-            attempts_to_find_user_for_this_task = 0
-            # Try to assign this task to 'required_answers' distinct users
-            # The loop continues until 'required_answers' are met for THIS task, or we've tried all users a couple of times
-            while assigned_for_this_task < task.required_answers and attempts_to_find_user_for_this_task < len(users) * 2:
-                current_user = next(user_cycle)
-                attempts_to_find_user_for_this_task += 1
-
-                # If user already assigned this task (in this run or previously committed)
-                if current_user.id in users_assigned_this_task_current_run:
-                        continue
-
-                # If user has not reached their max task limit
-                if user_task_counts[current_user.id] < max_questions_per_user:
-                    assignment = TaskAssignment(
-                        task_id=task.id,
-                        user_id=current_user.id
-                    )
-                    db.session.add(assignment)
-                    user_task_counts[current_user.id] += 1
-                    assignments_created += 1
-                    assigned_for_this_task += 1
-                    users_assigned_this_task_current_run.add(current_user.id) # Mark user as having this task
-
-            if assigned_for_this_task < task.required_answers:
-                log.warning(f"Task {task.id} (Q: {task.question.question[:20]}) could not be assigned to {task.required_answers} different users. Assigned to {assigned_for_this_task} users.")
-        db.session.commit() # Commit all assignments at once
-
-        log.debug(f"Assignment completed:")
-        log.debug(f"   - Total assignments created: {assignments_created}")
-        log.debug(f"   - Average tasks per user: {assignments_created / len(users) if users else 0:.1f}")
-        return assignments_created
-
-    except Exception as e:
-        db.session.rollback()
-        log.warning(f"Error during task assignment: {str(e)}")
-        return 0
 
 
 @admin.route("/view-annotation-project/<int:project_id>")
@@ -1469,8 +1329,39 @@ def view_annotation_project(project_id):
     return render_template("admin/view_annotation_project.html",
                          project=project,
                          stats=stats,
+                         workload=distribution.workload_summary(project),
+                         exports=ExportLog.query.filter_by(project_id=project.id).order_by(ExportLog.id.desc()).limit(10).all(),
                          images=images[:10],  # Show first 10 images as preview
                          questions=questions)
+
+@admin.route("/project/<int:project_id>/export.<file_format>")
+@project_admin_required
+def export_project(project_id, file_format):
+    """Download every answer of an annotation project as CSV or JSON."""
+    import json
+    from flask import current_app
+    from flask_login import current_user
+
+    project = db.get_or_404(Project, project_id)
+    if file_format not in ("csv", "json"):
+        abort(404)
+    if not project.is_annotation_project:
+        flash("Dataset export is available for annotation projects. Use the text download for surveys.", "warning")
+        return redirect(url_for("admin.view_projects"))
+
+    data = dataset_export.build_project_export(project)
+    db.session.add(ExportLog(project_id=project.id, user_id=current_user.id,
+                             file_format=file_format, answer_count=data["totals"]["answers"]))
+    db.session.commit()
+    current_app.logger.info("EXPORT project=%s format=%s by user=%s", project.id, file_format, current_user.id)
+
+    slug = secure_filename(project.name.lower().replace(" ", "-")) or f"project-{project.id}"
+    if file_format == "csv":
+        body, mimetype = dataset_export.to_csv(data).encode("utf-8"), "text/csv"
+    else:
+        body, mimetype = json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8"), "application/json"
+    return send_file(io.BytesIO(body), as_attachment=True, download_name=f"{slug}.{file_format}", mimetype=mimetype)
+
 
 # Project Admin Specific Routes
 @admin.route("/my-projects")
@@ -1779,6 +1670,9 @@ def edit_project_questions(project_id):
 
             db.session.commit()
             flash('Project questions and settings updated successfully!', 'success')
+            if project.is_annotation_project:
+                distribution.apply_answers_per_task(project)
+                flash_distribution(distribution.distribute(project))
             return redirect(url_for('admin.project_dashboard', project_id=project_id))
 
         elif action == 'add_question':
@@ -1805,24 +1699,14 @@ def edit_project_questions(project_id):
             db.session.commit()
             flash('New question added!', 'success')
             
-            # After adding a question, regenerate all tasks and re-assign
+            # A new question creates new tasks for every image; existing answers stay.
             if project.is_annotation_project:
-                new_tasks, tasks_created = _generate_project_tasks(project.id)
-                # Attempt to assign to all groups associated with the project
-                for group_project in project.assigned_groups:
-                    group = group_project.group
-                    if group:
-                        users_in_group = [m.user for m in group.members if m.user]
-                        if users_in_group:
-                            assign_tasks_to_users(new_tasks, users_in_group, project.max_questions_per_user, project.answers_per_task)
-                            flash(f"Tasks regenerated and re-assigned for group '{group.name}'.", "info")
+                flash_distribution(distribution.distribute(project))
             else: # For survey projects
                 for group_project in project.assigned_groups:
-                    group = group_project.group
-                    if group:
-                        distribute_questions_to_group(group, project)
-                        flash(f"Questions re-distributed for survey project '{project.name}' to group '{group.name}'.", "info")
-            
+                    if group_project.group:
+                        distribute_questions_to_group(group_project.group, project)
+
             # Redirect back to the edit page to see the new question
             return redirect(url_for('admin.edit_project_questions', project_id=project.id))
 
@@ -1848,23 +1732,13 @@ def edit_project_questions(project_id):
                 db.session.commit()
                 flash('Question deleted.', 'success')
                 
-                # After deleting a question, regenerate all tasks and re-assign
+                # Only the deleted question's tasks are gone; rebalance what is left.
                 if project.is_annotation_project:
-                    new_tasks, tasks_created = _generate_project_tasks(project.id)
-                    # Attempt to assign to all groups associated with the project
-                    for group_project in project.assigned_groups:
-                        group = group_project.group
-                        if group:
-                            users_in_group = [m.user for m in group.members if m.user]
-                            if users_in_group:
-                                assign_tasks_to_users(new_tasks, users_in_group, project.max_questions_per_user, project.answers_per_task)
-                                flash(f"Tasks regenerated and re-assigned for group '{group.name}'.", "info")
+                    distribution.rebalance(project)
                 else: # For survey projects
                     for group_project in project.assigned_groups:
-                        group = group_project.group
-                        if group:
-                            distribute_questions_to_group(group, project)
-                            flash(f"Questions re-distributed for survey project '{project.name}' to group '{group.name}'.", "info")
+                        if group_project.group:
+                            distribute_questions_to_group(group_project.group, project)
             else:
                 flash('Error deleting question.', 'danger')
             # Redirect back to the edit page
@@ -1878,6 +1752,8 @@ def edit_project_questions(project_id):
                 project.answers_per_task = int(request.form.get('answers_per_task', 1)) # Default to 1 for single completion
                 db.session.commit()
                 flash('Project settings updated successfully!', 'success')
+                distribution.apply_answers_per_task(project)
+                flash_distribution(distribution.distribute(project))
             return redirect(url_for('admin.project_dashboard', project_id=project_id))
 
     return render_template("admin/edit_project_questions.html", project=project)

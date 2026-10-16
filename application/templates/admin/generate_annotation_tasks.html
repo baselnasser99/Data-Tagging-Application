@@ -31,7 +31,7 @@
                 <strong>{{ images|length }}</strong> images × <strong>{{ questions|length }}</strong> questions = 
                 <strong>{{ images|length * questions|length }}</strong> annotation tasks
               </p>
-              <p>Each task will be assigned to <strong>{{ project.answers_per_task }}</strong> different users.</p>
+              <p>Each task will be answered by <strong>{{ project.answers_per_task }}</strong> {{ "person" if project.answers_per_task == 1 else "different people" }}.</p>
             </div>
             
             <div class="form-group">
@@ -39,22 +39,26 @@
               <select class="form-control" id="group_id" name="group_id" required>
                 <option value="">-- Select a Group --</option>
                 {% for group in groups %}
-                <option value="{{ group.id }}">
-                  {{ group.name }} ({{ group.members|length }} members)
+                <option value="{{ group.id }}" data-size="{{ group.members|length }}">
+                  {{ group.name }} ({{ group.members|length }} {{ "person" if group.members|length == 1 else "people" }})
                 </option>
                 {% endfor %}
               </select>
               <p class="help-block">Choose which group of users will perform the annotations.</p>
+              <p class="alert alert-warning" id="size-warning" role="status" style="display: none; margin-top: 10px;">
+                This group has fewer people than the {{ project.answers_per_task }} answers needed per task, so tasks can't be marked complete.
+                Lower "Answers per task" in the project settings or choose a bigger group.
+              </p>
             </div>
             
             <div class="alert alert-info">
-              <h4><i class="fa fa-info-circle"></i> Assignment Algorithm:</h4>
+              <h4>How the work is split</h4>
               <ul>
-                <li>Tasks are randomly distributed among group members</li>
-                <li>Each user gets maximum {{ project.max_questions_per_user }} tasks</li>
-                <li>Each task is assigned to {{ project.answers_per_task }} different users</li>
-                <li>No user gets the same task twice</li>
-                <li>System ensures fair distribution across all users</li>
+                <li>Each task goes to {{ project.answers_per_task }} different {{ "person" if project.answers_per_task == 1 else "people" }}, never the same person twice.</li>
+                <li>New tasks go to whoever has the fewest unfinished tasks, so everyone gets an even share.</li>
+                <li>Nobody gets more than {{ project.max_questions_per_user }} tasks in this project.</li>
+                <li>If someone leaves the group, their unfinished tasks go to the others. Finished answers are kept.</li>
+                <li>Running this again only adds tasks for new images or questions; existing answers are never lost.</li>
               </ul>
             </div>
           </div>
@@ -154,4 +158,19 @@
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var select = document.getElementById('group_id');
+  var warning = document.getElementById('size-warning');
+  if (!select || !warning) return;
+  select.addEventListener('change', function () {
+    var option = select.options[select.selectedIndex];
+    var size = parseInt(option.getAttribute('data-size') || '0', 10);
+    warning.style.display = option.value && size < {{ project.answers_per_task }} ? 'block' : 'none';
+  });
+})();
+</script>
 {% endblock %}

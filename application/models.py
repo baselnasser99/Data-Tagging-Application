@@ -140,6 +140,7 @@ class QuestionAnswer(db.Model):
 
     # Optional: Link to annotation task for image-based answers
     task_assignment_id = Column(Integer, ForeignKey("task_assignment.id"), nullable=True)
+    task_assignment = db.relationship("TaskAssignment")
 
 
 class UserGroup(db.Model):
@@ -264,3 +265,15 @@ class ProjectAdmin(db.Model):
 
     # Ensure a user can only be admin for a project once
     __table_args__ = (db.UniqueConstraint('user_id', 'project_id', name='unique_project_admin'),)
+
+
+class ExportLog(db.Model):
+    """Records every dataset export, for traceability (thesis 6.5.7)."""
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("project.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    file_format = Column(String(10), nullable=False)
+    answer_count = Column(Integer, nullable=False, default=0)
+    created_date = Column(db.DateTime, default=db.func.current_timestamp())
+
+    user = db.relationship("User")

@@ -53,3 +53,33 @@ def test_manage_group_page_lists_available_users(admin_client, db, end_user):
     resp = admin_client.get(f"/admin/manage-group/{group.id}")
     assert resp.status_code == 200
     assert end_user.email.encode() in resp.data
+
+
+def test_removing_member_through_the_ui_redistributes_their_tasks(admin_client, db, make_user):
+    from application.models import AnnotationTask, GroupProject, Project, ProjectImage, Question, TaskAssignment
+    from application import distribution
+
+    project = Project(name="P", desc="d", is_annotation_project=True, answers_per_task=1, max_questions_per_user=100)
+    group = UserGroup(name="G")
+    db.session.add_all([project, group])
+    db.session.flush()
+    db.session.add(Question(question="Q", project_id=project.id))
+    db.session.add_all([ProjectImage(project_id=project.id, filename=f"{i}", original_filename=f"{i}", file_path="x") for i in range(4)])
+    db.session.add(GroupProject(group_id=group.id, project_id=project.id))
+    a, b = make_user(), make_user()
+    db.session.add_all([UserGroupMembership(user_id=a.id, group_id=group.id), UserGroupMembership(user_id=b.id, group_id=group.id)])
+    db.session.commit()
+    distribution.distribute(project)
+
+    resp = admin_client.post(
+        f"/admin/manage-group/{group.id}", data={"action": "remove_user", "user_id": a.id}, follow_redirects=True
+    )
+    assert b"2 unfinished assignments released" in resp.data
+    assert TaskAssignment.query.filter_by(user_id=a.id).count() == 0
+    assert TaskAssignment.query.filter_by(user_id=b.id).count() == 4
+
+    resp = admin_client.post(
+        f"/admin/manage-group/{group.id}", data={"action": "add_user", "user_id": a.id}, follow_redirects=True
+    )
+    assert b"moved to balance workloads" in resp.data
+    assert TaskAssignment.query.filter_by(user_id=a.id).count() == 2

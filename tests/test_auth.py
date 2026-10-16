@@ -111,3 +111,9 @@ def test_role_change_takes_effect_without_relogin(db, user_client, end_user):
     end_user.role = "admin"
     db.session.commit()
     assert user_client.get("/admin/dashboard").status_code == 200
+
+
+def test_annotator_is_not_sent_to_an_admin_page_after_login(client, end_user):
+    """A leftover ?next=/admin/... link must not end in 'Access denied'."""
+    resp = client.post("/login?next=/admin/dashboard", data={"email": end_user.email, "password": "password123"})
+    assert resp.headers["Location"].endswith("/user/dashboard")

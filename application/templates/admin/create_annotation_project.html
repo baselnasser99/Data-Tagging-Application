@@ -56,7 +56,7 @@
                   <select class="form-control" id="assigned_group_id" name="assigned_group_id">
                     <option value="">Select a group (Optional)...</option>
                     {% for group in groups %}
-                      <option value="{{ group.id }}">{{ group.name }}</option>
+                      <option value="{{ group.id }}">{{ group.name }} ({{ group.members|length }} {{ "person" if group.members|length == 1 else "people" }})</option>
                     {% endfor %}
                   </select>
                   <p class="help-block">Select the user group to assign this project to.</p>
@@ -87,8 +87,8 @@
                 <div class="form-group">
                   <label for="answers_per_task">Answers per Task</label>
                   <input type="number" class="form-control" id="answers_per_task"
-                         name="answers_per_task" value="10" min="1" max="50" required>
-                  <p class="help-block">How many users should answer each image-question pair.</p>
+                         name="answers_per_task" value="1" min="1" max="50" required>
+                  <p class="help-block">How many different people should answer each image and question. Use 1 for simple labelling, or 3 or more if you want to measure agreement. It cannot be more than the number of people in the group.</p>
                 </div>
               </div>
             </div>
@@ -116,31 +116,22 @@
         <div class="box-body">
           <ol>
             <li><strong>Create Project</strong> - Set up your annotation project with parameters</li>
-            <li><strong>Custom Questions</strong> - Define questions for all images (default: 5)</li>
+            <li><strong>Questions</strong> - Free text, or multiple choice when you want comparable answers</li>
             <li><strong>Upload Images</strong> - Batch upload images via ZIP file</li>
             <li><strong>Generate Tasks</strong> - System creates image × question combinations</li>
-            <li><strong>Assign Users</strong> - Smart distribution to user groups</li>
+            <li><strong>Assign a group</strong> - Work is split evenly; if someone leaves, their unfinished tasks go to the others</li>
             <li><strong>Monitor Progress</strong> - Track completion and download results</li>
           </ol>
         </div>
       </div>
       
-      <div class="box box-success">
+      <div class="box">
         <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-question-circle"></i> Custom Questions
-          </h3>
+          <h3 class="box-title">Choosing an answer type</h3>
         </div>
         <div class="box-body">
-          <p>You can define custom questions that will be asked for every image:</p>
-          <ul class="list-unstyled" id="question-summary">
-            <li><i class="fa fa-edit text-blue"></i> Question 1: Your custom question</li>
-            <li><i class="fa fa-edit text-blue"></i> Question 2: Your custom question</li>
-            <li><i class="fa fa-edit text-blue"></i> Question 3: Your custom question</li>
-            <li><i class="fa fa-edit text-blue"></i> Question 4: Your custom question</li>
-            <li><i class="fa fa-edit text-blue"></i> Question 5: Your custom question</li>
-          </ul>
-          <p class="text-muted">These questions will be applied to every uploaded image.</p>
+          <p><strong>Multiple choice</strong> gives answers you can count and compare. The export shows the majority answer and how much annotators agreed.</p>
+          <p style="margin-bottom: 0;"><strong>Free text</strong> suits descriptions. Answers are exported side by side for you to read.</p>
         </div>
       </div>
     </div>
@@ -154,17 +145,37 @@ $(document).ready(function() {
     // Function to create a new question input
     function createQuestionInput(index) {
         return `
-            <div class="row question-row" data-index="${index}">
-                <div class="col-md-12">
-                    <div class="form-group">
-                        <label for="question_${index}">Question ${index}:</label>
-                        <input type="text" class="form-control" id="question_${index}" name="question_${index}"
-                               placeholder="Enter your question here">
+            <div class="question-row" data-index="${index}" style="border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px;">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label for="question_${index}">Question ${index}</label>
+                            <input type="text" class="form-control" id="question_${index}" name="question_${index}"
+                                   placeholder="For example: Is the photo taken during the day or at night?">
+                        </div>
                     </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="question_type_${index}">Answer type</label>
+                            <select class="form-control question-type" id="question_type_${index}" name="question_type_${index}" data-index="${index}">
+                                <option value="text">Free text</option>
+                                <option value="mcq">Multiple choice</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group question-options" id="options_wrap_${index}" style="display: none;">
+                    <label for="question_options_${index}">Options, one per line (2 to 6)</label>
+                    <textarea class="form-control" id="question_options_${index}" name="question_options_${index}" rows="3"
+                              placeholder="Day&#10;Night"></textarea>
                 </div>
             </div>
         `;
     }
+
+    $(document).on('change', '.question-type', function() {
+        $('#options_wrap_' + $(this).data('index')).toggle($(this).val() === 'mcq');
+    });
 
     // Update questions when total_questions changes
     $('#total_questions').on('change', function() {

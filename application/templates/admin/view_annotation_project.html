@@ -141,8 +141,11 @@
           <a href="{{ url_for('admin.generate_annotation_tasks', project_id=project.id) }}" class="btn btn-success btn-block">
             <i class="fa fa-cogs"></i> Generate More Tasks
           </a>
-          <a href="#" class="btn btn-info btn-block">
-            <i class="fa fa-download"></i> Download Results
+          <a href="{{ url_for('admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-info btn-block">
+            <i class="fa fa-download"></i> Download results (CSV)
+          </a>
+          <a href="{{ url_for('admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default btn-block">
+            <i class="fa fa-file-code-o"></i> Download results (JSON)
           </a>
           <a href="{{ url_for('admin.view_projects') }}" class="btn btn-default btn-block">
             <i class="fa fa-arrow-left"></i> Back to Projects
@@ -200,39 +203,65 @@
   </div>
   {% endif %}
   
-  <!-- User Assignment Statistics -->
-  {% if stats.user_assignments %}
+  <!-- Workload per annotator -->
+  {% if workload %}
   <div class="row">
     <div class="col-md-12">
-      <div class="box box-primary">
+      <div class="box">
         <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-users"></i> User Assignment Statistics
-          </h3>
+          <h3 class="box-title">Workload per annotator</h3>
         </div>
         <div class="box-body">
-          <table class="table table-bordered table-striped">
+          <table class="table">
             <thead>
               <tr>
-                <th>User ID</th>
-                <th>Total Assignments</th>
+                <th>Annotator</th>
+                <th>Assigned</th>
                 <th>Completed</th>
-                <th>Completion Rate</th>
-                <th>Progress</th>
+                <th>Still to do</th>
+                <th style="width: 30%;">Progress</th>
               </tr>
             </thead>
             <tbody>
-              {% for user_id, data in stats.user_assignments.items() %}
+              {% for row in workload %}
+              {% set pct = (row.completed / row.total * 100) if row.total else 0 %}
               <tr>
-                <td>{{ user_id }}</td>
-                <td>{{ data.total }}</td>
-                <td>{{ data.completed }}</td>
-                <td>{{ data.percentage }}%</td>
+                <td>{{ row.user.full_name }} <span class="text-muted">{{ row.user.email }}</span></td>
+                <td>{{ row.total }}</td>
+                <td>{{ row.completed }}</td>
+                <td>{{ row.open }}</td>
                 <td>
-                  <div class="progress progress-xs">
-                    <div class="progress-bar progress-bar-success" style="width: {{ data.percentage }}%"></div>
+                  <div class="progress" role="progressbar" aria-valuenow="{{ pct|round|int }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ row.user.full_name }} progress">
+                    <div class="progress-bar" style="width: {{ pct }}%"></div>
                   </div>
                 </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if exports %}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="box">
+        <div class="box-header with-border">
+          <h3 class="box-title">Export history</h3>
+        </div>
+        <div class="box-body">
+          <table class="table">
+            <thead><tr><th>When</th><th>Who</th><th>Format</th><th>Answers</th></tr></thead>
+            <tbody>
+              {% for e in exports %}
+              <tr>
+                <td>{{ e.created_date.strftime('%Y-%m-%d %H:%M') if e.created_date }}</td>
+                <td>{{ e.user.full_name }}</td>
+                <td>{{ e.file_format | upper }}</td>
+                <td>{{ e.answer_count }}</td>
               </tr>
               {% endfor %}
             </tbody>

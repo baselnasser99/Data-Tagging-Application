@@ -141,7 +141,7 @@ def test_assign_annotation_project_to_group_generates_and_distributes_tasks(admi
     resp = admin_client.post(
         "/admin/assign-project-to-group", data={"group_id": group.id, "project_id": project.id}, follow_redirects=True
     )
-    assert b"2 tasks distributed" in resp.data
+    assert b"2 new tasks created" in resp.data and b"2 assignments given out" in resp.data
     assert AnnotationTask.query.filter_by(project_id=project.id).count() == 2
     assert TaskAssignment.query.count() == 2
 

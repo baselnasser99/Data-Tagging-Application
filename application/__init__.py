@@ -46,6 +46,7 @@ def create_app(config_object=None):
 
     with app.app_context():
         db.create_all()
+        _upgrade_schema(app)
         _ensure_admin(app)
 
     if app.config.get("SECRET_KEY_IS_GENERATED") and not app.testing:
@@ -60,6 +61,31 @@ def create_app(config_object=None):
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
+
+
+# Columns added after the first release. ``db.create_all()`` creates missing
+# tables but never changes existing ones, so older databases get these columns
+# here. Each entry: (table, column, SQL type and default).
+_ADDED_COLUMNS = [
+    ("project_image", "media_type", "VARCHAR(10) NOT NULL DEFAULT 'image'"),
+]
+
+
+def _upgrade_schema(app):
+    """Add columns that older databases are missing. Safe to run every start."""
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(db.engine)
+    tables = set(inspector.get_table_names())
+    for table, column, definition in _ADDED_COLUMNS:
+        if table not in tables:
+            continue
+        existing = {c["name"] for c in inspector.get_columns(table)}
+        if column in existing:
+            continue
+        with db.engine.begin() as conn:
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
+        app.logger.info("Database upgraded: added %s.%s", table, column)
 
 
 def _ensure_admin(app):

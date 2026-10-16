@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "includes/media.html" import media_item %}
 
 {% block title %}{{ project.name }} - Annotation Project{% endblock %}
 
@@ -19,7 +20,7 @@
       <div class="small-box bg-aqua">
         <div class="inner">
           <h3>{{ stats.total_images }}</h3>
-          <p>Images Uploaded</p>
+          <p>Items Uploaded{% if stats.total_audio %} ({{ stats.total_audio }} audio){% endif %}</p>
         </div>
         <div class="icon">
           <i class="fa fa-image"></i>
@@ -85,7 +86,7 @@
             </tr>
             <tr>
               <th>Project Type:</th>
-              <td><span class="badge bg-blue">Image Annotation</span></td>
+              <td><span class="badge bg-blue">{{ 'Image and Audio' if stats.total_audio and stats.total_audio < stats.total_images else ('Audio' if stats.total_audio else 'Image') }} Annotation</span></td>
             </tr>
             <tr>
               <th>Max Questions per User:</th>
@@ -136,7 +137,7 @@
         </div>
         <div class="box-body">
           <a href="{{ url_for('admin.upload_images', project_id=project.id) }}" class="btn btn-primary btn-block">
-            <i class="fa fa-upload"></i> Upload More Images
+            <i class="fa fa-upload"></i> Upload More Items
           </a>
           <a href="{{ url_for('admin.generate_annotation_tasks', project_id=project.id) }}" class="btn btn-success btn-block">
             <i class="fa fa-cogs"></i> Generate More Tasks
@@ -168,14 +169,14 @@
     </div>
   </div>
   
-  <!-- Sample Images -->
+  <!-- Sample items -->
   {% if images %}
   <div class="row">
     <div class="col-md-12">
       <div class="box box-default">
         <div class="box-header with-border">
           <h3 class="box-title">
-            <i class="fa fa-image"></i> Sample Images (First 10)
+            <i class="fa fa-image"></i> Sample Items (First 10)
           </h3>
         </div>
         <div class="box-body">
@@ -183,10 +184,8 @@
             {% for image in images %}
             <div class="col-md-2 col-sm-3 col-xs-4" style="margin-bottom: 15px;">
               <div class="thumbnail">
-                <img src="{{ url_for('static', filename='uploads/images/' + project.id|string + '/' + image.filename) }}" 
-                     class="img-responsive" 
-                     style="height: 120px; width: 100%; object-fit: cover;"
-                     title="{{ image.original_filename }}">
+                {{ media_item(project, image, thumbnail=True, img_class="img-responsive",
+                              img_style="height: 120px; width: 100%; object-fit: cover;") }}
                 <div class="caption text-center">
                   <small>{{ image.original_filename[:20] }}{% if image.original_filename|length > 20 %}...{% endif %}</small>
                 </div>
@@ -195,7 +194,7 @@
             {% endfor %}
           </div>
           {% if stats.total_images > 10 %}
-          <p class="text-center text-muted">... and {{ stats.total_images - 10 }} more images</p>
+          <p class="text-center text-muted">... and {{ stats.total_images - 10 }} more items</p>
           {% endif %}
         </div>
       </div>

@@ -13,7 +13,7 @@ from sqlalchemy import delete
 from werkzeug.utils import secure_filename
 
 from .extns import db
-from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, ProjectImage, AnnotationTask, TaskAssignment, ProjectAdmin, ExportLog
+from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, ProjectImage, AnnotationTask, TaskAssignment, ProjectAdmin, ExportLog, media_type_for
 from .auth import MIN_PASSWORD_LENGTH
 from . import distribution
 from . import export as dataset_export
@@ -21,9 +21,6 @@ from .permissions import admin_required, is_project_admin, project_admin_access_
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
 log = logging.getLogger(__name__)
-
-IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
-
 
 def upload_dir(*parts):
     """Create (if needed) and return a folder inside the upload root.
@@ -1137,7 +1134,7 @@ def create_annotation_project():
 @admin.route("/upload-images/<int:project_id>", methods=["GET", "POST"])
 @project_admin_required
 def upload_images(project_id):
-    """Upload images for annotation project"""
+    """Upload a ZIP of images and/or audio clips for an annotation project."""
     project = db.get_or_404(Project, project_id)
 
     if not project.is_annotation_project:
@@ -1162,16 +1159,17 @@ def upload_images(project_id):
                 img.original_filename
                 for img in ProjectImage.query.filter_by(project_id=project_id).all()
             }
-            images_saved = 0
+            saved = {"image": 0, "audio": 0}
             duplicates_skipped = 0
             try:
                 with zipfile.ZipFile(zip_file, 'r') as zip_ref:
                     for file_info in zip_ref.infolist():
                         original_filename = os.path.basename(file_info.filename)
+                        media_type = media_type_for(original_filename)
                         if (file_info.is_dir()
                                 or file_info.filename.startswith('__MACOSX/')
                                 or original_filename.startswith('.')
-                                or not original_filename.lower().endswith(IMAGE_EXTENSIONS)):
+                                or media_type is None):
                             continue
                         # Nested folders are flattened; duplicate names are skipped.
                         if original_filename in existing_names:
@@ -1188,9 +1186,10 @@ def upload_images(project_id):
                             filename=unique_filename,
                             original_filename=original_filename,
                             file_path=final_path,
+                            media_type=media_type,
                         ))
                         existing_names.add(original_filename)
-                        images_saved += 1
+                        saved[media_type] += 1
             except zipfile.BadZipFile:
                 db.session.rollback()
                 flash("That file is not a valid ZIP archive.", "error")
@@ -1199,7 +1198,15 @@ def upload_images(project_id):
             if duplicates_skipped:
                 flash(f"Skipped {duplicates_skipped} files whose names already exist in this project.", "warning")
             db.session.commit()
-            flash(f"Successfully uploaded {images_saved} images!", "success")
+            if not saved["image"] and not saved["audio"]:
+                flash("The ZIP file contained no new images or audio files.", "warning")
+                return redirect(request.url)
+            parts = []
+            if saved["image"]:
+                parts.append(f"{saved['image']} images")
+            if saved["audio"]:
+                parts.append(f"{saved['audio']} audio files")
+            flash(f"Successfully uploaded {' and '.join(parts)}!", "success")
             return redirect(url_for("admin.generate_annotation_tasks", project_id=project.id))
         else:
             flash("Please upload a ZIP file!", "error")
@@ -1276,28 +1283,24 @@ def view_annotation_project(project_id):
     # Count truly completed tasks (those that have received required answers)
     completed_tasks = 0
     for task in tasks:
-        # Check if task is truly completed based on answers
-        if task.current_answers >= task.required_answers:
+        # A task is complete once it has received the required number of answers
+        task.is_completed = task.current_answers >= task.required_answers
+        if task.is_completed:
             completed_tasks += 1
-            task.is_completed = True  # Update the is_completed flag
-        else:
-            task.is_completed = False
-        
-        # Update tasks state and commit once
-        db.session.commit()
+    db.session.commit()
 
-        # Build per-image completion statistics
-        image_completion = {}
-        for img in images:
-            img_tasks = [t for t in tasks if t.image_id == img.id]
-            total_img = len(img_tasks)
-            completed_img = len([t for t in img_tasks if t.is_completed])
-            image_completion[img.id] = {
-                'total': total_img,
-                'completed': completed_img,
-                'percentage': round((completed_img / total_img * 100) if total_img else 0, 1)
-            }
-        
+    # Per-item completion statistics
+    image_completion = {}
+    for img in images:
+        img_tasks = [t for t in tasks if t.image_id == img.id]
+        total_img = len(img_tasks)
+        completed_img = len([t for t in img_tasks if t.is_completed])
+        image_completion[img.id] = {
+            'total': total_img,
+            'completed': completed_img,
+            'percentage': round((completed_img / total_img * 100) if total_img else 0, 1)
+        }
+
     # Calculate user assignment statistics
     user_assignments = {}
     for user_id in unique_users:
@@ -1312,6 +1315,7 @@ def view_annotation_project(project_id):
 
     stats = {
         'total_images': len(images),
+        'total_audio': len([i for i in images if i.is_audio]),
         'total_questions': len(questions),
         'total_tasks': total_tasks,
         'completed_tasks': completed_tasks,

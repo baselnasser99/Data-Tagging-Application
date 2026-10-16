@@ -2,7 +2,8 @@
 
 Two formats share one data model:
   * CSV  - one row per answer; opens in Excel or pandas.
-  * JSON - nested by image, then question, then answers, with per-question
+  * JSON - nested by item (image or audio clip; see "media_type"), then
+           question, then answers, with per-question
            summaries; the usual input format for machine-learning code.
 
 Agreement (thesis ch. 3.1: inter-annotator agreement as a quality signal)
@@ -118,6 +119,7 @@ def build_project_export(project: Project) -> dict:
         image = images.setdefault(task.image_id, {
             "image_id": task.image_id,
             "file_name": task.image.original_filename,
+            "media_type": task.image.media_type or "image",
             "questions": [],
         })
         image["questions"].append({
@@ -170,7 +172,7 @@ def build_project_export(project: Project) -> dict:
 
 
 CSV_COLUMNS = [
-    "image_id", "file_name", "question_id", "question", "question_type",
+    "image_id", "file_name", "media_type", "question_id", "question", "question_type",
     "annotator", "answer", "submitted_at", "task_majority_answer", "task_majority_share",
 ]
 
@@ -185,6 +187,7 @@ def to_csv(data: dict) -> str:
             base = {
                 "image_id": image["image_id"],
                 "file_name": image["file_name"],
+                "media_type": image["media_type"],
                 "question_id": q["question_id"],
                 "question": q["question"],
                 "question_type": q["type"],

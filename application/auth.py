@@ -22,12 +22,23 @@ def _home_for(user):
     return url_for(HOME_BY_ROLE.get(user.role, "auth.login"))
 
 
-def _safe_next(target):
-    """Only allow redirects to paths on this site (prevents open redirects)."""
+# Which part of the site each role may be sent back to after signing in.
+AREA_BY_ROLE = {"admin": "/admin/", "project-admin": "/admin/", "end-user": "/user/"}
+
+
+def _safe_next(target, user):
+    """Return ``target`` only if it is a page on this site the user may open.
+
+    Prevents open redirects (no other domains) and avoids sending someone to
+    a page their role cannot see, e.g. an annotator signing in from a link to
+    an admin page that an earlier session left behind.
+    """
     if not target:
         return None
     parts = urlsplit(target)
     if parts.scheme or parts.netloc or not target.startswith("/"):
+        return None
+    if not parts.path.startswith(AREA_BY_ROLE.get(user.role, "/nowhere/")):
         return None
     return target
 
@@ -55,7 +66,7 @@ def login():
         session["email"] = user.email
         audit.info("LOGIN_OK user_id=%s email=%s ip=%s", user.id, user.email, request.remote_addr)
 
-        return redirect(_safe_next(request.args.get("next")) or _home_for(user))
+        return redirect(_safe_next(request.args.get("next"), user) or _home_for(user))
 
     if current_user.is_authenticated:
         return redirect(_home_for(current_user))

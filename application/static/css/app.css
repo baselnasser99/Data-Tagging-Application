@@ -531,3 +531,10 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 @supports (field-sizing: content) {
   textarea, textarea.form-control { field-sizing: content; resize: none; min-height: 84px; }
 }
+
+/* Page subtitle under the h1, and label/value lists on settings cards */
+.content-header > .page-subtitle { margin: 4px 0 0; }
+.settings-list { display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; margin: 0; }
+.settings-list dt { color: var(--muted); font-weight: 600; }
+.settings-list dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .settings-list { grid-template-columns: 1fr; gap: 2px 0; } .settings-list dd { margin-bottom: 8px; } }

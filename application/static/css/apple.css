@@ -1,4 +1,4 @@
-/* Experiment: Apple-style layer on top of app.css (WWDC design talks, translated for the web).
+/* Apple-style layer on top of app.css (WWDC design talks, translated for the web).
    Loaded last; deleting this file and its <link> in base.html restores the current look.
    What it changes, and the principle behind each:
      - System font with size-specific tracking and leading   (typography)

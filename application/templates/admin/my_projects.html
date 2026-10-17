@@ -30,13 +30,13 @@
                                 <td>{{ project.desc[:200] | safe }}...</td>
                                 <td>{{ project.questions | length }}</td>
                                 <td>
-                                    <a href="{{ url_for('admin.project_dashboard', project_id=project.id) }}" class="btn btn-primary btn-sm">Dashboard</a>
-                                    <a href="{{ url_for('admin.edit_project_questions', project_id=project.id) }}" class="btn btn-info btn-sm">Questions</a>
-                                    <a href="{{ url_for('admin.project_groups', project_id=project.id) }}" class="btn btn-success btn-sm">Groups</a>
-                                    <a href="{{ url_for('admin.project_results', project_id=project.id) }}" class="btn btn-secondary btn-sm">Results</a>
+                                    <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-primary btn-sm">Dashboard</a>
+                                    <a href="{{ url_for('manager.edit_project_questions', project_id=project.id) }}" class="btn btn-info btn-sm">Questions</a>
+                                    <a href="{{ url_for('manager.project_groups', project_id=project.id) }}" class="btn btn-success btn-sm">Groups</a>
+                                    <a href="{{ url_for('manager.project_results', project_id=project.id) }}" class="btn btn-secondary btn-sm">Results</a>
                                     {% if session.get('role') == 'admin' %}
                                     {# System Admins can manage project admins from here as well #}
-                                    <a href="{{ url_for('admin.project_admins', project_id=project.id) }}" class="btn btn-warning btn-sm">Manage Admins</a>
+                                    <a href="{{ url_for('manager.project_admins', project_id=project.id) }}" class="btn btn-warning btn-sm">Manage Admins</a>
                                     {% endif %}
                                 </td>
                             </tr>

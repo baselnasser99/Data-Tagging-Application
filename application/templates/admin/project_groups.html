@@ -10,8 +10,8 @@
 	</h1>
 	<ol class="breadcrumb">
 		<li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Home</a></li>
-        <li><a href="{{ url_for('admin.my_projects') }}">My Projects</a></li>
-        <li><a href="{{ url_for('admin.project_dashboard', project_id=project.id) }}">{{ project.name }} Dashboard</a></li>
+        <li><a href="{{ url_for('manager.my_projects') }}">My Projects</a></li>
+        <li><a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ project.name }} Dashboard</a></li>
 		<li class="active">Assigned Groups</li>
 	</ol>
 </section>

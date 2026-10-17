@@ -152,3 +152,15 @@ def test_exports_show_annotator_names(app, db, admin_client, make_user):
 
     assert b"Ada Lovelace" in admin_client.get(f"/admin/project/{project.id}/export.csv").data
     assert b"Ada Lovelace" in admin_client.get(f"/admin/download-answers/{ada.id}").data
+
+
+def test_projects_page_shows_the_whole_description_as_text(admin_client):
+    long_desc = "Label street photos. " * 40 + "<b>end</b>"
+    admin_client.post("/admin/create-annotation-project", data={
+        "project_name": "Streets", "project_desc": long_desc, "answers_per_task": "1",
+        "max_questions_per_user": "100", "total_questions": "1", "question_1": "What?",
+    })
+    page = admin_client.get("/admin/view-projects").data.decode()
+    assert "Label street photos. " * 40 in page  # not cut off
+    assert "&lt;b&gt;end&lt;/b&gt;" in page  # shown as text, never run as HTML
+    assert "Annotation project" in page

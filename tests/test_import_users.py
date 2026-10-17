@@ -28,7 +28,7 @@ def test_csv_import_skips_duplicates_and_invalid_rows(admin_client, end_user):
         "csv_file": _csv(f"full_name,email,password\nDup,{end_user.email},secret123\n,missing@example.com,x\n"),
     }
     resp = admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data", follow_redirects=True)
-    assert b"0 users created, 1 duplicates skipped, 1 invalid rows skipped" in resp.data
+    assert b"0 users created, 1 duplicate skipped, 1 invalid row skipped" in resp.data
 
 
 def test_csv_import_replaces_short_password_and_shows_it_to_admin(admin_client):

@@ -17,7 +17,10 @@
   <section class="content">
     <div class="row" style="margin-bottom: 20px;">
       <div class="col-xs-12">
-        <a href="{{ url_for('admin.import_users') }}" class="btn btn-primary">
+        <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary">
+          <i class="fa fa-user-plus"></i> Add a user
+        </a>
+        <a href="{{ url_for('admin.import_users') }}" class="btn btn-default">
           <i class="fa fa-upload"></i> Import Users from CSV
         </a>
       </div>

@@ -42,7 +42,7 @@
                 <td>{{ group.name }}</td>
                 <td>{{ group.description or 'No description' }}</td>
                 <td>
-                  <span class="badge badge-info">{{ group.members | length }} members</span>
+                  <span class="badge badge-info">{{ plural(group.members | length, "member") }}</span>
                 </td>
                 <td>
                   <span class="badge badge-success">{{ group.assigned_projects | length }} projects</span>

@@ -75,10 +75,13 @@
 															</form>
 													</td>
 													<td>
-															{# Annotation answers only make sense next to their item, so those projects get the CSV dataset. #}
-															<a href="{{ url_for('admin.export_project', project_id=project.id, file_format='csv') if project.is_annotation_project else url_for('admin.download_files', project_id=project.id) }}" class="btn btn-success btn-sm">
-																	Download
-															</a>
+															{# Annotation answers only make sense next to their item, so those projects get the dataset export. #}
+															{% if project.is_annotation_project %}
+															<a href="{{ url_for('admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-success btn-sm">Download CSV</a>
+															<a href="{{ url_for('admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default btn-sm">JSON</a>
+															{% else %}
+															<a href="{{ url_for('admin.download_files', project_id=project.id) }}" class="btn btn-success btn-sm">Download</a>
+															{% endif %}
 													</td>
 											</tr>
 									{% endfor %}

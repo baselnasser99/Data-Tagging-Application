@@ -548,3 +548,8 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .item-strip > li { width: 132px; display: flex; flex-direction: column; gap: 6px; }
 .item-strip > li > .media-audio-thumb { height: 96px; }
 .item-strip > li > span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Questions page: a numbered list, number in a small circle beside each question */
+.question-cards > li { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; }
+.question-cards > li:first-child { padding-top: 0; }
+.question-number { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--canvas);
+  display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }

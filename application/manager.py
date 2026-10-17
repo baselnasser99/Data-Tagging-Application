@@ -12,7 +12,7 @@ from .feedback import flash_distribution
 from .groups import distribute_questions_to_group
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
                      QuestionAnswer, TaskAssignment, User, UserQuestionAssignment)
-from .permissions import is_project_admin, project_admin_access_required, project_admin_required
+from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
 
 manager = Blueprint("manager", __name__, url_prefix="/admin")
 
@@ -81,60 +81,67 @@ def project_dashboard(project_id):
 def project_admins(project_id):
     project = db.get_or_404(Project, project_id)
     project_admins = ProjectAdmin.query.filter_by(project_id=project_id).all()
-    return render_template("admin/project_admins.html", project=project, project_admins=project_admins)
+    return render_template("admin/project_admins.html", project=project, project_admins=project_admins,
+                           candidates=manager_candidates())
+
+def _chosen_user(form):
+    """The person picked in an 'add a manager' form: a typed email wins over the list."""
+    email = (form.get('email') or '').strip()
+    if email:
+        return User.query.filter_by(email=email).first()
+    return db.session.get(User, form.get('user_id', type=int) or 0)
+
+
+def add_manager(project, user):
+    """Make `user` the manager of `project`. Returns (message, flash category)."""
+    if user is None:
+        return 'No user with that email was found. Pick someone from the list, or create a new manager.', 'danger'
+    if ProjectAdmin.query.filter_by(project_id=project.id).first():
+        return f'"{project.name}" already has a manager. Remove them first; a project has one manager.', 'danger'
+    db.session.add(ProjectAdmin(user_id=user.id, project_id=project.id, assigned_by=session['id']))
+    if user.role not in ('project-admin', 'admin'):
+        user.role = 'project-admin'
+    db.session.commit()
+    return f'{user.full_name} now manages "{project.name}".', 'success'
+
+
+def manager_candidates():
+    """Everyone who could be made a manager (system admins already see everything)."""
+    return User.query.filter(User.role != 'admin').order_by(User.full_name).all()
+
 
 @manager.route("/project/<int:project_id>/admins/add", methods=['POST'])
 @project_admin_required
 def add_project_admin(project_id):
     project = db.get_or_404(Project, project_id)
-    email = request.form.get('email')
-    
-    # Verify the current user is either a system admin or a project admin for this project
-    current_user_id = session['id']
-    current_user = db.session.get(User, current_user_id)
-    
-    # Only system admins or project admins for this project can add other project admins
+    current_user = db.session.get(User, session['id'])
+    # Only system admins or this project's managers can add a manager
     if not (current_user.role == 'admin' or is_project_admin(project_id)):
-        flash('You do not have permission to add project admins.', 'danger')
+        flash('You do not have permission to add project managers.', 'danger')
         return redirect(url_for('manager.project_admins', project_id=project_id))
-    
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        flash('User not found.', 'danger')
-        return redirect(url_for('manager.project_admins', project_id=project_id))
-    
-    # Check if a project admin already exists for this project
-    existing_project_manager = ProjectAdmin.query.filter_by(project_id=project_id).first()
-    if existing_project_manager:
-        flash('This project already has a manager. Only one manager is allowed per project.', 'danger')
-        return redirect(url_for('manager.project_admins', project_id=project_id))
-    
-    # Check if user is already a project admin for this project
-    existing_admin = ProjectAdmin.query.filter_by(
-        user_id=user.id,
-        project_id=project_id
-    ).first()
-    
-    if existing_admin:
-        flash('User is already a project admin for this project.', 'warning')
-        return redirect(url_for('manager.project_admins', project_id=project_id))
-    
-    # Create new project admin assignment
-    project_admin = ProjectAdmin(
-        user_id=user.id,
-        project_id=project_id,
-        assigned_by=current_user_id
-    )
-    
-    # Ensure the user's role is 'project-admin' if they weren't already
-    if user.role != 'project-admin' and user.role != 'admin':
-        user.role = 'project-admin'
-    
-    db.session.add(project_admin)
-    db.session.commit()
-    
-    flash('Project admin added successfully.', 'success')
+    flash(*add_manager(project, _chosen_user(request.form)))
     return redirect(url_for('manager.project_admins', project_id=project_id))
+
+
+@manager.route("/managers")
+@admin_required
+def managers():
+    """Every project with its manager, and a form to add one, in one place."""
+    projects = Project.query.order_by(Project.name).all()
+    by_project = {pa.project_id: pa for pa in ProjectAdmin.query.all()}
+    managing = {pa.user_id for pa in by_project.values()}
+    without_project = [u for u in User.query.filter_by(role='project-admin').order_by(User.full_name)
+                       if u.id not in managing]
+    return render_template("admin/managers.html", projects=projects, by_project=by_project,
+                           candidates=manager_candidates(), without_project=without_project)
+
+
+@manager.route("/managers/add", methods=['POST'])
+@admin_required
+def add_manager_anywhere():
+    project = db.get_or_404(Project, request.form.get('project_id', type=int) or 0)
+    flash(*add_manager(project, _chosen_user(request.form)))
+    return redirect(url_for('manager.managers'))
 
 @manager.route("/project/<int:project_id>/admins/<int:admin_id>/remove", methods=['POST'])
 @project_admin_required

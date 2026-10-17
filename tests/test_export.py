@@ -111,7 +111,7 @@ def test_exports_are_logged_and_shown(admin_client, answered_project):
     admin_client.get(f"/admin/project/{answered_project.id}/export.json")
     assert [e.file_format for e in ExportLog.query.order_by(ExportLog.id)] == ["csv", "json"]
     page = admin_client.get(f"/admin/view-annotation-project/{answered_project.id}")
-    assert b"Export history" in page.data and b"Workload per annotator" in page.data
+    assert b"Export history" in page.data and b"Workload per person" in page.data
 
 
 def test_unknown_format_is_404(admin_client, answered_project):

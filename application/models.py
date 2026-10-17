@@ -188,19 +188,42 @@ class UserQuestionAssignment(db.Model):
     question = db.relationship("Question", backref="user_assignments")
 
 
-# New models for image annotation system
+# File types accepted inside an annotation project's ZIP upload.
+IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
+AUDIO_EXTENSIONS = ('.mp3', '.wav', '.ogg', '.m4a', '.flac')
+
+
+def media_type_for(filename):
+    """Return 'image', 'audio' or None (not accepted) for a file name."""
+    name = filename.lower()
+    if name.endswith(IMAGE_EXTENSIONS):
+        return "image"
+    if name.endswith(AUDIO_EXTENSIONS):
+        return "audio"
+    return None
+
+
 class ProjectImage(db.Model):
-    """Stores uploaded images for annotation projects"""
+    """One media item (an image or an audio clip) in an annotation project.
+
+    The class keeps its original name so existing databases keep working;
+    ``media_type`` says which kind of file it is.
+    """
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("project.id"), nullable=False)
     filename = Column(String(255), nullable=False)
     original_filename = Column(String(255), nullable=False)
     file_path = Column(String(500), nullable=False)
+    media_type = Column(String(10), nullable=False, default="image", server_default="image")
     upload_date = Column(db.DateTime, default=db.func.current_timestamp())
 
     # Relationships
     project = db.relationship("Project", back_populates="images")
     annotation_tasks = db.relationship("AnnotationTask", back_populates="image", lazy=True)
+
+    @property
+    def is_audio(self):
+        return self.media_type == "audio"
 
 
 class AnnotationTask(db.Model):

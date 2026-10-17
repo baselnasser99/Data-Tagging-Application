@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Create Image Annotation Project{% endblock %}
+{% block title %}Create Annotation Project{% endblock %}
 
 {% block content %}
 <section class="content-header">
-  <h1>Create Image Annotation Project</h1>
+  <h1>Create Annotation Project</h1>
   <ol class="breadcrumb">
     <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
     <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
@@ -19,7 +19,7 @@
       <div class="box box-primary">
         <div class="box-header with-border">
           <h3 class="box-title">
-            <i class="fa fa-image"></i> New Image Annotation Project
+            <i class="fa fa-image"></i> New Annotation Project (images or audio)
           </h3>
         </div>
         
@@ -67,7 +67,7 @@
             <!-- Custom Questions Section -->
             <div class="form-group">
               <label>Annotation Questions</label>
-              <p class="help-block">Define the questions that will be asked for every image:</p>
+              <p class="help-block">Define the questions that will be asked for every image or audio clip:</p>
               <div id="questions-container">
                 <div id="dynamic-questions"></div>
               </div>
@@ -88,7 +88,7 @@
                   <label for="answers_per_task">Answers per Task</label>
                   <input type="number" class="form-control" id="answers_per_task"
                          name="answers_per_task" value="1" min="1" max="50" required>
-                  <p class="help-block">How many different people should answer each image and question. Use 1 for simple labelling, or 3 or more if you want to measure agreement. It cannot be more than the number of people in the group.</p>
+                  <p class="help-block">How many different people should answer each item and question. Use 1 for simple labelling, or 3 or more if you want to measure agreement. It cannot be more than the number of people in the group.</p>
                 </div>
               </div>
             </div>
@@ -117,8 +117,8 @@
           <ol>
             <li><strong>Create Project</strong> - Set up your annotation project with parameters</li>
             <li><strong>Questions</strong> - Free text, or multiple choice when you want comparable answers</li>
-            <li><strong>Upload Images</strong> - Batch upload images via ZIP file</li>
-            <li><strong>Generate Tasks</strong> - System creates image × question combinations</li>
+            <li><strong>Upload Items</strong> - Batch upload images and/or audio clips via ZIP file</li>
+            <li><strong>Generate Tasks</strong> - System creates item × question combinations</li>
             <li><strong>Assign a group</strong> - Work is split evenly; if someone leaves, their unfinished tasks go to the others</li>
             <li><strong>Monitor Progress</strong> - Track completion and download results</li>
           </ol>

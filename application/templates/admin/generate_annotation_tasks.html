@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "includes/media.html" import media_item %}
 
 {% block title %}Generate Annotation Tasks - {{ project.name }}{% endblock %}
 
@@ -28,7 +29,7 @@
             <div class="alert alert-success">
               <h4><i class="fa fa-check-circle"></i> Ready to Generate Tasks!</h4>
               <p>
-                <strong>{{ images|length }}</strong> images × <strong>{{ questions|length }}</strong> questions = 
+                <strong>{{ images|length }}</strong> items × <strong>{{ questions|length }}</strong> questions = 
                 <strong>{{ images|length * questions|length }}</strong> annotation tasks
               </p>
               <p>Each task will be answered by <strong>{{ project.answers_per_task }}</strong> {{ "person" if project.answers_per_task == 1 else "different people" }}.</p>
@@ -58,7 +59,7 @@
                 <li>New tasks go to whoever has the fewest unfinished tasks, so everyone gets an even share.</li>
                 <li>Nobody gets more than {{ project.max_questions_per_user }} tasks in this project.</li>
                 <li>If someone leaves the group, their unfinished tasks go to the others. Finished answers are kept.</li>
-                <li>Running this again only adds tasks for new images or questions; existing answers are never lost.</li>
+                <li>Running this again only adds tasks for new items or questions; existing answers are never lost.</li>
               </ul>
             </div>
           </div>
@@ -85,7 +86,7 @@
         <div class="box-body">
           <table class="table table-bordered">
             <tr>
-              <th>Images Uploaded:</th>
+              <th>Items Uploaded:</th>
               <td><span class="badge bg-blue">{{ images|length }}</span></td>
             </tr>
             <tr>
@@ -111,7 +112,7 @@
       <div class="box box-success">
         <div class="box-header with-border">
           <h3 class="box-title">
-            <i class="fa fa-image"></i> Sample Images
+            <i class="fa fa-image"></i> Sample Items
           </h3>
         </div>
         <div class="box-body">
@@ -119,18 +120,16 @@
           <div class="row">
             {% for image in images[:6] %}
             <div class="col-xs-4" style="margin-bottom: 10px;">
-              <img src="{{ url_for('static', filename='uploads/images/' + project.id|string + '/' + image.filename) }}" 
-                   class="img-responsive img-thumbnail" 
-                   style="height: 60px; width: 100%; object-fit: cover;"
-                   title="{{ image.original_filename }}">
+              {{ media_item(project, image, thumbnail=True, img_class="img-responsive img-thumbnail",
+                            img_style="height: 60px; width: 100%; object-fit: cover;") }}
             </div>
             {% endfor %}
           </div>
           {% if images|length > 6 %}
-          <p class="text-muted text-center">... and {{ images|length - 6 }} more images</p>
+          <p class="text-muted text-center">... and {{ images|length - 6 }} more items</p>
           {% endif %}
           {% else %}
-          <p class="text-muted">No images uploaded yet.</p>
+          <p class="text-muted">No images or audio uploaded yet.</p>
           {% endif %}
         </div>
       </div>

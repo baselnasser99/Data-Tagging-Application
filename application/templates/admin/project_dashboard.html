@@ -138,7 +138,7 @@
                                     <div class="icon">
                                         <i class="fa fa-upload"></i>
                                     </div>
-                                    <a href="{{ url_for('admin.upload_images', project_id=project.id) }}" class="small-box-footer">
+                                    <a href="{{ url_for('annotation_admin.upload_images', project_id=project.id) }}" class="small-box-footer">
                                         Upload Images or Audio <i class="fa fa-arrow-circle-right"></i>
                                     </a>
                                 </div>
@@ -153,17 +153,17 @@
                                     <div class="icon">
                                         <i class="fa fa-tasks"></i>
                                     </div>
-                                    <a href="{{ url_for('admin.generate_annotation_tasks', project_id=project.id) }}" class="small-box-footer">
+                                    <a href="{{ url_for('annotation_admin.generate_annotation_tasks', project_id=project.id) }}" class="small-box-footer">
                                         Hand out tasks <i class="fa fa-arrow-circle-right"></i>
                                     </a>
                                 </div>
                             </div>
                         </div>
                         <p>
-                            <a href="{{ url_for('admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-success">
+                            <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-success">
                                 <i class="fa fa-download"></i> Download results (CSV)
                             </a>
-                            <a href="{{ url_for('admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default">
+                            <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default">
                                 Download results (JSON)
                             </a>
                         </p>
@@ -218,7 +218,7 @@
                         <a href="{{ url_for('manager.project_results', project_id=project.id) }}" class="btn btn-success">
                             <i class="fa fa-bar-chart"></i> View Results
                         </a>
-                        <a href="{{ url_for('admin.view_annotation_project', project_id=project.id) }}" class="btn btn-info">
+                        <a href="{{ url_for('annotation_admin.view_annotation_project', project_id=project.id) }}" class="btn btn-info">
                             <i class="fa fa-eye"></i> Progress and results
                         </a>
                     </div>

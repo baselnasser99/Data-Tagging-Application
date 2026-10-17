@@ -18,7 +18,7 @@
     <div class="row">
       <div class="col-xs-12">
         <div class="mb-3">
-          <a href="{{ url_for('admin.create_group') }}" class="btn btn-primary">
+          <a href="{{ url_for('groups.create_group') }}" class="btn btn-primary">
             <i class="fa fa-plus"></i> Create New Group
           </a>
         </div>
@@ -50,8 +50,8 @@
                 <td>{{ group.created_date.strftime('%Y-%m-%d %H:%M') if group.created_date else 'N/A' }}</td>
                 <td>
                   <div class="btn-group" role="group">
-                    <a href="{{ url_for('admin.manage_group', group_id=group.id) }}" class="btn btn-primary btn-sm">Manage Group</a>
-                    <form method="POST" action="{{ url_for('admin.delete_group', group_id=group.id) }}" style="display: inline;"
+                    <a href="{{ url_for('groups.manage_group', group_id=group.id) }}" class="btn btn-primary btn-sm">Manage Group</a>
+                    <form method="POST" action="{{ url_for('groups.delete_group', group_id=group.id) }}" style="display: inline;"
                           onsubmit="return confirm('Are you sure you want to delete this group? This will remove all members and project assignments.')">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <button type="submit" class="btn btn-danger btn-sm" title="Delete Group"><i class="fa fa-trash"></i> Delete</button>
@@ -61,7 +61,7 @@
               </tr>
             {% else %}
               <tr>
-                <td colspan="7" class="text-center">No groups found. <a href="{{ url_for('admin.create_group') }}">Create your first group</a></td>
+                <td colspan="7" class="text-center">No groups found. <a href="{{ url_for('groups.create_group') }}">Create your first group</a></td>
               </tr>
             {% endfor %}
           </tbody>

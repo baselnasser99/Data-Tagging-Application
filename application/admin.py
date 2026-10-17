@@ -136,7 +136,7 @@ def users():
 @admin.route("/create-user", methods=['GET', 'POST'])
 @admin_required
 def create_user():
-    """Add one annotator by hand, optionally straight into a group."""
+    """Add one person by hand: an annotator (optionally straight into a group) or a manager."""
     groups = UserGroup.query.order_by(UserGroup.name).all()
     if request.method == 'POST':
         full_name = (request.form.get('full_name') or '').strip()
@@ -155,12 +155,19 @@ def create_user():
         temporary = not password
         if temporary:
             password = secrets.token_urlsafe(8)
+        as_manager = request.form.get('role') == 'manager'
         user = User()
         user.register_end_user(full_name, email, password)
+        if as_manager:
+            user.role = 'project-admin'  # no project yet; one can be given on the Managers page
         db.session.commit()
         if temporary:
             flash(f'{email} was given the temporary password {password}. '
                   'Share it with them and ask them to change it after signing in.', 'warning')
+
+        if as_manager:
+            flash(f'{full_name} was created as a manager. Give them a project on the Managers page.', 'success')
+            return redirect(url_for('manager.managers'))
 
         group = db.session.get(UserGroup, request.form.get('group_id', type=int) or 0)
         if group:
@@ -174,7 +181,8 @@ def create_user():
             flash(f'{full_name} was created.', 'success')
         return redirect(url_for('admin.users'))
 
-    return render_template('admin/create_user.html', groups=groups, form={})
+    return render_template('admin/create_user.html', groups=groups,
+                           form={'role': request.args.get('role', 'annotator')})
 
 
 @admin.route("/import-users", methods=['GET', 'POST'])

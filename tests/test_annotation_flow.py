@@ -238,7 +238,7 @@ def test_hand_out_setting_from_the_forms(admin_client):
         f"/admin/view-annotation-project/{project.id}").data
 
 
-def test_annotator_moves_to_next_item_and_sees_task_counts(app, admin_client, group_with_members):
+def test_annotator_gets_one_card_per_task_and_moves_to_the_next(app, admin_client, group_with_members):
     group, members = group_with_members
     project = _create_project(admin_client)  # 2 questions
     _upload(admin_client, project, {"a.png": b"a", "b.png": b"b", "c.png": b"c"})
@@ -255,18 +255,19 @@ def test_annotator_moves_to_next_item_and_sees_task_counts(app, admin_client, gr
     assert f"/user/annotation-tasks?project_id={project.id}".encode() in page
     assert b"Start tasks" in page
 
-    item_ids = sorted({a.task.image_id for a in mine})
-    first = item_ids[0]
-    data = {f"answer_{a.id}": "x" for a in mine if a.task.image_id == first}
-    resp = client.post(f"/user/annotate-image/{first}/{project.id}", data=data)
-    if len(item_ids) > 1:  # straight on to the next item, not back to the list
-        assert resp.headers["Location"].endswith(f"/user/annotate-image/{item_ids[1]}/{project.id}")
-    done = len(data)
-    assert f"{total} tasks, {total - done} left".encode() in client.get("/user/my-projects").data
+    # One card (one answer link) per task, even when two tasks share a photo.
+    tasks_page = client.get(f"/user/annotation-tasks?project_id={project.id}").data
+    for a in mine:
+        assert f'href="/user/annotation-task/{a.id}"'.encode() in tasks_page
+    assert b"/user/annotate-image/" not in tasks_page
 
-    for item in item_ids[1:]:
-        data = {f"answer_{a.id}": "x" for a in mine if a.task.image_id == item}
-        resp = client.post(f"/user/annotate-image/{item}/{project.id}", data=data)
+    order = sorted(mine, key=lambda a: (a.task.image_id, a.task.question_id))
+    for i, a in enumerate(order):
+        resp = client.post(f"/user/annotation-task/{a.id}", data={"answer": "x"})
+        if i + 1 < len(order):  # straight on to the next task, not back to the list
+            assert resp.headers["Location"].endswith(f"/user/annotation-task/{order[i + 1].id}")
+        if i == 0:
+            assert f"{total} tasks, {total - 1} left".encode() in client.get("/user/my-projects").data
     assert resp.headers["Location"].endswith(f"/user/annotation-tasks?project_id={project.id}")
     assert b"Review tasks" in client.get("/user/my-projects").data
 

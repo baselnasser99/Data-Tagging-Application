@@ -184,25 +184,23 @@
                     <div class="box-body">
                         <div class="row">
                             <div class="col-md-6">
-                                <h4>Task Completion</h4>
-                                <div class="progress">
-                                    <div class="progress-bar progress-bar-success" role="progressbar"
-                                         style="width: {{ annotation_stats.completion_percentage }}%;"
-                                         aria-valuenow="{{ annotation_stats.completion_percentage }}"
-                                         aria-valuemin="0" aria-valuemax="100">
-                                        {{ annotation_stats.completed_tasks }}/{{ annotation_stats.tasks_count }} ({{ annotation_stats.completion_percentage }}%)
-                                    </div>
+                                <div class="progress-label">
+                                    <h4>Task Completion</h4>
+                                    <span class="text-muted">{{ annotation_stats.completed_tasks }} of {{ annotation_stats.tasks_count }} ({{ annotation_stats.completion_percentage }}%)</span>
+                                </div>
+                                <div class="progress" role="progressbar" aria-label="Task Completion"
+                                     aria-valuenow="{{ annotation_stats.completion_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar progress-bar-success" style="width: {{ annotation_stats.completion_percentage }}%;"></div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <h4>User Assignment Completion</h4>
-                                <div class="progress">
-                                    <div class="progress-bar progress-bar-info" role="progressbar"
-                                         style="width: {{ annotation_stats.assignment_completion }}%;"
-                                         aria-valuenow="{{ annotation_stats.assignment_completion }}"
-                                         aria-valuemin="0" aria-valuemax="100">
-                                        {{ annotation_stats.completed_assignments }}/{{ annotation_stats.total_assignments }} ({{ annotation_stats.assignment_completion }}%)
-                                    </div>
+                                <div class="progress-label">
+                                    <h4>User Assignment Completion</h4>
+                                    <span class="text-muted">{{ annotation_stats.completed_assignments }} of {{ annotation_stats.total_assignments }} ({{ annotation_stats.assignment_completion }}%)</span>
+                                </div>
+                                <div class="progress" role="progressbar" aria-label="User Assignment Completion"
+                                     aria-valuenow="{{ annotation_stats.assignment_completion }}" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar progress-bar-info" style="width: {{ annotation_stats.assignment_completion }}%;"></div>
                                 </div>
                             </div>
                         </div>

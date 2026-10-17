@@ -519,3 +519,7 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .project-desc { white-space: pre-line; overflow-wrap: anywhere; margin: 0; }
 .project-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .project-actions .project-delete { margin: 0 0 0 auto; }
+
+/* Progress: numbers sit beside the label, never inside the bar */
+.progress-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.progress-label h4 { margin: 0 0 6px; }

@@ -24,12 +24,12 @@ A modern web-based platform for managing both image annotation projects and gene
 
 - **Flexible Project Creation**:
     - **Survey Projects**: For general questionnaires with open-text or multiple-choice questions.
-    - **Image Annotation Projects**: For image-based tasks with customizable questions per image.
+    - **Annotation Projects**: Label images, audio clips, or a mix of both, with customizable questions per item.
 - **Question Management**:
     - Create and edit questions with various answer types (Open Text, Multiple Choice).
     - Define multiple-choice options and correct answers for MCQs.
     - Attach files (images, audio, video) to questions.
-- **Batch Image Upload** (for Annotation Projects)
+- **Batch Upload** (for Annotation Projects): one ZIP with images (PNG, JPG, GIF, BMP, WEBP) and/or audio (MP3, WAV, OGG, M4A, FLAC). Annotators see pictures and hear audio in a built-in player.
 - **User Group Management**: Organize users into groups for easier assignment.
 - **Project Assignment to Groups**: Assign projects to entire user groups during project creation or later.
 - **Smart Task Generation & Assignment**: System intelligently distributes questions/tasks to users based on project settings, group assignments, and completion requirements.
@@ -64,7 +64,7 @@ As a **System Admin**, you can:
     -   Create new "Survey" or "Image Annotation" projects.
     -   Edit existing projects, including project settings (e.g., questions per image, answers per task for annotation projects).
     -   Manage questions for any project, including adding new questions (Open Text or Multiple Choice), editing existing ones, and deleting them.
-    -   Upload image ZIP files for annotation projects.
+    -   Upload ZIP files of images and/or audio clips for annotation projects.
     -   Generate and assign annotation tasks.
     -   View detailed project dashboards and results.
 3.  **Manage Users**: View all registered users, their roles, and activity.

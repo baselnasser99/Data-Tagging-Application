@@ -1,0 +1,40 @@
+{#
+  Shows one annotation item: an <img> for images, an audio player for audio.
+  Used by every page that displays project items, so images and audio look
+  the same everywhere.
+
+  Usage:
+    {% from "includes/media.html" import media_item %}
+    {{ media_item(project, item, img_class="img-responsive", img_style="max-height: 400px") }}
+    {{ media_item(project, item, thumbnail=True, img_style="height: 120px; width: 100%; object-fit: cover;") }}
+
+  thumbnail=True draws a small music tile instead of a full player for audio,
+  for galleries where a row of players would be cluttered.
+#}
+{% macro media_url(project, item) -%}
+  {{ url_for('static', filename='uploads/images/' ~ project.id ~ '/' ~ item.filename) }}
+{%- endmacro %}
+
+{% macro media_item(project, item, img_class="", img_style="", thumbnail=False) -%}
+  {%- if item.is_audio -%}
+    {%- if thumbnail -%}
+      <div class="media-audio-thumb" style="{{ img_style }}" title="{{ item.original_filename }}">
+        <i class="fa fa-music" aria-hidden="true"></i>
+        <span class="sr-only">Audio file: {{ item.original_filename }}</span>
+      </div>
+    {%- else -%}
+      <div class="media-audio">
+        <i class="fa fa-music fa-3x" aria-hidden="true"></i>
+        <p class="media-audio-name">{{ item.original_filename }}</p>
+        <audio controls preload="metadata" src="{{ media_url(project, item) }}"
+               aria-label="Audio clip {{ item.original_filename }}">
+          Your browser cannot play this audio file.
+          <a href="{{ media_url(project, item) }}">Download it</a> instead.
+        </audio>
+      </div>
+    {%- endif -%}
+  {%- else -%}
+    <img src="{{ media_url(project, item) }}" class="{{ img_class }}" style="{{ img_style }}"
+         alt="{{ item.original_filename }}" title="{{ item.original_filename }}" loading="lazy">
+  {%- endif -%}
+{%- endmacro %}

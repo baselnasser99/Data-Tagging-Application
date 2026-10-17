@@ -1,15 +1,16 @@
 {% extends "base.html" %}
+{% from "includes/media.html" import media_item %}
 
-{% block title %}Image tasks – {{ app_name }}{% endblock %}
+{% block title %}Annotation tasks – {{ app_name }}{% endblock %}
 
 {% block content %}
 <section class="content-header">
-  <h1>Image tasks</h1>
+  <h1>Annotation tasks</h1>
 </section>
 
 <section class="content">
   {% if assignments %}
-  {# One card per image: answer all of an image's questions in one sitting. #}
+  {# One card per item (image or audio clip): answer all its questions in one sitting. #}
   {% set groups = assignments | groupby('task.image_id') %}
   <div class="row">
     {% for image_id, items in groups %}
@@ -32,9 +33,12 @@
           </div>
         </div>
         <div class="box-body">
-          <img src="{{ url_for('static', filename='uploads/images/' + project.id|string + '/' + image.filename) }}"
-               alt="{{ image.original_filename }}" loading="lazy"
-               style="display: block; width: 100%; height: 170px; object-fit: cover; border-radius: 4px;">
+          {% if image.is_audio %}
+          {{ media_item(project, image) }}
+          {% else %}
+          {{ media_item(project, image,
+                        img_style="display: block; width: 100%; height: 170px; object-fit: cover; border-radius: 4px;") }}
+          {% endif %}
           <p class="text-muted" style="margin: 10px 0 6px;">{{ project.name }}</p>
           <ul class="list-unstyled" style="margin: 0;">
             {% for a in items %}
@@ -52,7 +56,7 @@
             Answer {{ pending|length }} {{ 'question' if pending|length == 1 else 'questions' }}
           </a>
           {% else %}
-          <span class="text-muted">All questions for this image are answered.</span>
+          <span class="text-muted">All questions for this item are answered.</span>
           {% endif %}
         </div>
       </div>
@@ -62,8 +66,8 @@
   {% else %}
   <div class="box">
     <div class="empty-state">
-      <strong>No image tasks yet</strong>
-      You will see images here once a coordinator adds you to a group with an annotation project.
+      <strong>No annotation tasks yet</strong>
+      You will see images and audio clips here once a coordinator adds you to a group with an annotation project.
     </div>
   </div>
   {% endif %}

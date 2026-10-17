@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Upload Images - {{ project.name }}{% endblock %}
+{% block title %}Upload Items - {{ project.name }}{% endblock %}
 
 {% block content %}
 <section class="content-header">
-  <h1>Upload Images</h1>
+  <h1>Upload Images or Audio</h1>
   <ol class="breadcrumb">
     <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
     <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
-    <li class="active">Upload Images</li>
+    <li class="active">Upload Items</li>
   </ol>
 </section>
 
@@ -18,7 +18,7 @@
       <div class="box box-primary">
         <div class="box-header with-border">
           <h3 class="box-title">
-            <i class="fa fa-upload"></i> Batch Image Upload for "{{ project.name }}"
+            <i class="fa fa-upload"></i> Batch upload for "{{ project.name }}"
           </h3>
         </div>
         
@@ -26,29 +26,29 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
             <div class="form-group">
-              <label for="image_zip">Select ZIP File with Images</label>
+              <label for="image_zip">Select a ZIP file with images and/or audio clips</label>
               <input type="file" class="form-control" id="image_zip" name="image_zip" 
                      accept=".zip" required>
               <p class="help-block">
-                Upload a ZIP file containing your images. Supported formats: PNG, JPG, JPEG, GIF, BMP
+                Images: PNG, JPG, JPEG, GIF, BMP, WEBP. Audio: MP3, WAV, OGG, M4A, FLAC.
               </p>
             </div>
             
             <div class="alert alert-info">
               <h4><i class="fa fa-info-circle"></i> Upload Instructions:</h4>
               <ul>
-                <li>Create a ZIP file containing all your images</li>
-                <li>Images can be in folders within the ZIP (folder structure will be flattened)</li>
-                <li>Only image files will be extracted (PNG, JPG, JPEG, GIF, BMP)</li>
-                <li>Each image will be combined with all 5 questions to create annotation tasks</li>
-                <li>File names will be preserved but made unique to prevent conflicts</li>
+                <li>Create a ZIP file containing your images, audio clips, or both</li>
+                <li>Files can be in folders within the ZIP (folder structure will be flattened)</li>
+                <li>Other file types are ignored, and files whose names already exist in this project are skipped</li>
+                <li>Each item is combined with all {{ project.questions|length }} questions to create annotation tasks</li>
+                <li>Annotators see images as pictures and hear audio clips in a built-in player</li>
               </ul>
             </div>
           </div>
           
           <div class="box-footer">
             <button type="submit" class="btn btn-primary">
-              <i class="fa fa-upload"></i> Upload Images
+              <i class="fa fa-upload"></i> Upload
             </button>
             <a href="{{ url_for('admin.view_projects') }}" class="btn btn-default">
               <i class="fa fa-arrow-left"></i> Back to Projects
@@ -90,7 +90,7 @@
       <div class="box box-success">
         <div class="box-header with-border">
           <h3 class="box-title">
-            <i class="fa fa-question-circle"></i> Questions for Each Image
+            <i class="fa fa-question-circle"></i> Questions for Each Item
           </h3>
         </div>
         <div class="box-body">
@@ -108,9 +108,9 @@
         </div>
         <div class="box-body">
           <p><strong>Formula:</strong></p>
-          <p>Total Tasks = Images × Questions</p>
+          <p>Total Tasks = Items × Questions</p>
           <p><strong>Example:</strong></p>
-          <p>1000 images × 5 questions = 5000 annotation tasks</p>
+          <p>1000 items × 5 questions = 5000 annotation tasks</p>
           <p class="text-muted">Each task will be assigned to {{ project.answers_per_task }} different users.</p>
         </div>
       </div>

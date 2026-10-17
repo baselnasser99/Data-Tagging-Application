@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% from "includes/media.html" import media_item %}
 
 {% block title %}Annotation Task - {{ project.name }}{% endblock %}
 
 {% block content %}
 <section class="content-header">
-  <h1>Image Annotation Task</h1>
+  <h1>Annotation Task</h1>
   <ol class="breadcrumb">
     <li><a href="{{ url_for('user.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
     <li><a href="{{ url_for('user.annotation_tasks') }}"><i class="fa fa-image"></i> Annotation Tasks</a></li>
@@ -14,20 +15,19 @@
 
 <section class="content">
   <div class="row">
-    <!-- Image Display -->
+    <!-- Item (image or audio) -->
     <div class="col-md-8">
       <div class="box box-primary">
         <div class="box-header with-border">
           <h3 class="box-title">
-            <i class="fa fa-image"></i> {{ project.name }}
+            <i class="fa {{ 'fa-music' if image.is_audio else 'fa-image' }}"></i> {{ project.name }}
           </h3>
         </div>
         <div class="box-body text-center">
-          <img src="{{ url_for('static', filename='uploads/images/' + project.id|string + '/' + image.filename) }}" 
-               class="img-responsive center-block" 
-               style="max-height: 500px; border: 2px solid #ddd; border-radius: 5px;">
+          {{ media_item(project, image, img_class="img-responsive center-block",
+                        img_style="max-height: 500px; border: 2px solid #ddd; border-radius: 5px;") }}
           <p class="text-muted" style="margin-top: 10px;">
-            <strong>Image:</strong> {{ image.original_filename }}
+            <strong>{{ 'Audio' if image.is_audio else 'Image' }}:</strong> {{ image.original_filename }}
           </p>
         </div>
       </div>
@@ -125,7 +125,7 @@
         </div>
         <div class="box-body">
           <ul class="list-unstyled">
-            <li><i class="fa fa-check text-green"></i> Look carefully at the image</li>
+            <li><i class="fa fa-check text-green"></i> {{ 'Listen to the whole clip' if image.is_audio else 'Look carefully at the image' }}</li>
             <li><i class="fa fa-check text-green"></i> Read the question thoroughly</li>
             <li><i class="fa fa-check text-green"></i> Provide a clear, detailed answer</li>
             <li><i class="fa fa-check text-green"></i> Be as accurate as possible</li>

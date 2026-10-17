@@ -13,7 +13,7 @@
       <h2>{{ unanswered_questions }} {{ 'task is' if unanswered_questions == 1 else 'tasks are' }} waiting for you</h2>
       <p>Pick up where you left off. Your answers are saved as soon as you submit each one.</p>
     </div>
-    <a class="btn btn-primary btn-lg" href="{{ url_for('user.annotation_tasks') }}">Continue labelling</a>
+    <a class="btn btn-primary btn-lg" href="{{ url_for('annotation.annotation_tasks') }}">Continue labelling</a>
   </div>
   {% elif assigned_projects == 0 %}
   <div class="box">
@@ -28,7 +28,7 @@
       <h2>You are all caught up</h2>
       <p>Every task assigned to you has an answer. New tasks will appear here.</p>
     </div>
-    <a class="btn btn-default" href="{{ url_for('user.my_projects') }}">See your projects</a>
+    <a class="btn btn-default" href="{{ url_for('annotation.my_projects') }}">See your projects</a>
   </div>
   {% endif %}
 

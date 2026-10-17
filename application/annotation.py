@@ -8,10 +8,11 @@ import logging
 from .permissions import user_required
 from werkzeug.security import generate_password_hash, check_password_hash
 
-end_user = Blueprint('user', __name__, url_prefix='/user')
+# Annotators' pages (on screen: members). The URLs keep their original /user prefix.
+annotation = Blueprint('annotation', __name__, url_prefix='/user')
 log = logging.getLogger(__name__)
 
-@end_user.route("/dashboard")
+@annotation.route("/dashboard")
 @user_required
 def dashboard():
     if 'id' in session:
@@ -56,16 +57,16 @@ def dashboard():
                                    available_projects=available_projects)
         else:
             flash('User not found', 'danger')
-            return redirect(url_for('user.my_projects'))
+            return redirect(url_for('annotation.my_projects'))
     else:
         flash('No active session', 'warning')
-        return redirect(url_for('user.my_projects'))
+        return redirect(url_for('annotation.my_projects'))
 
 
 # Individual project assignments removed - only group assignments supported
 
 
-@end_user.route("/my-projects")
+@annotation.route("/my-projects")
 @user_required
 def my_projects():
     user_id = session['id']
@@ -123,10 +124,10 @@ def my_projects():
                                group_projects=group_projects)
     else:
         flash('User not found', 'danger')
-        return redirect(url_for('user.my_projects'))
+        return redirect(url_for('annotation.my_projects'))
 
 
-@end_user.route("/download-project/<int:project_id>", methods=['GET'])
+@annotation.route("/download-project/<int:project_id>", methods=['GET'])
 @user_required
 def csv_download(project_id):
     project = db.session.get(Project, project_id)
@@ -162,7 +163,7 @@ def csv_download(project_id):
         return redirect(url_for('admin.view_projects'))
 
 
-@end_user.route("/project/<int:project_id>", methods=['GET', 'POST'])
+@annotation.route("/project/<int:project_id>", methods=['GET', 'POST'])
 @user_required
 def view_project(project_id):
     project = db.session.get(Project, project_id)
@@ -178,21 +179,21 @@ def view_project(project_id):
                 db.session.add(qa)
                 db.session.commit()
         flash('Answers submitted successfully', 'success')
-        return redirect(url_for('user.my_projects'))
+        return redirect(url_for('annotation.my_projects'))
     elif project:
         return render_template('end-user/project.html', project=project)
     else:
         flash('Project not found', 'danger')
-        return redirect(url_for('user.my_projects'))
+        return redirect(url_for('annotation.my_projects'))
 
 
-@end_user.route("/profile")
+@annotation.route("/profile")
 @user_required
 def profile():
     return render_template('end-user/profile.html')
 
 
-@end_user.route("/change-password", methods=['GET', 'POST'])
+@annotation.route("/change-password", methods=['GET', 'POST'])
 @user_required
 def change_password():
     if request.method == 'POST':
@@ -205,32 +206,32 @@ def change_password():
 
         if not user:
             flash('User not found', 'danger')
-            return redirect(url_for('user.profile'))
+            return redirect(url_for('annotation.profile'))
 
         # Verify current password
         if not check_password_hash(user.password_hash, current_password):
             flash('Current password is incorrect', 'danger')
-            return redirect(url_for('user.change_password'))
+            return redirect(url_for('annotation.change_password'))
 
         # Validate new password
         if new_password != confirm_password:
             flash('New passwords do not match', 'danger')
-            return redirect(url_for('user.change_password'))
+            return redirect(url_for('annotation.change_password'))
 
         if len(new_password) < 6:
             flash('Password must be at least 6 characters long', 'danger')
-            return redirect(url_for('user.change_password'))
+            return redirect(url_for('annotation.change_password'))
 
         # Update password
         user.password_hash = generate_password_hash(new_password)
         db.session.commit()
         flash('Password changed successfully', 'success')
-        return redirect(url_for('user.profile'))
+        return redirect(url_for('annotation.profile'))
 
     return render_template('end-user/change_password.html')
 
 
-@end_user.route("/group-project/<group_project_id>", methods=['GET', 'POST'])
+@annotation.route("/group-project/<group_project_id>", methods=['GET', 'POST'])
 @user_required
 def view_group_project(group_project_id):
     user_id = session['id']
@@ -243,7 +244,7 @@ def view_group_project(group_project_id):
 
     if not assigned_questions:
         flash('No questions assigned to you for this project', 'warning')
-        return redirect(url_for('user.my_projects'))
+        return redirect(url_for('annotation.my_projects'))
 
     # Get the project details from the first assignment
     project = assigned_questions[0].question.belongs_to
@@ -279,7 +280,7 @@ def view_group_project(group_project_id):
                     db.session.commit()
 
         flash('Answers submitted successfully', 'success')
-        return redirect(url_for('user.my_projects'))
+        return redirect(url_for('annotation.my_projects'))
 
     # Get only the questions assigned to this user
     questions = [assignment.question for assignment in assigned_questions]
@@ -297,7 +298,7 @@ def view_group_project(group_project_id):
     return render_template('end-user/group_project.html', project=project_data)
 
 
-@end_user.route("/annotation-tasks")
+@annotation.route("/annotation-tasks")
 @user_required
 def annotation_tasks():
     """View assigned annotation tasks, one card per item; ?project_id= shows one project only."""
@@ -333,14 +334,14 @@ def _next_item(user_id, project_id):
         TaskAssignment.is_completed == False,
     ).order_by(AnnotationTask.image_id, AnnotationTask.question_id).first()
     if nxt and nxt.task.project.hand_out_per_item:
-        return redirect(url_for("user.annotate_image", image_id=nxt.task.image_id, project_id=project_id))
+        return redirect(url_for("annotation.annotate_image", image_id=nxt.task.image_id, project_id=project_id))
     if nxt:
-        return redirect(url_for("user.annotation_task", assignment_id=nxt.id))
+        return redirect(url_for("annotation.annotation_task", assignment_id=nxt.id))
     flash("You have finished all your tasks in this project.", "success")
-    return redirect(url_for("user.annotation_tasks", project_id=project_id))
+    return redirect(url_for("annotation.annotation_tasks", project_id=project_id))
 
 
-@end_user.route("/annotation-task/<int:assignment_id>", methods=["GET", "POST"])
+@annotation.route("/annotation-task/<int:assignment_id>", methods=["GET", "POST"])
 @user_required
 def annotation_task(assignment_id):
     """Complete an annotation task"""
@@ -360,7 +361,7 @@ def annotation_task(assignment_id):
 
         if assignment.is_completed:
             flash("You have already answered this task.", "info")
-            return redirect(url_for("user.annotation_tasks"))
+            return redirect(url_for("annotation.annotation_tasks"))
 
         if answer_text:
             # Save the answer linked to this specific task assignment
@@ -395,8 +396,8 @@ def annotation_task(assignment_id):
                          project=project)
 
 
-@end_user.route("/annotate-image/<int:image_id>/<int:project_id>", methods=["GET", "POST"])
-@end_user.route("/annotate-image/<int:image_id>/<int:project_id>/<int:batch_index>", methods=["GET", "POST"])
+@annotation.route("/annotate-image/<int:image_id>/<int:project_id>", methods=["GET", "POST"])
+@annotation.route("/annotate-image/<int:image_id>/<int:project_id>/<int:batch_index>", methods=["GET", "POST"])
 @user_required
 def annotate_image(image_id, project_id, batch_index=0):
     """Complete questions for a specific image in batches"""
@@ -453,10 +454,10 @@ def annotate_image(image_id, project_id, batch_index=0):
     log.debug(f"Current batch index: {batch_index}")
     if not all_uncompleted_assignments and batch_index == 0:
         flash("No new tasks found for this image!", "info")
-        return redirect(url_for("user.annotation_tasks"))
+        return redirect(url_for("annotation.annotation_tasks"))
     elif not all_uncompleted_assignments and batch_index > 0:
         flash("All questions for this image have been answered!", "success")
-        return redirect(url_for("user.annotation_tasks"))
+        return redirect(url_for("annotation.annotation_tasks"))
 
     start_index = batch_index * batch_size
     end_index = start_index + batch_size
@@ -467,10 +468,10 @@ def annotate_image(image_id, project_id, batch_index=0):
     log.debug(f"Assignments in current batch: {len(current_batch_assignments)}")
     if not current_batch_assignments and total_uncompleted_questions > 0:
         flash("All questions for this image have been answered!", "success")
-        return redirect(url_for("user.annotation_tasks"))
+        return redirect(url_for("annotation.annotation_tasks"))
     elif not current_batch_assignments and total_uncompleted_questions == 0:
         flash("No tasks found for this image!", "info")
-        return redirect(url_for("user.annotation_tasks"))
+        return redirect(url_for("annotation.annotation_tasks"))
 
     if request.method == "POST":
         answers_submitted_in_batch = 0
@@ -516,7 +517,7 @@ def annotate_image(image_id, project_id, batch_index=0):
         # Answered questions drop out of the "uncompleted" list, so the next
         # batch always starts at the beginning of what is left.
         if total_uncompleted_questions - answers_submitted_in_batch > 0:
-            return redirect(url_for("user.annotate_image", image_id=image.id, project_id=project.id))
+            return redirect(url_for("annotation.annotate_image", image_id=image.id, project_id=project.id))
         return _next_item(user_id, project.id)
 
     return render_template("user/annotate_image.html",

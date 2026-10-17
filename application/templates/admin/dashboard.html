@@ -44,9 +44,10 @@
       <div class="box box-primary">
         <div class="box-header with-border">
           <h3 class="box-title">Answers per week, last 12 weeks</h3>
+          <p class="text-muted" style="margin: 4px 0 0;">Each bar starts on the date shown.</p>
         </div>
         <div class="box-body">
-          <div style="position: relative; height: 280px;"><canvas id="weeklyChart" role="img" aria-label="Line chart of answers submitted per week over the last 12 weeks" data-chart-data='{{ weeks_data | tojson }}'></canvas></div>
+          <div style="position: relative; height: 180px;"><canvas id="weeklyChart" role="img" aria-label="Bar chart of answers submitted per week over the last 12 weeks" data-chart-data='{{ weeks_data | tojson }}'></canvas></div>
         </div>
       </div>
     </div>
@@ -92,20 +93,18 @@
   const canvas = document.getElementById('weeklyChart');
   if (!canvas || !window.Chart) return;
   const weeks = JSON.parse(canvas.dataset.chartData);
-  Chart.defaults.font.family = '"Atkinson Hyperlegible", system-ui, sans-serif';
+  Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
   Chart.defaults.color = '#56616F';
   new Chart(canvas, {
-    type: 'line',
+    type: 'bar',
     data: {
       labels: weeks.map(w => w.week),
       datasets: [{
         label: 'Answers submitted',
         data: weeks.map(w => w.answers),
-        borderColor: '#1C2733',
         backgroundColor: '#1C2733',
-        borderWidth: 2,
-        pointRadius: 3,
-        tension: 0
+        borderRadius: 4,
+        maxBarThickness: 28
       }]
     },
     options: {

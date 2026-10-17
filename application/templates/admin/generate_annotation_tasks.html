@@ -156,7 +156,7 @@
           </p>
           {% endfor %}
           {% else %}
-          <p class="text-muted">No user groups available. <a href="{{ url_for('admin.create_group') }}">Create a group</a> first.</p>
+          <p class="text-muted">No user groups available. <a href="{{ url_for('groups.create_group') }}">Create a group</a> first.</p>
           {% endif %}
         </div>
       </div>

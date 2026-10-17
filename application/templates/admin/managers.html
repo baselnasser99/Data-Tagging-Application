@@ -7,9 +7,7 @@
 <section class="content-header">
   <h1>Managers<small>Each project can have one manager, who runs it day to day.</small></h1>
 </section>
-<section class="content" style="padding-bottom: 0;">
-  <a href="{{ url_for('admin.create_user', role='manager') }}" class="btn btn-primary"><i class="fa fa-user-plus"></i> Create a manager</a>
-</section>
+
 
 <section class="content">
   <div class="row">
@@ -36,6 +34,29 @@
       </div>
     </div>
     <div class="col-md-5 col-xs-12">
+      <div class="box">
+        <div class="box-header with-border"><h3 class="box-title">Create a new manager</h3></div>
+        <div class="box-body">
+          <form method="POST" action="{{ url_for('admin.create_user') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="role" value="manager">
+            <div class="form-group">
+              <label for="new_full_name">Full name</label>
+              <input type="text" class="form-control" id="new_full_name" name="full_name" required>
+            </div>
+            <div class="form-group">
+              <label for="new_email">Email address</label>
+              <input type="email" class="form-control" id="new_email" name="email" required>
+            </div>
+            <div class="form-group">
+              <label for="new_password">Password</label>
+              <input type="password" class="form-control" id="new_password" name="password" minlength="6" autocomplete="new-password">
+              <p class="help-block">At least 6 characters. Leave it empty and a temporary password is created and shown to you.</p>
+            </div>
+            <button type="submit" class="btn btn-primary">Create manager</button>
+          </form>
+        </div>
+      </div>
       {% if without_project %}
       <div class="box">
         <div class="box-header with-border"><h3 class="box-title">Managers without a project</h3></div>
@@ -50,7 +71,7 @@
       </div>
       {% endif %}
       <div class="box">
-        <div class="box-header with-border"><h3 class="box-title">Add a manager</h3></div>
+        <div class="box-header with-border"><h3 class="box-title">Make an existing person a manager</h3></div>
         <div class="box-body">
           {% set open_projects = projects | rejectattr('id', 'in', by_project.keys() | list) | list %}
           {% if open_projects %}

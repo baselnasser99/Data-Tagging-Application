@@ -523,3 +523,6 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 /* Progress: numbers sit beside the label, never inside the bar */
 .progress-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .progress-label h4 { margin: 0 0 6px; }
+
+/* Text boxes grow downward only, never wider than their column */
+textarea, textarea.form-control { resize: vertical; max-width: 100%; }

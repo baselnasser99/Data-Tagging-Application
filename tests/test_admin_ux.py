@@ -120,6 +120,7 @@ def test_dashboard_chart_data_and_group_progress(app, db, admin_client, make_use
     weeks = json.loads(re.search(r"data-chart-data='([^']*)'", page).group(1))
     assert len(weeks) == 12 and sum(w["answers"] for w in weeks) == 1
     assert "50.0%" in page  # 1 of the group's 2 tasks done
+    assert b"1 of 2 tasks done" in admin_client.get("/admin/assign-project-to-group").data
 
 
 def test_assigning_an_empty_group_says_so(db, admin_client):
@@ -131,6 +132,7 @@ def test_assigning_an_empty_group_says_so(db, admin_client):
     resp = admin_client.post("/admin/assign-project-to-group",
                              data={"group_id": group.id, "project_id": project.id}, follow_redirects=True)
     assert b"has no members yet" in resp.data
+    assert b"No work yet" in resp.data and b"Pending" not in resp.data  # progress, not the stale flag
 
 
 def test_exports_show_annotator_names(app, db, admin_client, make_user):

@@ -17,7 +17,7 @@ from .auth import MIN_PASSWORD_LENGTH
 from .jinja_utils import plural
 from . import distribution
 from .feedback import flash_distribution, warn_idle_members
-from .groups import assign_questions_to_new_group_member, distribute_questions_to_group
+from .groups import assign_questions_to_new_group_member, distribute_questions_to_group, group_progress
 from . import export as dataset_export
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
 
@@ -78,20 +78,11 @@ def dashboard():
     # annotation tasks (finished assignments) and survey questions (answered).
     group_stats = []
     for group in UserGroup.query.all():
-        member_ids = [m.user_id for m in group.members]
         project_ids = [gp.project_id for gp in group.assigned_projects]
-        tasks = TaskAssignment.query.join(AnnotationTask).filter(
-            TaskAssignment.user_id.in_(member_ids), AnnotationTask.project_id.in_(project_ids))
-        survey = UserQuestionAssignment.query.filter(
-            UserQuestionAssignment.user_id.in_(member_ids),
-            UserQuestionAssignment.group_project_id.in_([f"{group.id}-{pid}" for pid in project_ids]))
-        total = tasks.count() + survey.count()
-        done = tasks.filter(TaskAssignment.is_completed.is_(True)).count() + sum(
-            1 for q in survey if QuestionAnswer.query.filter_by(
-                user_id=q.user_id, question_id=q.question_id, task_assignment_id=None).first())
+        done, total = group_progress(group, project_ids)
         group_stats.append({
             'name': group.name,
-            'members': len(member_ids),
+            'members': len(group.members),
             'projects': len(project_ids),
             'completion_rate': round(done / total * 100, 1) if total else 0,
         })

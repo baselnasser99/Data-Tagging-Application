@@ -80,7 +80,7 @@
                   <th>Group Name</th>
                   <th>Members</th>
                   <th>Assigned Projects</th>
-                  <th>Questions Distributed</th>
+                  <th>Progress</th>
                 </tr>
               </thead>
               <tbody>
@@ -116,10 +116,11 @@
                       {% if group.assigned_projects %}
                         {% for group_project in group.assigned_projects %}
                           <div class="mb-1">
-                            {% if group_project.questions_distributed %}
-                              <span class="label label-success">Distributed</span>
+                            {% set done, total = progress[(group.id, group_project.project_id)] %}
+                            {% if not total %}
+                              <span class="text-muted">No work yet</span>
                             {% else %}
-                              <span class="label label-warning">Pending</span>
+                              {{ done }} of {{ plural(total, "task") }} done
                             {% endif %}
                           </div>
                         {% endfor %}

@@ -211,3 +211,14 @@ def test_project_manager_page_has_the_picker(admin_client, db, make_user):
     page = admin_client.get(f"/admin/project/{project.id}/admins").data
     assert b"Dee Data" in page and b'name="email"' in page and b'name="user_id"' in page
     assert b'class="content"' in page  # inside the normal page layout, not glued to the sidebar
+
+
+def test_create_a_manager_without_a_project(admin_client):
+    resp = admin_client.post("/admin/create-user", data={
+        "full_name": "Mia Manager", "email": "mia@example.com", "password": "secret123",
+        "role": "manager", "group_id": "",
+    }, follow_redirects=True)
+    assert b"created as a manager" in resp.data
+    assert User.query.filter_by(email="mia@example.com").one().role == "project-admin"
+    assert b"Managers without a project" in resp.data and b"Mia Manager" in resp.data  # lands on Managers
+    assert b'value="manager" checked' in admin_client.get("/admin/create-user?role=manager").data

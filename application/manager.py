@@ -129,8 +129,11 @@ def managers():
     """Every project with its manager, and a form to add one, in one place."""
     projects = Project.query.order_by(Project.name).all()
     by_project = {pa.project_id: pa for pa in ProjectAdmin.query.all()}
+    managing = {pa.user_id for pa in by_project.values()}
+    without_project = [u for u in User.query.filter_by(role='project-admin').order_by(User.full_name)
+                       if u.id not in managing]
     return render_template("admin/managers.html", projects=projects, by_project=by_project,
-                           candidates=manager_candidates())
+                           candidates=manager_candidates(), without_project=without_project)
 
 
 @manager.route("/managers/add", methods=['POST'])

@@ -7,6 +7,9 @@
 <section class="content-header">
   <h1>Managers<small>Each project can have one manager, who runs it day to day.</small></h1>
 </section>
+<section class="content" style="padding-bottom: 0;">
+  <a href="{{ url_for('admin.create_user', role='manager') }}" class="btn btn-primary"><i class="fa fa-user-plus"></i> Create a manager</a>
+</section>
 
 <section class="content">
   <div class="row">
@@ -33,6 +36,19 @@
       </div>
     </div>
     <div class="col-md-5 col-xs-12">
+      {% if without_project %}
+      <div class="box">
+        <div class="box-header with-border"><h3 class="box-title">Managers without a project</h3></div>
+        <div class="box-body">
+          <ul class="assignment-list">
+            {% for user in without_project %}
+            <li>{{ user.full_name }} <span class="text-muted">· {{ user.email }}</span></li>
+            {% endfor %}
+          </ul>
+          <p class="text-muted" style="margin: 10px 0 0;">Pick them in the form below to give them a project.</p>
+        </div>
+      </div>
+      {% endif %}
       <div class="box">
         <div class="box-header with-border"><h3 class="box-title">Add a manager</h3></div>
         <div class="box-body">

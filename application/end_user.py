@@ -507,16 +507,10 @@ def annotate_image(image_id, project_id, batch_index=0):
             return redirect(url_for("user.annotate_image", image_id=image.id, project_id=project.id))
         return _next_item(user_id, project.id)
 
-    total_pages = (total_uncompleted_questions + batch_size - 1) // batch_size
-    has_next_page = (batch_index + 1) < total_pages
-    has_prev_page = batch_index > 0
-
     return render_template("user/annotate_image.html",
                          image=image,
                          project=project,
                          assignments=current_batch_assignments, # Pass only the current batch
                          batch_index=batch_index,
                          total_uncompleted_questions=total_uncompleted_questions,
-                         batch_size=batch_size,
-                         has_next_page=has_next_page,
-                         has_prev_page=has_prev_page)
+                         batch_size=batch_size)

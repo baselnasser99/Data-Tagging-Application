@@ -32,7 +32,7 @@
           <div class="box-footer project-actions">
             <a href="{{ url_for('groups.manage_group', group_id=group.id) }}" class="btn btn-primary btn-sm">Manage group</a>
             <form method="POST" action="{{ url_for('groups.delete_group', group_id=group.id) }}" class="project-delete"
-                  onsubmit="return confirm('Delete this group? Its members leave it and its projects are no longer assigned to it.')">
+                  onsubmit="return confirm('Delete this group? Its unfinished tasks go back to other people; finished answers are kept.')">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>

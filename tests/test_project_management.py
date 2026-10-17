@@ -226,7 +226,7 @@ def test_promote_existing_user_and_remove_again(admin_client, survey, end_user):
     resp = admin_client.post(
         f"/admin/project/{survey.id}/admins/add", data={"email": end_user.email}, follow_redirects=True
     )
-    assert b"added successfully" in resp.data
+    assert b"now manages" in resp.data
     assert end_user.role == "project-admin"
 
     pa = ProjectAdmin.query.filter_by(user_id=end_user.id).one()
@@ -239,7 +239,7 @@ def test_add_manager_with_unknown_email(admin_client, survey):
     resp = admin_client.post(
         f"/admin/project/{survey.id}/admins/add", data={"email": "ghost@example.com"}, follow_redirects=True
     )
-    assert b"User not found" in resp.data
+    assert b"No user with that email was found" in resp.data
 
 
 def test_manager_cannot_remove_themselves(app, survey, make_project_admin):

@@ -105,7 +105,7 @@ def test_admin_pages_show_audio_items(admin_client):
     progress = admin_client.get(f"/admin/view-annotation-project/{project.id}")
     assert progress.status_code == 200
     assert b"(1 audio)" in progress.data
-    assert b"Image and Audio Annotation" in progress.data
+    assert b"Images and audio" in progress.data
     assert b"media-audio-thumb" in progress.data
 
     generate = admin_client.get(f"/admin/generate-annotation-tasks/{project.id}")

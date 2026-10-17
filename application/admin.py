@@ -306,7 +306,7 @@ def import_users():
                         if not result.assignments_created:
                             flash(f"No open tasks were left to assign in '{project.name}'.", 'info')
                     else:
-                        flash(f"No annotation tasks found for project '{project.name}'. Generate tasks first.", 'warning')
+                        flash(f"No tasks found for project '{project.name}'. Hand out tasks first.", 'warning')
                 else:
                     # For regular projects, assign questions directly to each user
                     for user in users_to_assign:
@@ -843,7 +843,7 @@ def create_annotation_project():
                 db.session.add(question)
 
         db.session.commit() # Commit all changes related to project and questions
-        flash(f"Annotation project '{project_name}' created successfully!", "success")
+        flash(f"Project '{project_name}' created successfully!", "success")
         return redirect(url_for("admin.upload_images", project_id=project.id))
 
     groups = UserGroup.query.all()
@@ -857,7 +857,7 @@ def upload_images(project_id):
     project = db.get_or_404(Project, project_id)
 
     if not project.is_annotation_project:
-        flash("This is not an annotation project!", "error")
+        flash("This page is for projects, not surveys.", "error")
         return redirect(url_for("admin.view_projects"))
 
     if request.method == "POST":
@@ -946,7 +946,7 @@ def generate_annotation_tasks(project_id):
     project = db.get_or_404(Project, project_id)
 
     if not project.is_annotation_project:
-        flash("This is not an annotation project!", "error")
+        flash("This page is for projects, not surveys.", "error")
         return redirect(url_for("admin.view_projects"))
 
     images = ProjectImage.query.filter_by(project_id=project_id).all()
@@ -994,7 +994,7 @@ def view_annotation_project(project_id):
     project = db.get_or_404(Project, project_id)
 
     if not project.is_annotation_project:
-        flash("This is not an annotation project!", "error")
+        flash("This page is for projects, not surveys.", "error")
         return redirect(url_for("admin.view_projects"))
 
     images = ProjectImage.query.filter_by(project_id=project_id).all()
@@ -1078,7 +1078,7 @@ def export_project(project_id, file_format):
     if file_format not in ("csv", "json"):
         abort(404)
     if not project.is_annotation_project:
-        flash("Dataset export is available for annotation projects. Use the text download for surveys.", "warning")
+        flash("Dataset export is for projects. Use the text download for surveys.", "warning")
         return redirect(url_for("admin.view_projects"))
 
     data = dataset_export.build_project_export(project)

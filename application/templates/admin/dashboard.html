@@ -15,7 +15,7 @@
     </div>
     <div class="figure">
       <span class="figure-value">{{ total_users }}</span>
-      <span class="figure-label">Annotators</span>
+      <span class="figure-label">People</span>
     </div>
     <div class="figure">
       <span class="figure-value">{{ total_groups }}</span>
@@ -28,10 +28,13 @@
   </div>
 
   <div class="box">
-    <div class="box-body">
-      <a href="{{ url_for('admin.create_annotation_project') }}" class="btn btn-primary">New annotation project</a>
-      <a href="{{ url_for('admin.import_users') }}" class="btn btn-default">Import users from CSV</a>
+    <div class="box-body quick-actions">
+      <a href="{{ url_for('admin.create_annotation_project') }}" class="btn btn-primary">New project</a>
+      <a href="{{ url_for('admin.create_project') }}" class="btn btn-default">New survey</a>
+      <a href="{{ url_for('admin.create_user') }}" class="btn btn-default">Add a user</a>
+      <a href="{{ url_for('admin.import_users') }}" class="btn btn-default">Import users</a>
       <a href="{{ url_for('groups.create_group') }}" class="btn btn-default">New group</a>
+      <a href="{{ url_for('manager.managers') }}" class="btn btn-default">Add a manager</a>
     </div>
   </div>
 

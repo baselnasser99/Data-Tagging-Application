@@ -7,8 +7,8 @@
 <section class="content-header">
   <h1>Answer questions</h1>
   <ol class="breadcrumb">
-    <li><a href="{{ url_for('user.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-    <li><a href="{{ url_for('user.annotation_tasks', project_id=project.id) }}"><i class="fa fa-image"></i> My tasks</a></li>
+    <li><a href="{{ url_for('annotation.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+    <li><a href="{{ url_for('annotation.annotation_tasks', project_id=project.id) }}"><i class="fa fa-image"></i> My tasks</a></li>
     <li class="active">Answer questions</li>
   </ol>
 </section>
@@ -45,7 +45,7 @@
           </div>
         </div>
         
-        <form method="POST" action="{{ url_for('user.annotate_image', image_id=image.id, project_id=project.id, batch_index=batch_index) }}">
+        <form method="POST" action="{{ url_for('annotation.annotate_image', image_id=image.id, project_id=project.id, batch_index=batch_index) }}">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
             <p class="text-muted">
@@ -103,7 +103,7 @@
             </div>
             {% endif %}
             
-            <a href="{{ url_for('user.annotation_tasks', project_id=project.id) }}" class="btn btn-default btn-block" style="margin-top: 10px;">
+            <a href="{{ url_for('annotation.annotation_tasks', project_id=project.id) }}" class="btn btn-default btn-block" style="margin-top: 10px;">
               <i class="fa fa-arrow-left"></i> Back to my tasks
             </a>
           </div>

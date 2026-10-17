@@ -6,7 +6,7 @@
 {% block content %}
 <section class="content-header">
   <h1>My tasks{% if project %}: {{ project.name }}{% endif %}</h1>
-  {% if filtered %}<a href="{{ url_for('user.annotation_tasks') }}">Show tasks from all my projects</a>{% endif %}
+  {% if filtered %}<a href="{{ url_for('annotation.annotation_tasks') }}">Show tasks from all my projects</a>{% endif %}
 </section>
 
 <section class="content">
@@ -54,9 +54,9 @@
           {% if not pending %}
           <span class="text-muted">Answered.</span>
           {% elif items|length == 1 %}
-          <a href="{{ url_for('user.annotation_task', assignment_id=first.id) }}" class="btn btn-primary btn-block">Answer</a>
+          <a href="{{ url_for('annotation.annotation_task', assignment_id=first.id) }}" class="btn btn-primary btn-block">Answer</a>
           {% else %}
-          <a href="{{ url_for('user.annotate_image', image_id=image.id, project_id=project.id) }}" class="btn btn-primary btn-block">
+          <a href="{{ url_for('annotation.annotate_image', image_id=image.id, project_id=project.id) }}" class="btn btn-primary btn-block">
             Answer {{ pending|length }} {{ 'question' if pending|length == 1 else 'questions' }}
           </a>
           {% endif %}

@@ -58,7 +58,7 @@
                 </li>
                 <li>
                   {% if current_user.role == 'end-user' %}
-                  <a href="{{ url_for('user.profile') }}">Profile settings</a>
+                  <a href="{{ url_for('annotation.profile') }}">Profile settings</a>
                   {% elif current_user.role == 'admin' %}
                   <a href="{{ url_for('admin.admin_profile') }}">Profile settings</a>
                   {% endif %}
@@ -93,9 +93,9 @@
         {{ nav('admin.create_project', 'list-ul', 'New survey') }}
         {{ nav('groups.assign_project_to_group', 'share', 'Assign to a group') }}
         {% elif current_user.role == 'end-user' %}
-        {{ nav('user.dashboard', 'home', 'Overview') }}
-        {{ nav('user.annotation_tasks', 'picture-o', 'My tasks') }}
-        {{ nav('user.my_projects', 'folder-open-o', 'My projects') }}
+        {{ nav('annotation.dashboard', 'home', 'Overview') }}
+        {{ nav('annotation.annotation_tasks', 'picture-o', 'My tasks') }}
+        {{ nav('annotation.my_projects', 'folder-open-o', 'My projects') }}
         {% endif %}
       </ul>
       </nav>

@@ -3,7 +3,7 @@ import os
 from logging.handlers import RotatingFileHandler
 
 import pymysql
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_wtf.csrf import CSRFError
 
 pymysql.install_as_MySQLdb()
@@ -43,6 +43,14 @@ def create_app(config_object=None):
     app.jinja_env.globals["app_name"] = app.config["APP_NAME"]
 
     _register_error_handlers(app)
+
+    @app.after_request
+    def _no_store(response):
+        # Pages show private data: don't let the browser keep a copy that the
+        # Back button could show after sign-out. Static files may be cached.
+        if request.endpoint != "static":
+            response.headers["Cache-Control"] = "no-store"
+        return response
 
     with app.app_context():
         db.create_all()

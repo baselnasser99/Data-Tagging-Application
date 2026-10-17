@@ -35,12 +35,14 @@ def create_app(config_object=None):
     from .end_user import end_user
     from .groups import groups
     from .manager import manager
+    from .annotation_admin import annotation_admin
     from .jinja_utils import getattr_safe, plural
 
     app.register_blueprint(auth)
     app.register_blueprint(admin)
     app.register_blueprint(groups)
     app.register_blueprint(manager)
+    app.register_blueprint(annotation_admin)
     app.register_blueprint(end_user)
 
     app.jinja_env.globals["getattr_safe"] = getattr_safe

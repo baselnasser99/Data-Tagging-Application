@@ -110,8 +110,11 @@ def build_project_export(project: Project) -> dict:
         elif values and all(len(v.split()) <= SHORT_TEXT_MAX_WORDS for v in values):
             compared = [normalise(v) for v in values]
         if compared:
-            top, count = Counter(compared).most_common(1)[0]
-            summary["majority_answer"] = top
+            ranked = Counter(compared).most_common(2)
+            top, count = ranked[0]
+            tied = len(ranked) > 1 and ranked[1][1] == count
+            # A tie has no majority; None (blank in CSV) instead of an arbitrary first answer.
+            summary["majority_answer"] = None if tied else top
             summary["majority_share"] = round(count / len(compared), 3)
             if kind == "multiple_choice":
                 per_question_ratings[question.id].append(compared)

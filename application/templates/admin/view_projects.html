@@ -75,7 +75,8 @@
 															</form>
 													</td>
 													<td>
-															<a href="{{ url_for('admin.download_files', project_id=project.id) }}" class="btn btn-success btn-sm">
+															{# Annotation answers only make sense next to their item, so those projects get the CSV dataset. #}
+															<a href="{{ url_for('admin.export_project', project_id=project.id, file_format='csv') if project.is_annotation_project else url_for('admin.download_files', project_id=project.id) }}" class="btn btn-success btn-sm">
 																	Download
 															</a>
 													</td>

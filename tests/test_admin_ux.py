@@ -221,4 +221,5 @@ def test_create_a_manager_without_a_project(admin_client):
     assert b"created as a manager" in resp.data
     assert User.query.filter_by(email="mia@example.com").one().role == "project-admin"
     assert b"Managers without a project" in resp.data and b"Mia Manager" in resp.data  # lands on Managers
+    assert b"Create a new manager" in resp.data  # the form lives on the Managers page
     assert b'value="manager" checked' in admin_client.get("/admin/create-user?role=manager").data

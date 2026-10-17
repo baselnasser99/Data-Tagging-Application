@@ -87,7 +87,7 @@
         {{ nav('groups.view_groups', 'users', 'Groups') }}
         {{ nav('groups.create_group', 'plus', 'New group') }}
         {% elif current_user.role == 'project-admin' %}
-        {{ nav('admin.my_projects', 'folder-open-o', 'My projects') }}
+        {{ nav('manager.my_projects', 'folder-open-o', 'My projects') }}
         {{ nav('admin.create_annotation_project', 'picture-o', 'New annotation project') }}
         {{ nav('admin.create_project', 'list-ul', 'New survey project') }}
         {{ nav('groups.assign_project_to_group', 'share', 'Assign to a group') }}

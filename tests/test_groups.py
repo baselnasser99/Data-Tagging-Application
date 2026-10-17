@@ -83,3 +83,28 @@ def test_removing_member_through_the_ui_redistributes_their_tasks(admin_client, 
     )
     assert b"moved to balance workloads" in resp.data
     assert TaskAssignment.query.filter_by(user_id=a.id).count() == 2
+
+
+def test_survey_distribution_gives_each_member_each_question_once(db, make_user):
+    """Running the survey hand-out twice must not duplicate anyone's questions."""
+    from application.groups import distribute_questions_to_group
+    from application.models import GroupProject, Project, Question, UserQuestionAssignment
+
+    project = Project(name="Survey", desc="d")
+    db.session.add(project)
+    db.session.flush()
+    db.session.add_all([Question(question="A?", project_id=project.id), Question(question="B?", project_id=project.id)])
+    group = UserGroup(name="G")
+    db.session.add(group)
+    db.session.flush()
+    people = [make_user(), make_user()]
+    db.session.add_all([UserGroupMembership(user_id=p.id, group_id=group.id) for p in people])
+    db.session.add(GroupProject(group_id=group.id, project_id=project.id))
+    db.session.commit()
+
+    distribute_questions_to_group(group, project)
+    distribute_questions_to_group(group, project)
+
+    rows = UserQuestionAssignment.query.filter_by(group_project_id=f"{group.id}-{project.id}").all()
+    assert sorted((r.user_id, r.question_id) for r in rows) == sorted(
+        (p.id, q.id) for p in people for q in project.questions)

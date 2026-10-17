@@ -10,9 +10,9 @@
             <small>for {{ project.name }}</small>
         </h1>
         <ol class="breadcrumb">
-            <li><a href="{{ url_for('admin.my_projects') }}"><i class="fa fa-dashboard"></i> My Projects</a></li>
-            <li><a href="{{ url_for('admin.project_dashboard', project_id=project.id) }}">{{ project.name }}</a></li>
-            <li><a href="{{ url_for('admin.project_admins', project_id=project.id) }}">Project Admins</a></li>
+            <li><a href="{{ url_for('manager.my_projects') }}"><i class="fa fa-dashboard"></i> My Projects</a></li>
+            <li><a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ project.name }}</a></li>
+            <li><a href="{{ url_for('manager.project_admins', project_id=project.id) }}">Project Admins</a></li>
             <li class="active">Create Project Admin</li>
         </ol>
     </section>
@@ -43,7 +43,7 @@
                         </div>
                         <div class="box-footer">
                             <button type="submit" class="btn btn-primary">Create Project Admin</button>
-                            <a href="{{ url_for('admin.project_admins', project_id=project.id) }}" class="btn btn-default">Cancel</a>
+                            <a href="{{ url_for('manager.project_admins', project_id=project.id) }}" class="btn btn-default">Cancel</a>
                         </div>
                     </form>
                 </div>

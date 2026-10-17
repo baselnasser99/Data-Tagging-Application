@@ -160,6 +160,14 @@
                                 </div>
                             </div>
                         </div>
+                        <p>
+                            <a href="{{ url_for('admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-success">
+                                <i class="fa fa-download"></i> Download results (CSV)
+                            </a>
+                            <a href="{{ url_for('admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default">
+                                Download results (JSON)
+                            </a>
+                        </p>
                         {% endif %}
                     </div>
                 </div>

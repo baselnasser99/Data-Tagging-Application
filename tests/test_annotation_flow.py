@@ -87,7 +87,7 @@ def test_zip_upload_skips_duplicate_file_names(admin_client):
     project = _create_project(admin_client)
     _upload(admin_client, project, {"a.png": b"1"})
     resp = _upload(admin_client, project, {"a.png": b"2", "d.png": b"3"})
-    assert b"Skipped 1 files" in resp.data
+    assert b"Skipped 1 file already in this project" in resp.data
     assert ProjectImage.query.filter_by(project_id=project.id).count() == 2
 
 

@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Create Annotation Project{% endblock %}
+{% block title %}New project{% endblock %}
 
 {% block content %}
 <section class="content-header">
-  <h1>Create Annotation Project</h1>
+  <h1>New project</h1>
   <ol class="breadcrumb">
     <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
     <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
-    <li class="active">Create Annotation Project</li>
+    <li class="active">New project</li>
   </ol>
 </section>
 
@@ -19,7 +19,7 @@
       <div class="box box-primary">
         <div class="box-header with-border">
           <h3 class="box-title">
-            <i class="fa fa-image"></i> New Annotation Project (images or audio)
+            <i class="fa fa-image"></i> New project (images or audio)
           </h3>
         </div>
         
@@ -30,14 +30,14 @@
               <label for="project_name">Project Name</label>
               <input type="text" class="form-control" id="project_name" name="project_name" 
                      placeholder="e.g., Medical Image Classification" required>
-              <p class="help-block">Give your annotation project a descriptive name.</p>
+              <p class="help-block">Give your project a descriptive name.</p>
             </div>
             
             <div class="form-group">
               <label for="project_desc">Project Description</label>
               <textarea class="form-control" id="project_desc" name="project_desc" rows="4" 
-                        placeholder="Describe what users will be annotating..." required></textarea>
-              <p class="help-block">Explain the purpose and goals of this annotation project.</p>
+                        placeholder="Describe what people will be labelling..." required></textarea>
+              <p class="help-block">Explain the purpose and goals of this project.</p>
             </div>
             
             <div class="row">
@@ -66,7 +66,7 @@
 
             <!-- Custom Questions Section -->
             <div class="form-group">
-              <label>Annotation Questions</label>
+              <label>Questions</label>
               <p class="help-block">Define the questions that will be asked for every image or audio clip:</p>
               <div id="questions-container">
                 <div id="dynamic-questions"></div>
@@ -79,7 +79,7 @@
                   <label for="max_questions_per_user">Max Questions per User</label>
                   <input type="number" class="form-control" id="max_questions_per_user"
                          name="max_questions_per_user" value="100" min="1" max="1000" required>
-                  <p class="help-block">Maximum annotation tasks each user can complete.</p>
+                  <p class="help-block">Maximum tasks each person can be given.</p>
                 </div>
               </div>
 
@@ -126,10 +126,10 @@
         </div>
         <div class="box-body">
           <ol>
-            <li><strong>Create Project</strong> - Set up your annotation project with parameters</li>
+            <li><strong>Create Project</strong> - Set up your project and its settings</li>
             <li><strong>Questions</strong> - Free text, or multiple choice when you want comparable answers</li>
             <li><strong>Upload Items</strong> - Batch upload images and/or audio clips via ZIP file</li>
-            <li><strong>Generate Tasks</strong> - System creates item × question combinations</li>
+            <li><strong>Hand out tasks</strong> - every item × question becomes a task, shared fairly</li>
             <li><strong>Assign a group</strong> - Work is split evenly; if someone leaves, their unfinished tasks go to the others</li>
             <li><strong>Monitor Progress</strong> - Track completion and download results</li>
           </ol>

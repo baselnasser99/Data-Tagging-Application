@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% from "includes/media.html" import media_item %}
 
-{% block title %}Annotation tasks – {{ app_name }}{% endblock %}
+{% block title %}My tasks – {{ app_name }}{% endblock %}
 
 {% block content %}
 <section class="content-header">
-  <h1>Annotation tasks{% if project %}: {{ project.name }}{% endif %}</h1>
+  <h1>My tasks{% if project %}: {{ project.name }}{% endif %}</h1>
   {% if filtered %}<a href="{{ url_for('user.annotation_tasks') }}">Show tasks from all my projects</a>{% endif %}
 </section>
 
@@ -68,8 +68,8 @@
   {% else %}
   <div class="box">
     <div class="empty-state">
-      <strong>No annotation tasks yet</strong>
-      You will see images and audio clips here once a coordinator adds you to a group with an annotation project.
+      <strong>No tasks yet</strong>
+      You will see images and audio clips here once a coordinator adds you to a group with a project.
     </div>
   </div>
   {% endif %}

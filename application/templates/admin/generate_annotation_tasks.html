@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% from "includes/media.html" import media_item %}
 
-{% block title %}Generate Annotation Tasks - {{ project.name }}{% endblock %}
+{% block title %}Hand out tasks - {{ project.name }}{% endblock %}
 
 {% block content %}
 <section class="content-header">
-  <h1>Generate Annotation Tasks</h1>
+  <h1>Hand out tasks</h1>
   <ol class="breadcrumb">
     <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
     <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
-    <li class="active">Generate Tasks</li>
+    <li class="active">Hand out tasks</li>
   </ol>
 </section>
 
@@ -19,7 +19,7 @@
       <div class="box box-primary">
         <div class="box-header with-border">
           <h3 class="box-title">
-            <i class="fa fa-cogs"></i> Generate Tasks for "{{ project.name }}"
+            <i class="fa fa-cogs"></i> Hand out tasks for "{{ project.name }}"
           </h3>
         </div>
         
@@ -27,7 +27,7 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
             <div class="alert alert-success">
-              <h4><i class="fa fa-check-circle"></i> Ready to Generate Tasks!</h4>
+              <h4><i class="fa fa-check-circle"></i> Ready to hand out tasks</h4>
               <p>
                 <strong>{{ plural(images|length, "item") }}</strong> × <strong>{{ plural(questions|length, "question") }}</strong> =
                 <strong>{{ plural(images|length * questions|length, "annotation task") }}</strong>
@@ -36,7 +36,7 @@
             </div>
             
             <div class="form-group">
-              <label for="group_id">Select User Group for Annotation</label>
+              <label for="group_id">Group that will do the work</label>
               <select class="form-control" id="group_id" name="group_id" required>
                 <option value="">-- Select a Group --</option>
                 {% for group in groups %}
@@ -49,7 +49,7 @@
               {% if assigned_group_ids %}
               <p class="help-block">Choosing another group <strong>adds</strong> it: all groups on this project share its tasks. Nobody already working on it loses their work.</p>
               {% else %}
-              <p class="help-block">Choose which group of users will perform the annotations.</p>
+              <p class="help-block">Choose which group of people will answer the tasks.</p>
               {% endif %}
               <p class="alert alert-warning" id="size-warning" role="status" style="display: none; margin-top: 10px;">
                 This group has fewer people than the {{ project.answers_per_task }} answers needed per task, so tasks can't be marked complete.
@@ -72,7 +72,7 @@
           
           <div class="box-footer">
             <button type="submit" class="btn btn-primary">
-              <i class="fa fa-cogs"></i> Generate Tasks & Assign Users
+              <i class="fa fa-cogs"></i> Hand out tasks
             </button>
             <a href="{{ url_for('admin.view_projects') }}" class="btn btn-default">
               <i class="fa fa-arrow-left"></i> Back to Projects

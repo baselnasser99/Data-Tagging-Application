@@ -3,7 +3,6 @@
 {% block title %}Project Dashboard - {{ project.name }}{% endblock %}
 
 {% block content %}
-<div class="content-wrapper">
     <section class="content-header">
         <h1>
             Project Dashboard
@@ -148,14 +147,14 @@
                             <div class="col-md-6">
                                 <div class="small-box bg-red">
                                     <div class="inner">
-                                        <h3>Generate</h3>
+                                        <h3>Hand out</h3>
                                         <p>Tasks</p>
                                     </div>
                                     <div class="icon">
                                         <i class="fa fa-tasks"></i>
                                     </div>
                                     <a href="{{ url_for('admin.generate_annotation_tasks', project_id=project.id) }}" class="small-box-footer">
-                                        Generate Tasks <i class="fa fa-arrow-circle-right"></i>
+                                        Hand out tasks <i class="fa fa-arrow-circle-right"></i>
                                     </a>
                                 </div>
                             </div>
@@ -220,7 +219,7 @@
                             <i class="fa fa-bar-chart"></i> View Results
                         </a>
                         <a href="{{ url_for('admin.view_annotation_project', project_id=project.id) }}" class="btn btn-info">
-                            <i class="fa fa-eye"></i> View Annotation Project
+                            <i class="fa fa-eye"></i> Progress and results
                         </a>
                     </div>
                 </div>
@@ -228,5 +227,4 @@
         </div>
         {% endif %}
     </section>
-</div>
 {% endblock %}

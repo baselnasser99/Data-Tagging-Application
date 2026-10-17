@@ -5,14 +5,15 @@
 
 {% block content %}
 <section class="content-header">
-  <h1>Annotation tasks</h1>
+  <h1>Annotation tasks{% if project %}: {{ project.name }}{% endif %}</h1>
+  {% if filtered %}<a href="{{ url_for('user.annotation_tasks') }}">Show tasks from all my projects</a>{% endif %}
 </section>
 
 <section class="content">
   {% if assignments %}
   {# One card per item (image or audio clip): answer all its questions in one sitting. #}
   {% set groups = assignments | groupby('task.image_id') %}
-  <div class="row">
+  <div class="row task-grid">
     {% for image_id, items in groups %}
     {% set first = items[0] %}
     {% set image = first.task.image %}

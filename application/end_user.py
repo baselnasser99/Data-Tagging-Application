@@ -110,18 +110,14 @@ def my_projects():
             else:
                 gp['project'].answered = False
 
-            # For annotation projects, get the count of assigned images
+            # For annotation projects, count this user's tasks and how many are left
             if gp['project'].is_annotation_project:
-                # Count unique images assigned to this user for this project
-                assigned_images = db.session.query(ProjectImage.id).distinct().join(
-                    AnnotationTask, ProjectImage.id == AnnotationTask.image_id
-                ).join(
-                    TaskAssignment, AnnotationTask.id == TaskAssignment.task_id
-                ).filter(
+                mine = TaskAssignment.query.join(AnnotationTask).filter(
                     TaskAssignment.user_id == user_id,
-                    AnnotationTask.project_id == gp['project'].id
-                ).count()
-                gp['annotation_tasks_count'] = assigned_images
+                    AnnotationTask.project_id == gp['project'].id,
+                )
+                gp['task_total'] = mine.count()
+                gp['task_left'] = mine.filter(TaskAssignment.is_completed == False).count()
 
         return render_template('end-user/my_projects.html',
                                group_projects=group_projects)
@@ -304,14 +300,32 @@ def view_group_project(group_project_id):
 @end_user.route("/annotation-tasks")
 @user_required
 def annotation_tasks():
-    """View assigned annotation tasks (one card per image-question pair)"""
+    """View assigned annotation tasks, one card per item; ?project_id= shows one project only."""
     user_id = session["id"]
+    project_id = request.args.get("project_id", type=int)
 
-    # Get all annotation task assignments for this user, ordered by project, then image
-    assignments = TaskAssignment.query.filter_by(user_id=user_id).join(AnnotationTask).order_by(AnnotationTask.project_id, AnnotationTask.image_id, AnnotationTask.question_id).all()
+    query = TaskAssignment.query.filter_by(user_id=user_id).join(AnnotationTask)
+    if project_id:
+        query = query.filter(AnnotationTask.project_id == project_id)
+    assignments = query.order_by(AnnotationTask.project_id, AnnotationTask.image_id, AnnotationTask.question_id).all()
 
-    # Pass the flat list of assignments directly to the template
-    return render_template("user/annotation_tasks.html", assignments=assignments)
+    # Name the project only from the user's own assignments, so other projects' names never leak.
+    project = assignments[0].task.project if project_id and assignments else None
+    return render_template("user/annotation_tasks.html", assignments=assignments,
+                           project=project, filtered=bool(project_id))
+
+
+def _next_item(user_id, project_id):
+    """After an item is done, open the user's next unanswered item in the same project."""
+    nxt = TaskAssignment.query.join(AnnotationTask).filter(
+        TaskAssignment.user_id == user_id,
+        AnnotationTask.project_id == project_id,
+        TaskAssignment.is_completed == False,
+    ).order_by(AnnotationTask.image_id, AnnotationTask.question_id).first()
+    if nxt:
+        return redirect(url_for("user.annotate_image", image_id=nxt.task.image_id, project_id=project_id))
+    flash("You have finished all your tasks in this project.", "success")
+    return redirect(url_for("user.annotation_tasks", project_id=project_id))
 
 
 @end_user.route("/annotation-task/<int:assignment_id>", methods=["GET", "POST"])
@@ -357,7 +371,7 @@ def annotation_task(assignment_id):
 
             db.session.commit()
             flash("Answer submitted successfully!", "success")
-            return redirect(url_for("user.annotation_tasks"))
+            return _next_item(session["id"], project.id)
         else:
             flash("Please provide an answer!", "error")
 
@@ -491,8 +505,7 @@ def annotate_image(image_id, project_id, batch_index=0):
         # batch always starts at the beginning of what is left.
         if total_uncompleted_questions - answers_submitted_in_batch > 0:
             return redirect(url_for("user.annotate_image", image_id=image.id, project_id=project.id))
-        flash("All questions for this image have been answered!", "success")
-        return redirect(url_for("user.annotation_tasks"))
+        return _next_item(user_id, project.id)
 
     total_pages = (total_uncompleted_questions + batch_size - 1) // batch_size
     has_next_page = (batch_index + 1) < total_pages

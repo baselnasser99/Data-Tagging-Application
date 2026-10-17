@@ -512,8 +512,7 @@ def edit_project(project_id):
         db.session.commit()
         flash('Project details updated successfully!', 'success')
         if project.is_annotation_project:
-            distribution.apply_answers_per_task(project)
-            flash_distribution(distribution.distribute(project))
+            flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))
         return redirect(url_for("admin.view_projects"))
 
     return render_template("admin/edit_project.html", project=project)
@@ -1614,6 +1613,9 @@ def edit_project_questions(project_id):
                     question_id = int(key.split('-')[1])
                     question = db.session.get(Question, question_id)
                     if question:
+                        if value.strip() != question.question.strip() and QuestionAnswer.query.filter_by(question_id=question_id).count():
+                            flash(f'"{question.question}" was reworded to "{value}". Its existing answers were given to the old '
+                                  'wording and are kept as they are. If the meaning changed, add a new question instead.', 'warning')
                         question.question = value
 
                         # Update answer type and options if submitted
@@ -1627,15 +1629,12 @@ def edit_project_questions(project_id):
                             if old_answer_type != new_answer_type:
                                 existing_answers_count = QuestionAnswer.query.filter_by(question_id=question_id).count()
                                 if existing_answers_count > 0:
-                                    confirm_delete = request.form.get(f'confirm_delete_answers_{question_id}')
-                                    if confirm_delete == 'true':
-                                        # Delete existing answers
-                                        QuestionAnswer.query.filter_by(question_id=question_id).delete()
-                                        flash(f'Existing answers for question "{question.question}" were deleted due to type change.', 'info')
-                                    else:
+                                    if request.form.get(f'confirm_delete_answers_{question_id}') != 'true':
                                         flash(f'Cannot change question type for "{question.question}" as it has existing answers. Check "Delete existing answers" to proceed.', 'danger')
-                                        # Skip updating answer type and options for this question
-                                    continue
+                                        continue  # leave this question's type and options unchanged
+                                    # Old answers do not fit the new type: delete them and ask again.
+                                    distribution.reopen_question(question)
+                                    flash(f'Existing answers for question "{question.question}" were deleted due to type change. Its tasks will be answered again.', 'info')
 
                             # Proceed with updating answer type and options
                             question.answer_type = new_answer_type
@@ -1675,8 +1674,7 @@ def edit_project_questions(project_id):
             db.session.commit()
             flash('Project questions and settings updated successfully!', 'success')
             if project.is_annotation_project:
-                distribution.apply_answers_per_task(project)
-                flash_distribution(distribution.distribute(project))
+                flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))
             return redirect(url_for('admin.project_dashboard', project_id=project_id))
 
         elif action == 'add_question':
@@ -1756,8 +1754,7 @@ def edit_project_questions(project_id):
                 project.answers_per_task = int(request.form.get('answers_per_task', 1)) # Default to 1 for single completion
                 db.session.commit()
                 flash('Project settings updated successfully!', 'success')
-                distribution.apply_answers_per_task(project)
-                flash_distribution(distribution.distribute(project))
+                flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))
             return redirect(url_for('admin.project_dashboard', project_id=project_id))
 
     return render_template("admin/edit_project_questions.html", project=project)

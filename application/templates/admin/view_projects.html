@@ -4,7 +4,7 @@
 <!-- Content Header (Page header) -->
 <section class="content-header">
 	<h1>
-		View Project
+		Projects
 	</h1>
 	<ol class="breadcrumb">
 		<li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
@@ -15,79 +15,61 @@
 <section>
 </section>
 
-<section style="margin-top: 20px; padding: 10px;">
-  <div class="row">
-    <div class="col-xs-12">
-			<a class="btn btn-success btn-sm w-100" href="{{ url_for('admin.full_download') }}" style="margin-bottom: 20px;">Download All Projects & Answers</a>
-    <div>
-  </div>
-	<div class="row">
-			<div class="col-xs-12 col-md-12">
-					<table class="table table-striped table-bordered">
-							<thead class="table-dark">
-									<tr class="">
-											<th>#</th>
-											<th class="col-3">Project Name</th>
-											<th class="col-5">Project Description</th>
-											<th>Total Questions</th>
-                                            {% if session.get('role') == 'admin' %}
-                                            <th>Admins</th>
-                                            {% endif %}
-											<th>Actions</th>
-											<th colspan="3"></th>
-											<th colspan="3"></th>
-									</tr>
-							</thead>
-							<tbody>
-									{% for project in projects %}
-											<tr>
-													<td>{{ loop.index }}</td>
-													<td>{{ project.name }}</td>
-													<td style="white-space: pre-line">{{ project.desc[:500] | safe }}...</td>
-													<td>{{ project.questions | length }}</td>
-                                                    {% if session.get('role') == 'admin' %}
-                                                    <td>
-                                                        <a href="{{ url_for('admin.project_admins', project_id=project.id) }}" class="btn btn-secondary btn-sm">
-                                                            Manage Admins
-                                                        </a>
-                                                    </td>
-                                                    {% endif %}
-													<td>
-															<a href="{{ url_for('admin.project_dashboard', project_id=project.id) }}" class="btn btn-info text-white btn-sm">
-																	Dashboard
-															</a>
-													</td>
-													<td>
-															<a href="{{ url_for('admin.view_questions', project_id=project.id) }}" class="btn btn-info text-white btn-sm">
-																	Questions
-															</a>
-													</td>
-													<!-- <td>
-															<a href="{{ url_for('admin.edit_project', project_id=project.id) }}" class="btn btn-success btn-sm">
-																	Edit
-															</a>
-													</td> -->
-													<td>
-															<form method="POST" action="{{ url_for('admin.delete_project', project_id=project.id) }}" style="display: inline;"
-																	onsubmit="return confirm('Delete this project and all of its answers? This cannot be undone.')">
-																	<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-																	<button type="submit" class="btn btn-danger btn-sm">Delete</button>
-															</form>
-													</td>
-													<td>
-															{# Annotation answers only make sense next to their item, so those projects get the dataset export. #}
-															{% if project.is_annotation_project %}
-															<a href="{{ url_for('admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-success btn-sm">Download CSV</a>
-															<a href="{{ url_for('admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default btn-sm">JSON</a>
-															{% else %}
-															<a href="{{ url_for('admin.download_files', project_id=project.id) }}" class="btn btn-success btn-sm">Download</a>
-															{% endif %}
-													</td>
-											</tr>
-									{% endfor %}
-							</tbody>
-					</table>
+<section class="content">
+	<p>
+		<a class="btn btn-default" href="{{ url_for('admin.full_download') }}">
+			<i class="fa fa-download"></i> Download all projects &amp; answers
+		</a>
+	</p>
+
+	{% if projects %}
+	<div class="row task-grid">
+		{% for project in projects %}
+		<div class="col-lg-4 col-md-6 col-xs-12">
+			<div class="box">
+				<div class="box-header with-border">
+					<h3 class="box-title">{{ project.name }}</h3>
+					<p class="text-muted" style="margin: 4px 0 0;">
+						{{ 'Annotation project' if project.is_annotation_project else 'Survey project' }}
+						· {{ plural(project.questions | length, "question") }}
+						{% if project.is_annotation_project %}· {{ plural(project.images | length, "item") }}{% endif %}
+					</p>
+				</div>
+				<div class="box-body">
+					{% if project.desc %}
+					<p class="project-desc">{{ project.desc }}</p>
+					{% else %}
+					<p class="text-muted">No description.</p>
+					{% endif %}
+				</div>
+				<div class="box-footer project-actions">
+					<a href="{{ url_for('admin.project_dashboard', project_id=project.id) }}" class="btn btn-primary btn-sm">Dashboard</a>
+					<a href="{{ url_for('admin.view_questions', project_id=project.id) }}" class="btn btn-default btn-sm">Questions</a>
+					{# Annotation answers only make sense next to their item, so those projects get the dataset export. #}
+					{% if project.is_annotation_project %}
+					<a href="{{ url_for('admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-default btn-sm"><i class="fa fa-download"></i> CSV</a>
+					<a href="{{ url_for('admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default btn-sm"><i class="fa fa-download"></i> JSON</a>
+					{% else %}
+					<a href="{{ url_for('admin.download_files', project_id=project.id) }}" class="btn btn-default btn-sm"><i class="fa fa-download"></i> Download</a>
+					{% endif %}
+					{% if session.get('role') == 'admin' %}
+					<a href="{{ url_for('admin.project_admins', project_id=project.id) }}" class="btn btn-default btn-sm">Managers</a>
+					{% endif %}
+					<form method="POST" action="{{ url_for('admin.delete_project', project_id=project.id) }}" class="project-delete"
+					      onsubmit="return confirm('Delete this project and all of its answers? This cannot be undone.')">
+						<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+						<button type="submit" class="btn btn-danger btn-sm">Delete</button>
+					</form>
+				</div>
 			</div>
+		</div>
+		{% endfor %}
 	</div>
+	{% else %}
+	<div class="box"><div class="empty-state">
+		<strong>No projects yet</strong>
+		<a href="{{ url_for('admin.create_annotation_project') }}">Create an annotation project</a>
+	</div></div>
+	{% endif %}
 </section>
 {% endblock %}

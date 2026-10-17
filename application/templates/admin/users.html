@@ -15,47 +15,50 @@
   </section>
 
   <section class="content">
-    <div class="row" style="margin-bottom: 20px;">
-      <div class="col-xs-12">
-        <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary">
-          <i class="fa fa-user-plus"></i> Add a user
-        </a>
-        <a href="{{ url_for('admin.import_users') }}" class="btn btn-default">
-          <i class="fa fa-upload"></i> Import Users from CSV
-        </a>
-      </div>
+    <div class="quick-actions" style="margin-bottom: 16px;">
+      <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary">
+        <i class="fa fa-user-plus"></i> Add a user
+      </a>
+      <a href="{{ url_for('admin.import_users') }}" class="btn btn-default">
+        <i class="fa fa-upload"></i> Import users
+      </a>
     </div>
-    <div class="row">
-      <div class="col-xs-12 col-md-12">
-        <table class="table table-striped table-bordered">
-          <thead class="table-dark">
-            <tr class="">
-              <th>#</th>
-              <th class="col-3">Name</th>
-              <th class="col-5">Email</th>
-              <th>Assigned Groups</th>
-              <th>Assigned Projects</th>
-              <th>Answers</th>
+    <div class="box">
+      <div class="box-body table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Groups</th>
+              <th class="num">Projects</th>
+              <th class="num">Answers</th>
             </tr>
           </thead>
           <tbody>
             {% for user_data in users_data %}
               <tr>
-                <td>{{ loop.index }}</td>
-                <td>{{ user_data.user.full_name }}</td>
-                <td>{{ user_data.user.email }}</td>
+                <td><strong>{{ user_data.user.full_name }}</strong><br><span class="text-muted">{{ user_data.user.email }}</span></td>
                 <td>
                   {% for group in user_data.assigned_groups %}
-                    <span class="badge badge-primary">{{ group.name }}</span>{% if not loop.last %}, {% endif %}
+                    <span class="badge">{{ group.name }}</span>
                   {% else %}
-                    No Groups
+                    <span class="text-muted">No group</span>
                   {% endfor %}
                 </td>
-                <td>{{ user_data.assigned_projects_count }}</td>
-                <td>
-  							<a class="btn btn-success btn-sm w-100" href="{{ url_for('admin.download_answers', user_id=user_data.user.id) }}">Download</a>
+                <td class="num">{{ user_data.assigned_projects_count }}</td>
+                <td class="num">
+                  {% if user_data.answer_count %}
+                  <a class="btn btn-default btn-sm" href="{{ url_for('admin.download_answers', user_id=user_data.user.id) }}"
+                     aria-label="Download {{ user_data.user.full_name }}'s {{ user_data.answer_count }} answers as CSV">
+                    <i class="fa fa-download" aria-hidden="true"></i> {{ user_data.answer_count }}
+                  </a>
+                  {% else %}
+                  <span class="text-muted">0</span>
+                  {% endif %}
                 </td>
               </tr>
+            {% else %}
+              <tr><td colspan="4" class="text-muted">No members yet.</td></tr>
             {% endfor %}
           </tbody>
         </table>

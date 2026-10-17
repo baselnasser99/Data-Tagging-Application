@@ -203,10 +203,8 @@
                                                 <label>Question Type</label>
                                                 <select class="form-control question-type" id="dropdown-{{ question.id }}" name="dropdown-{{ question.id }}" data-question-id="{{ question.id }}"
                                                 {% if project.is_annotation_project %}disabled{% endif %}>
-                                                    <option value="text" {% if question.answer_type.value == 'text' or project.is_annotation_project %}selected{% endif %}>Open Text</option>
-                                                    {% if not project.is_annotation_project %}
+                                                    <option value="text" {% if question.answer_type.value == 'text' %}selected{% endif %}>Open Text</option>
                                                     <option value="mcq" {% if question.answer_type.value == 'mcq' %}selected{% endif %}>Multiple Choice</option>
-                                                    {% endif %}
                                                 </select>
                                                 </div>
                                                 <div class="form-group" id="confirm-delete-answers-{{ question.id }}" style="display: none;">

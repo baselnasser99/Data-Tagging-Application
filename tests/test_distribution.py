@@ -342,9 +342,8 @@ def test_lowering_the_cap_gives_back_unstarted_work(setup):
 
 
 def _edit_questions(admin_client, project, **fields):
-    data = {"action": "update_questions", "answers_per_task": str(project.answers_per_task),
-            "max_questions_per_user": str(project.max_questions_per_user)}
-    data.update(fields)
+    # Same fields as the real "Save All Questions" form: no project settings.
+    data = {"action": "update_questions", **fields}
     return admin_client.post(f"/admin/project/{project.id}/edit-questions", data=data, follow_redirects=True)
 
 
@@ -370,17 +369,20 @@ def test_changing_a_question_type_reopens_its_tasks(admin_client, setup):
     assert len(assignments(project)) == 2 and not any(a.is_completed for a in assignments(project))
 
 
-def test_rewording_an_answered_question_warns_and_keeps_answers(admin_client, setup):
-    project, _, users = setup(n_images=1, n_questions=1, n_users=1)
+def test_rewording_an_answered_question_warns_and_keeps_answers_and_settings(admin_client, setup):
+    project, _, users = setup(n_images=1, n_questions=1, n_users=2, answers_per_task=2)
     distribution.distribute(project)
     complete(assignments(project)[0])
     q = project.questions[0]
 
-    resp = _edit_questions(admin_client, project, **{f"question-{q.id}": "A new meaning?", f"dropdown-{q.id}": "text"})
+    # Annotation projects lock the type dropdown, so the browser sends no type.
+    resp = _edit_questions(admin_client, project, **{f"question-{q.id}": "A new meaning?"})
 
     assert b"was reworded" in resp.data
     assert q.question == "A new meaning?"
     assert QuestionAnswer.query.filter_by(question_id=q.id).count() == 1
+    # Regression: saving questions used to reset "answers per task" to 1.
+    assert project.answers_per_task == 2 and len(assignments(project)) == 2
 
 
 def test_deleting_a_question_removes_only_its_tasks_and_answers(admin_client, setup):

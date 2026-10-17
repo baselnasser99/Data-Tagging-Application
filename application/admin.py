@@ -17,7 +17,7 @@ from .auth import MIN_PASSWORD_LENGTH
 from .jinja_utils import plural
 from . import distribution
 from .feedback import flash_distribution, warn_idle_members
-from .groups import assign_questions_to_new_group_member, distribute_questions_to_group
+from .groups import assign_questions_to_new_group_member, distribute_questions_to_group, group_progress
 from . import export as dataset_export
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
 
@@ -74,25 +74,17 @@ def dashboard():
     # Reverse to show oldest to newest
     weeks_data.reverse()
 
-    # Get group performance data
+    # Group progress: the share of this group's work that is done, counting
+    # annotation tasks (finished assignments) and survey questions (answered).
     group_stats = []
-    groups = UserGroup.query.all()
-    for group in groups:
-        total_assigned_questions = UserQuestionAssignment.query.join(
-            UserGroupMembership, UserQuestionAssignment.user_id == UserGroupMembership.user_id
-        ).filter(UserGroupMembership.group_id == group.id).count()
-
-        answered_questions = 0
-        for member in group.members:
-            answered_questions += QuestionAnswer.query.filter_by(user_id=member.user_id).count()
-
-        completion_rate = (answered_questions / total_assigned_questions * 100) if total_assigned_questions > 0 else 0
-
+    for group in UserGroup.query.all():
+        project_ids = [gp.project_id for gp in group.assigned_projects]
+        done, total = group_progress(group, project_ids)
         group_stats.append({
             'name': group.name,
             'members': len(group.members),
-            'projects': len(group.assigned_projects),
-            'completion_rate': round(completion_rate, 1)
+            'projects': len(project_ids),
+            'completion_rate': round(done / total * 100, 1) if total else 0,
         })
 
     return render_template('admin/dashboard.html',
@@ -613,6 +605,7 @@ def download_answers(user_id):
     # CSV Header
     header = [
         'User Email',
+        'User Name',
         'Project Name',
         'Project Type',
         'Question Text',
@@ -651,6 +644,7 @@ def download_answers(user_id):
 
             writer.writerow([
                 user.email,
+                user.full_name,
                 project_name,
                 project_type,
                 question_text,
@@ -661,7 +655,7 @@ def download_answers(user_id):
                 'Yes' if is_completed_assignment else 'No'
             ])
     else:
-        writer.writerow(['', '', '', 'No answers found for this user', '', '', '', '', ''])
+        writer.writerow([user.email, user.full_name, '', '', 'No answers found for this user', '', '', '', '', ''])
 
     mem = io.BytesIO(output.getvalue().encode('utf-8'))
     return make_response(send_file(

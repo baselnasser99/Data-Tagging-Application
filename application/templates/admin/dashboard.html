@@ -43,7 +43,7 @@
           <h3 class="box-title">Answers per week, last 12 weeks</h3>
         </div>
         <div class="box-body">
-          <div style="position: relative; height: 280px;"><canvas id="weeklyChart" role="img" aria-label="Line chart of answers submitted per week over the last 12 weeks" data-chart-data="{{ weeks_data | tojson }}"></canvas></div>
+          <div style="position: relative; height: 280px;"><canvas id="weeklyChart" role="img" aria-label="Line chart of answers submitted per week over the last 12 weeks" data-chart-data='{{ weeks_data | tojson }}'></canvas></div>
         </div>
       </div>
     </div>

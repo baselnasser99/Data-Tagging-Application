@@ -31,7 +31,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass, field
 
-from sqlalchemy import case, func, true
+from sqlalchemy import case, func
 
 from .extns import db
 from .models import (
@@ -57,6 +57,7 @@ class DistributionResult:
     assignments_moved: int = 0
     unfilled_slots: int = 0
     warnings: list[str] = field(default_factory=list)
+    moves: Counter = field(default_factory=Counter)  # (from name, to name) -> assignments moved
 
     def merge(self, other: "DistributionResult") -> "DistributionResult":
         self.tasks_created += other.tasks_created
@@ -64,6 +65,7 @@ class DistributionResult:
         self.assignments_released += other.assignments_released
         self.assignments_moved += other.assignments_moved
         self.unfilled_slots += other.unfilled_slots
+        self.moves.update(other.moves)
         self.warnings.extend(w for w in other.warnings if w not in self.warnings)
         return self
 
@@ -345,6 +347,7 @@ def rebalance(project: Project, users: list[User] | None = None) -> Distribution
             assignment.user_id = light.id
         db.session.commit()
         result.assignments_moved += len(move)
+        result.moves[(heavy.full_name, light.full_name)] += len(move)
     return result
 
 

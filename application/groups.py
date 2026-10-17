@@ -10,7 +10,7 @@ from flask import Blueprint, request, redirect, url_for, flash, render_template,
 from . import distribution
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
-from .models import Project, User, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, QuestionAnswer
+from .models import AnnotationTask, Project, TaskAssignment, User, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, QuestionAnswer
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 
 groups = Blueprint("groups", __name__, url_prefix="/admin")
@@ -149,6 +149,25 @@ def manage_group_for_project(project_id, group_id):
     return render_template("admin/manage_group.html", group=group, available_users=available_users)
 
 
+def group_progress(group, project_ids):
+    """(done, total) of the work the group's members hold in these projects.
+
+    Annotation work counts finished task assignments; survey work counts
+    answered question assignments.
+    """
+    member_ids = [m.user_id for m in group.members]
+    tasks = TaskAssignment.query.join(AnnotationTask).filter(
+        TaskAssignment.user_id.in_(member_ids), AnnotationTask.project_id.in_(project_ids))
+    survey = UserQuestionAssignment.query.filter(
+        UserQuestionAssignment.user_id.in_(member_ids),
+        UserQuestionAssignment.group_project_id.in_([f"{group.id}-{pid}" for pid in project_ids]))
+    total = tasks.count() + survey.count()
+    done = tasks.filter(TaskAssignment.is_completed.is_(True)).count() + sum(
+        1 for q in survey if QuestionAnswer.query.filter_by(
+            user_id=q.user_id, question_id=q.question_id, task_assignment_id=None).first())
+    return done, total
+
+
 def assign_questions_to_new_group_member(user, group):
     """Give a new group member their share of the group's projects.
 
@@ -222,6 +241,8 @@ def assign_project_to_group():
                 if project.images and project.questions:
                     result = distribution.distribute(project)
                     flash_distribution(result, f'Project "{project.name}" assigned to group "{group.name}".')
+                    if not group.members:
+                        flash(f'Group "{group.name}" has no members yet. They will get tasks when people join.', 'warning')
                     warn_idle_members(project, [m.user for m in group.members])
                 else:
                     flash(f'Project "{project.name}" assigned to group "{group.name}". Upload images and add questions to create tasks.', 'warning')
@@ -253,7 +274,9 @@ def assign_project_to_group():
         log.debug(f"assign_project_to_group (GET) - Project Admin, managed_project_ids: {managed_project_ids}")
         projects = Project.query.filter(Project.id.in_(managed_project_ids)).all()
         log.debug(f"assign_project_to_group (GET) - Project Admin, filtered projects: {len(projects)}")
-    return render_template("admin/assign_project_to_group.html", groups=groups, projects=projects)
+    progress = {(gp.group_id, gp.project_id): group_progress(group, [gp.project_id])
+                for group in groups for gp in group.assigned_projects}
+    return render_template("admin/assign_project_to_group.html", groups=groups, projects=projects, progress=progress)
 
 
 def distribute_questions_to_group(group, project):

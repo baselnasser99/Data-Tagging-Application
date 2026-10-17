@@ -9,7 +9,7 @@
         <a href="#"><i class="fa fa-dashboard"></i> Home</a>
       </li>
       <li>
-        <a href="{{ url_for('user.my_projects') }}">My Projects</a>
+        <a href="{{ url_for('annotation.my_projects') }}">My Projects</a>
       </li>
       <li class="active">Group Project</li>
     </ol>
@@ -33,7 +33,7 @@
           </div>
         </div>
         
-        <form action="{{ url_for('user.view_group_project', group_project_id=project.group_project_id) }}" method="post">
+        <form action="{{ url_for('annotation.view_group_project', group_project_id=project.group_project_id) }}" method="post">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           {% for question in project.questions %}
             <div class="box box-default">
@@ -111,7 +111,7 @@
                   <button type="submit" class="btn btn-success btn-lg">
                     <i class="fa fa-check"></i> Submit All Answers
                   </button>
-                  <a href="{{ url_for('user.my_projects') }}" class="btn btn-default btn-lg">
+                  <a href="{{ url_for('annotation.my_projects') }}" class="btn btn-default btn-lg">
                     <i class="fa fa-arrow-left"></i> Back to My Projects
                   </a>
                 </div>

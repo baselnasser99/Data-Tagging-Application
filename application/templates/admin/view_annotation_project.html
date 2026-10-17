@@ -198,7 +198,7 @@
             {% endfor %}
           </div>
           {% if stats.total_images > 10 %}
-          <p class="text-center text-muted">... and {{ stats.total_images - 10 }} more items</p>
+          <p class="text-center text-muted">... and {{ plural(stats.total_images - 10, "more item") }}</p>
           {% endif %}
         </div>
       </div>

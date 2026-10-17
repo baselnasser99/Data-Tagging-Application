@@ -15,6 +15,7 @@ from werkzeug.utils import secure_filename
 from .extns import db
 from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, ProjectImage, AnnotationTask, TaskAssignment, ProjectAdmin, ExportLog, media_type_for
 from .auth import MIN_PASSWORD_LENGTH
+from .jinja_utils import plural
 from . import distribution
 from . import export as dataset_export
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
@@ -45,17 +46,29 @@ def flash_distribution(result, success_message=None):
         flash(success_message, "success")
     details = []
     if result.tasks_created:
-        details.append(f"{result.tasks_created} new tasks created")
+        details.append(f"{plural(result.tasks_created, 'new task')} created")
     if result.assignments_created:
-        details.append(f"{result.assignments_created} assignments given out")
+        details.append(f"{plural(result.assignments_created, 'assignment')} given out")
     if result.assignments_released:
-        details.append(f"{result.assignments_released} unfinished assignments released")
+        details.append(f"{plural(result.assignments_released, 'unfinished assignment')} released")
     if result.assignments_moved:
-        details.append(f"{result.assignments_moved} assignments moved to balance workloads")
+        details.append(f"{plural(result.assignments_moved, 'assignment')} moved to balance workloads")
     if details:
         flash("Task distribution: " + ", ".join(details) + ".", "info")
     for warning in result.warnings:
         flash(warning, "warning")
+
+
+def warn_idle_members(project, users):
+    """Say so when people working on a project got no tasks because every task is already taken."""
+    if not users or not project.is_annotation_project or not project.annotation_tasks:
+        return
+    loads = distribution.user_loads(project, users)
+    idle = [u for u in users if loads[u.id][1] == 0]
+    if idle:
+        names = ", ".join(u.full_name for u in idle) if len(idle) <= 3 else plural(len(idle), "person", "people")
+        flash(f"{names} got no tasks in '{project.name}': all tasks are already assigned. "
+              f"Raise \"Answers per task\" to give them work.", "warning")
 
 
 def public_file_url(filename):
@@ -157,6 +170,50 @@ def users():
             'assigned_groups': [m.group for m in user_group_memberships if m.group]
         })
     return render_template('admin/users.html', users_data=users_data)
+
+@admin.route("/create-user", methods=['GET', 'POST'])
+@admin_required
+def create_user():
+    """Add one annotator by hand, optionally straight into a group."""
+    groups = UserGroup.query.order_by(UserGroup.name).all()
+    if request.method == 'POST':
+        full_name = (request.form.get('full_name') or '').strip()
+        email = (request.form.get('email') or '').strip()
+        password = request.form.get('password') or ''
+        if not full_name or not email:
+            flash('Please enter a name and an email address.', 'danger')
+            return render_template('admin/create_user.html', groups=groups, form=request.form)
+        if User.query.filter_by(email=email).first():
+            flash(f'A user with the email {email} already exists.', 'danger')
+            return render_template('admin/create_user.html', groups=groups, form=request.form)
+        if password and len(password) < MIN_PASSWORD_LENGTH:
+            flash(f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.', 'danger')
+            return render_template('admin/create_user.html', groups=groups, form=request.form)
+
+        temporary = not password
+        if temporary:
+            password = secrets.token_urlsafe(8)
+        user = User()
+        user.register_end_user(full_name, email, password)
+        db.session.commit()
+        if temporary:
+            flash(f'{email} was given the temporary password {password}. '
+                  'Share it with them and ask them to change it after signing in.', 'warning')
+
+        group = db.session.get(UserGroup, request.form.get('group_id', type=int) or 0)
+        if group:
+            db.session.add(UserGroupMembership(user_id=user.id, group_id=group.id))
+            db.session.commit()
+            result = assign_questions_to_new_group_member(user, group)
+            flash_distribution(result, f'{full_name} was created and added to group "{group.name}".')
+            for project in distribution.projects_for_group(group.id):
+                warn_idle_members(project, [user])
+        else:
+            flash(f'{full_name} was created.', 'success')
+        return redirect(url_for('admin.users'))
+
+    return render_template('admin/create_user.html', groups=groups, form={})
+
 
 @admin.route("/import-users", methods=['GET', 'POST'])
 @admin_required
@@ -309,7 +366,9 @@ def import_users():
             else:
                 flash("Selected project not found for assignment.", 'warning')
 
-        summary_message = f"CSV Import Complete: {users_created} users created, {users_skipped_duplicate} duplicates skipped, {users_skipped_invalid} invalid rows skipped."
+        summary_message = (f"CSV Import Complete: {plural(users_created, 'user')} created, "
+                           f"{plural(users_skipped_duplicate, 'duplicate')} skipped, "
+                           f"{plural(users_skipped_invalid, 'invalid row')} skipped.")
         flash(summary_message, 'info')
         for error in errors:
             flash(error, 'warning')
@@ -786,6 +845,8 @@ def manage_group(group_id):
                     db.session.commit()
                     result = assign_questions_to_new_group_member(user, group)
                     flash_distribution(result, 'User added to group successfully!')
+                    for project in distribution.projects_for_group(group.id):
+                        warn_idle_members(project, [user])
             else:
                 flash('User not found', 'danger')
 
@@ -938,6 +999,7 @@ def assign_project_to_group():
                 if project.images and project.questions:
                     result = distribution.distribute(project)
                     flash_distribution(result, f'Project "{project.name}" assigned to group "{group.name}".')
+                    warn_idle_members(project, [m.user for m in group.members])
                 else:
                     flash(f'Project "{project.name}" assigned to group "{group.name}". Upload images and add questions to create tasks.', 'warning')
             else: # Regular survey project
@@ -1142,74 +1204,80 @@ def upload_images(project_id):
         return redirect(url_for("admin.view_projects"))
 
     if request.method == "POST":
-        if 'image_zip' not in request.files:
-            flash("No ZIP file uploaded!", "error")
-            return redirect(request.url)
-
-        zip_file = request.files['image_zip']
-        if zip_file.filename == '':
+        # One field takes ZIP files and/or loose image and audio files.
+        uploads = [f for f in request.files.getlist('image_zip') if f and f.filename]
+        if not uploads:
             flash("No file selected!", "error")
             return redirect(request.url)
 
-        if zip_file and zip_file.filename.lower().endswith(('.zip')):
-            # Create upload directory
-            upload_dir_path = upload_dir('images', str(project_id))
+        upload_dir_path = upload_dir('images', str(project_id))
+        existing_names = {
+            img.original_filename
+            for img in ProjectImage.query.filter_by(project_id=project_id).all()
+        }
+        saved = {"image": 0, "audio": 0}
+        duplicates_skipped = 0
+        unsupported = []
 
-            existing_names = {
-                img.original_filename
-                for img in ProjectImage.query.filter_by(project_id=project_id).all()
-            }
-            saved = {"image": 0, "audio": 0}
-            duplicates_skipped = 0
-            try:
-                with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-                    for file_info in zip_ref.infolist():
-                        original_filename = os.path.basename(file_info.filename)
-                        media_type = media_type_for(original_filename)
-                        if (file_info.is_dir()
-                                or file_info.filename.startswith('__MACOSX/')
-                                or original_filename.startswith('.')
-                                or media_type is None):
-                            continue
-                        # Nested folders are flattened; duplicate names are skipped.
-                        if original_filename in existing_names:
-                            duplicates_skipped += 1
-                            continue
+        def save(original_filename, read):
+            """Store one item unless its name is already in the project."""
+            nonlocal duplicates_skipped
+            media_type = media_type_for(original_filename)
+            if original_filename in existing_names:
+                duplicates_skipped += 1
+                return
+            unique_filename = f"{uuid.uuid4()}_{secure_filename(original_filename)}"
+            final_path = os.path.join(upload_dir_path, unique_filename)
+            with open(final_path, 'wb') as dst:
+                dst.write(read())
+            db.session.add(ProjectImage(
+                project_id=project_id,
+                filename=unique_filename,
+                original_filename=original_filename,
+                file_path=final_path,
+                media_type=media_type,
+            ))
+            existing_names.add(original_filename)
+            saved[media_type] += 1
 
-                        unique_filename = f"{uuid.uuid4()}_{secure_filename(original_filename)}"
-                        final_path = os.path.join(upload_dir_path, unique_filename)
-                        with zip_ref.open(file_info) as src, open(final_path, 'wb') as dst:
-                            dst.write(src.read())
+        for upload in uploads:
+            if upload.filename.lower().endswith('.zip'):
+                try:
+                    with zipfile.ZipFile(upload, 'r') as zip_ref:
+                        for file_info in zip_ref.infolist():
+                            original_filename = os.path.basename(file_info.filename)
+                            # Nested folders are flattened; junk and unsupported files are ignored.
+                            if (file_info.is_dir()
+                                    or file_info.filename.startswith('__MACOSX/')
+                                    or original_filename.startswith('.')
+                                    or media_type_for(original_filename) is None):
+                                continue
+                            with zip_ref.open(file_info) as src:
+                                save(original_filename, src.read)
+                except zipfile.BadZipFile:
+                    flash(f"{upload.filename} is not a valid ZIP archive, so it was skipped.", "error")
+            else:
+                original_filename = os.path.basename(upload.filename)
+                if media_type_for(original_filename) is None or original_filename.startswith('.'):
+                    unsupported.append(original_filename)
+                    continue
+                save(original_filename, upload.read)
 
-                        db.session.add(ProjectImage(
-                            project_id=project_id,
-                            filename=unique_filename,
-                            original_filename=original_filename,
-                            file_path=final_path,
-                            media_type=media_type,
-                        ))
-                        existing_names.add(original_filename)
-                        saved[media_type] += 1
-            except zipfile.BadZipFile:
-                db.session.rollback()
-                flash("That file is not a valid ZIP archive.", "error")
-                return redirect(request.url)
-
-            if duplicates_skipped:
-                flash(f"Skipped {duplicates_skipped} files whose names already exist in this project.", "warning")
-            db.session.commit()
-            if not saved["image"] and not saved["audio"]:
-                flash("The ZIP file contained no new images or audio files.", "warning")
-                return redirect(request.url)
-            parts = []
-            if saved["image"]:
-                parts.append(f"{saved['image']} images")
-            if saved["audio"]:
-                parts.append(f"{saved['audio']} audio files")
-            flash(f"Successfully uploaded {' and '.join(parts)}!", "success")
-            return redirect(url_for("admin.generate_annotation_tasks", project_id=project.id))
-        else:
-            flash("Please upload a ZIP file!", "error")
+        db.session.commit()
+        if unsupported:
+            flash(f"Skipped files that are not images, audio or ZIP: {', '.join(unsupported)}.", "warning")
+        if duplicates_skipped:
+            flash(f"Skipped {plural(duplicates_skipped, 'file')} already in this project (same file name).", "warning")
+        if not saved["image"] and not saved["audio"]:
+            flash("The upload contained no new images or audio files.", "warning")
+            return redirect(request.url)
+        parts = []
+        if saved["image"]:
+            parts.append(plural(saved['image'], 'image'))
+        if saved["audio"]:
+            parts.append(plural(saved['audio'], 'audio file'))
+        flash(f"Successfully uploaded {' and '.join(parts)}!", "success")
+        return redirect(url_for("admin.generate_annotation_tasks", project_id=project.id))
 
     return render_template("admin/upload_images.html", project=project)
 
@@ -1250,13 +1318,16 @@ def generate_annotation_tasks(project_id):
 
         result = distribution.distribute(project)
         flash_distribution(result, f"Tasks are ready for '{project.name}'.")
+        warn_idle_members(project, [m.user for m in group.members])
         return redirect(url_for("admin.view_annotation_project", project_id=project.id))
 
+    assigned_group_ids = {gp.group_id for gp in GroupProject.query.filter_by(project_id=project.id)}
     return render_template("admin/generate_annotation_tasks.html",
                          project=project,
                          images=images,
                          questions=questions,
-                         groups=groups)
+                         groups=groups,
+                         assigned_group_ids=assigned_group_ids)
 
 
 @admin.route("/view-annotation-project/<int:project_id>")

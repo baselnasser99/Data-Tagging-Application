@@ -29,8 +29,8 @@
             <div class="alert alert-success">
               <h4><i class="fa fa-check-circle"></i> Ready to Generate Tasks!</h4>
               <p>
-                <strong>{{ images|length }}</strong> items × <strong>{{ questions|length }}</strong> questions = 
-                <strong>{{ images|length * questions|length }}</strong> annotation tasks
+                <strong>{{ plural(images|length, "item") }}</strong> × <strong>{{ plural(questions|length, "question") }}</strong> =
+                <strong>{{ plural(images|length * questions|length, "annotation task") }}</strong>
               </p>
               <p>Each task will be answered by <strong>{{ project.answers_per_task }}</strong> {{ "person" if project.answers_per_task == 1 else "different people" }}.</p>
             </div>
@@ -40,12 +40,17 @@
               <select class="form-control" id="group_id" name="group_id" required>
                 <option value="">-- Select a Group --</option>
                 {% for group in groups %}
-                <option value="{{ group.id }}" data-size="{{ group.members|length }}">
-                  {{ group.name }} ({{ group.members|length }} {{ "person" if group.members|length == 1 else "people" }})
+                <option value="{{ group.id }}" data-size="{{ group.members|length }}"
+                        {% if group.id in assigned_group_ids %}selected{% endif %}>
+                  {{ group.name }} ({{ plural(group.members|length, "person", "people") }}){% if group.id in assigned_group_ids %} - already working on this project{% endif %}
                 </option>
                 {% endfor %}
               </select>
+              {% if assigned_group_ids %}
+              <p class="help-block">Choosing another group <strong>adds</strong> it: all groups on this project share its tasks. Nobody already working on it loses their work.</p>
+              {% else %}
               <p class="help-block">Choose which group of users will perform the annotations.</p>
+              {% endif %}
               <p class="alert alert-warning" id="size-warning" role="status" style="display: none; margin-top: 10px;">
                 This group has fewer people than the {{ project.answers_per_task }} answers needed per task, so tasks can't be marked complete.
                 Lower "Answers per task" in the project settings or choose a bigger group.
@@ -127,7 +132,7 @@
             {% endfor %}
           </div>
           {% if images|length > 6 %}
-          <p class="text-muted text-center">... and {{ images|length - 6 }} more items</p>
+          <p class="text-muted text-center">... and {{ plural(images|length - 6, "more item") }}</p>
           {% endif %}
           {% else %}
           <p class="text-muted">No images or audio uploaded yet.</p>
@@ -147,7 +152,7 @@
           <p>
             <i class="fa fa-group"></i> 
             <strong>{{ group.name }}</strong> 
-            <span class="badge">{{ group.members|length }} members</span>
+            <span class="badge">{{ plural(group.members|length, "member") }}</span>
           </p>
           {% endfor %}
           {% else %}
@@ -166,11 +171,13 @@
   var select = document.getElementById('group_id');
   var warning = document.getElementById('size-warning');
   if (!select || !warning) return;
-  select.addEventListener('change', function () {
+  function check() {
     var option = select.options[select.selectedIndex];
     var size = parseInt(option.getAttribute('data-size') || '0', 10);
     warning.style.display = option.value && size < {{ project.answers_per_task }} ? 'block' : 'none';
-  });
+  }
+  select.addEventListener('change', check);
+  check();  // a pre-selected group is checked too
 })();
 </script>
 {% endblock %}

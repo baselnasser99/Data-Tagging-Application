@@ -94,10 +94,14 @@ class Project(db.Model):
     # New fields for image annotation projects
     is_annotation_project = db.Column(db.Boolean, default=False)
     max_questions_per_user = db.Column(db.Integer, default=100)
-    answers_per_task = db.Column(db.Integer, default=10)
+    answers_per_task = db.Column(db.Integer, default=1)
     
     # New field for customizing questions per image
     questions_per_image = db.Column(db.Integer, default=5)
+
+    # How work is handed out: False = each (item, question) task on its own (the
+    # thesis algorithm); True = whoever gets an item gets all of its questions.
+    hand_out_per_item = db.Column(db.Boolean, nullable=False, default=False)
 
     questions = db.relationship("Question", backref="belongs_to", lazy=True)
 

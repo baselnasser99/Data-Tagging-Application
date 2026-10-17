@@ -57,6 +57,7 @@
               <ul>
                 <li>Each task goes to {{ project.answers_per_task }} different {{ "person" if project.answers_per_task == 1 else "people" }}, never the same person twice.</li>
                 <li>New tasks go to whoever has the fewest unfinished tasks, so everyone gets an even share.</li>
+                <li>{{ "Whoever gets an item gets all of its questions." if project.hand_out_per_item else "Each question is handed out on its own, and everyone gets a mix of questions." }}</li>
                 <li>Nobody gets more than {{ project.max_questions_per_user }} tasks in this project.</li>
                 <li>If someone leaves the group, their unfinished tasks go to the others. Finished answers are kept.</li>
                 <li>Running this again only adds tasks for new items or questions; existing answers are never lost.</li>

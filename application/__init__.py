@@ -68,6 +68,8 @@ def load_user(user_id):
 # here. Each entry: (table, column, SQL type and default).
 _ADDED_COLUMNS = [
     ("project_image", "media_type", "VARCHAR(10) NOT NULL DEFAULT 'image'"),
+    # Projects created before this setting existed keep handing out whole items.
+    ("project", "hand_out_per_item", "BOOLEAN NOT NULL DEFAULT 1"),
 ]
 
 

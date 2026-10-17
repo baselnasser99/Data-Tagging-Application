@@ -96,6 +96,10 @@
               <th>Required Answers per Task:</th>
               <td>{{ project.answers_per_task }}</td>
             </tr>
+            <tr>
+              <th>Hand Out Work:</th>
+              <td>{{ "All of an item's questions to one person" if project.hand_out_per_item else "Each question on its own" }}</td>
+            </tr>
           </table>
         </div>
       </div>

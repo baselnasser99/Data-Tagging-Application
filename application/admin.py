@@ -65,7 +65,7 @@ def dashboard():
         ).count()
 
         weeks_data.append({
-            'week': f"Week {12-i}",
+            'week': f"{week_start.day} {week_start:%b}",  # the week's first day, e.g. "3 Aug"
             'answers': answers_count
         })
 

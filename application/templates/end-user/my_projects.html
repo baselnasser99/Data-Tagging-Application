@@ -1,83 +1,57 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <!-- Content Header (Page header) -->
   <section class="content-header">
-    <h1>My Assigned Projects</h1>
-    <ol class="breadcrumb">
-      <li>
-        <a href="#"><i class="fa fa-dashboard"></i> Home</a>
-      </li>
-      <li class="active">Assigned Projects</li>
-    </ol>
-  </section>
-  <section>
+    <h1>My projects</h1>
   </section>
   <section class="content">
-    <!-- Individual assignments removed - only group assignments supported -->
-
-    <!-- Group Projects -->
     {% if group_projects %}
-    <div class="row" style="margin-top: 30px;">
-      <div class="col-xs-12">
-        <h3>Group Project Assignments</h3>
-        <table class="table table-striped table-bordered">
-          <thead class="table-dark">
-            <tr>
-              <th>#</th>
-              <th class="col-3">Project Name</th>
-              <th>Group</th>
-              <th class="col-4">Project Description</th>
-              <th>Assigned Questions</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for gp in group_projects %}
-              <tr>
-                <td>{{ loop.index }}</td>
-                <td>{{ gp.project.name }}</td>
-                <td><span class="badge badge-info">{{ gp.group_name }}</span></td>
-                <td style="white-space: pre-line">{{ gp.project.desc[:400]|safe }} ...</td>
-                <td>
-                  {% if gp.project.is_annotation_project %}
-                    {{ gp.task_total }} {{ 'task' if gp.task_total == 1 else 'tasks' }}, {{ gp.task_left }} left
-                  {% else %}
-                    {{ gp.project.total_questions }}
-                  {% endif %}
-                </td>
-                {% if gp.project.is_annotation_project %}
-                  <td>
-                    <a href="{{ url_for('annotation.annotation_tasks', project_id=gp.project.id) }}" class="btn btn-info btn-sm w-100">
-                      {% if gp.task_left == 0 and gp.task_total %}Review tasks{% elif gp.task_left < gp.task_total %}Continue tasks{% else %}Start tasks{% endif %}
-                    </a>
-                  </td>
-                {% elif gp.project.answered %}
-                  <td>
-                    <span class="btn btn-success btn-sm w-100">Completed</span>
-                  </td>
-                {% else %}
-                  <td>
-                    <a href="{{ url_for('annotation.view_group_project', group_project_id=gp.group_project_id) }}" class="btn btn-primary btn-sm w-100">Solve</a>
-                  </td>
-                {% endif %}
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if not group_projects %}
-    <div class="row">
-      <div class="col-xs-12">
-        <div class="alert alert-info">
-          <h4>No Projects Assigned</h4>
-          <p>You don't have any projects assigned yet through groups. Contact your administrator to be added to a group with project assignments.</p>
+    <div class="row task-grid">
+      {% for gp in group_projects %}
+      <div class="col-lg-4 col-md-6 col-xs-12">
+        <div class="box">
+          <div class="box-header with-border">
+            <h3 class="box-title">{{ gp.project.name }}</h3>
+            <p class="text-muted" style="margin: 4px 0 0;">
+              {% if gp.project.is_annotation_project %}
+                {{ gp.task_total }} {{ 'task' if gp.task_total == 1 else 'tasks' }}, {{ gp.task_left }} left
+              {% else %}
+                Survey · {{ plural(gp.project.total_questions, "question") }}
+              {% endif %}
+              · {{ gp.group_name }}
+            </p>
+          </div>
+          <div class="box-body">
+            {% if gp.project.desc %}
+            <p class="project-desc">{{ gp.project.desc }}</p>
+            {% else %}
+            <p class="text-muted">No description.</p>
+            {% endif %}
+          </div>
+          <div class="box-footer">
+            {% if gp.project.is_annotation_project %}
+              {% if not gp.task_total %}
+              <span class="text-muted">No tasks for you in this project yet.</span>
+              {% else %}
+              <a href="{{ url_for('annotation.annotation_tasks', project_id=gp.project.id) }}" class="btn {{ 'btn-default' if gp.task_left == 0 else 'btn-primary' }} btn-sm">
+                {% if gp.task_left == 0 %}Review tasks{% elif gp.task_left < gp.task_total %}Continue tasks{% else %}Start tasks{% endif %}
+              </a>
+              {% endif %}
+            {% elif gp.project.answered %}
+              <span class="text-muted"><i class="fa fa-check text-green" aria-hidden="true"></i> Completed</span>
+            {% else %}
+              <a href="{{ url_for('annotation.view_group_project', group_project_id=gp.group_project_id) }}" class="btn btn-primary btn-sm">Answer the survey</a>
+            {% endif %}
+          </div>
         </div>
       </div>
+      {% endfor %}
     </div>
+    {% else %}
+    <div class="box"><div class="empty-state">
+      <strong>No projects yet</strong>
+      You will see your projects here once an admin adds you to a group that works on one.
+    </div></div>
     {% endif %}
   </section>
 {% endblock %}

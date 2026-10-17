@@ -553,3 +553,8 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .question-cards > li:first-child { padding-top: 0; }
 .question-number { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--canvas);
   display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+/* Task cards: long file names end with an ellipsis; the question reads as text, not as a control */
+.task-card-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 96px); }
+.task-questions { margin: 12px 0 0; }
+.task-questions > li { padding: 3px 0; font-weight: 600; overflow-wrap: anywhere; }
+.task-questions > li.text-muted { font-weight: 400; }

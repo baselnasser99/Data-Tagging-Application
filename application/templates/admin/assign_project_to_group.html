@@ -37,7 +37,7 @@
                     {% endfor %}
                   </select>
                   {% if not groups %}
-                    <small class="text-muted">No groups available. <a href="{{ url_for('admin.create_group') }}">Create a group first</a></small>
+                    <small class="text-muted">No groups available. <a href="{{ url_for('groups.create_group') }}">Create a group first</a></small>
                   {% endif %}
                 </div>
                 <div class="form-group col-md-6 col-xs-12">
@@ -130,7 +130,7 @@
                   </tr>
                 {% else %}
                   <tr>
-                    <td colspan="4" class="text-center">No groups found. <a href="{{ url_for('admin.create_group') }}">Create your first group</a></td>
+                    <td colspan="4" class="text-center">No groups found. <a href="{{ url_for('groups.create_group') }}">Create your first group</a></td>
                   </tr>
                 {% endfor %}
               </tbody>

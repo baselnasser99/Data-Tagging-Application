@@ -78,17 +78,17 @@
         {{ nav('admin.view_projects', 'folder-open-o', 'All projects') }}
         {{ nav('admin.create_annotation_project', 'picture-o', 'New annotation project') }}
         {{ nav('admin.create_project', 'list-ul', 'New survey project') }}
-        {{ nav('admin.assign_project_to_group', 'share', 'Assign to a group') }}
+        {{ nav('groups.assign_project_to_group', 'share', 'Assign to a group') }}
         <li class="header">People</li>
         {{ nav('admin.users', 'user-o', 'Users') }}
         {{ nav('admin.import_users', 'upload', 'Import users from CSV') }}
-        {{ nav('admin.view_groups', 'users', 'Groups') }}
-        {{ nav('admin.create_group', 'plus', 'New group') }}
+        {{ nav('groups.view_groups', 'users', 'Groups') }}
+        {{ nav('groups.create_group', 'plus', 'New group') }}
         {% elif current_user.role == 'project-admin' %}
         {{ nav('admin.my_projects', 'folder-open-o', 'My projects') }}
         {{ nav('admin.create_annotation_project', 'picture-o', 'New annotation project') }}
         {{ nav('admin.create_project', 'list-ul', 'New survey project') }}
-        {{ nav('admin.assign_project_to_group', 'share', 'Assign to a group') }}
+        {{ nav('groups.assign_project_to_group', 'share', 'Assign to a group') }}
         {% elif current_user.role == 'end-user' %}
         {{ nav('user.dashboard', 'home', 'Overview') }}
         {{ nav('user.annotation_tasks', 'picture-o', 'Annotation tasks') }}

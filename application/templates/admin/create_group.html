@@ -9,7 +9,7 @@
         <a href="#"><i class="fa fa-dashboard"></i> Home</a>
       </li>
       <li>
-        <a href="{{ url_for('admin.view_groups') }}">Groups</a>
+        <a href="{{ url_for('groups.view_groups') }}">Groups</a>
       </li>
       <li class="active">Create</li>
     </ol>
@@ -24,7 +24,7 @@
           <div class="box-header with-border">
             <h3 class="box-title">Group Details</h3>
           </div>
-          <form action="{{ url_for('admin.create_group') }}" method="POST">
+          <form action="{{ url_for('groups.create_group') }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="box-body">
               <div class="form-group">
@@ -52,7 +52,7 @@
               <button type="submit" class="btn btn-primary">
                 <i class="fa fa-save"></i> Create Group
               </button>
-              <a href="{{ url_for('admin.view_groups') }}" class="btn btn-default">
+              <a href="{{ url_for('groups.view_groups') }}" class="btn btn-default">
                 <i class="fa fa-arrow-left"></i> Back to Groups
               </a>
             </div>

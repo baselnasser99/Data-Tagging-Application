@@ -236,3 +236,62 @@ def test_hand_out_setting_from_the_forms(admin_client):
     assert project.hand_out_per_item is True
     assert b"All of an item&#39;s questions to one person" in admin_client.get(
         f"/admin/view-annotation-project/{project.id}").data
+
+
+def test_annotator_gets_one_card_per_task_and_moves_to_the_next(app, admin_client, group_with_members):
+    group, members = group_with_members
+    project = _create_project(admin_client)  # 2 questions
+    _upload(admin_client, project, {"a.png": b"a", "b.png": b"b", "c.png": b"c"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+
+    annotator = members[0]
+    client = app.test_client()
+    login(client, annotator.email)
+
+    mine = TaskAssignment.query.filter_by(user_id=annotator.id).all()
+    total = len(mine)
+    page = client.get("/user/my-projects").data
+    assert f"{total} tasks, {total} left".encode() in page
+    assert f"/user/annotation-tasks?project_id={project.id}".encode() in page
+    assert b"Start tasks" in page
+
+    # One card (one answer link) per task, even when two tasks share a photo.
+    tasks_page = client.get(f"/user/annotation-tasks?project_id={project.id}").data
+    for a in mine:
+        assert f'href="/user/annotation-task/{a.id}"'.encode() in tasks_page
+    assert b"/user/annotate-image/" not in tasks_page
+
+    order = sorted(mine, key=lambda a: (a.task.image_id, a.task.question_id))
+    for i, a in enumerate(order):
+        resp = client.post(f"/user/annotation-task/{a.id}", data={"answer": "x"})
+        if i + 1 < len(order):  # straight on to the next task, not back to the list
+            assert resp.headers["Location"].endswith(f"/user/annotation-task/{order[i + 1].id}")
+        if i == 0:
+            assert f"{total} tasks, {total - 1} left".encode() in client.get("/user/my-projects").data
+    assert resp.headers["Location"].endswith(f"/user/annotation-tasks?project_id={project.id}")
+    assert b"Review tasks" in client.get("/user/my-projects").data
+
+
+def test_task_list_can_show_one_project_only(app, admin_client, group_with_members):
+    group, members = group_with_members
+    project = _create_project(admin_client)
+    _upload(admin_client, project, {"a.png": b"a"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+    admin_client.post("/admin/create-annotation-project", data={
+        "project_name": "Birds", "project_desc": "d", "answers_per_task": "1",
+        "max_questions_per_user": "100", "total_questions": "1", "question_1": "Which bird?",
+    })
+    birds = Project.query.filter_by(name="Birds").one()
+    _upload(admin_client, birds, {"robin.png": b"r"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{birds.id}", data={"group_id": group.id})
+
+    owner = TaskAssignment.query.join(AnnotationTask).filter(AnnotationTask.project_id == birds.id).first().user
+    client = app.test_client()
+    login(client, owner.email)
+    page = client.get(f"/user/annotation-tasks?project_id={birds.id}").data
+    assert b"Which bird?" in page and b"Is it day or night?" not in page
+    assert b"Show tasks from all my projects" in page
+    # A project the user has no tasks in shows nothing, not even its name.
+    stranger = app.test_client()
+    login(stranger, [m for m in members if m.id != owner.id][0].email)
+    assert b"Birds" not in stranger.get(f"/user/annotation-tasks?project_id={birds.id}").data

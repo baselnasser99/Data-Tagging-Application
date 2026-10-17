@@ -5,15 +5,15 @@
 
 {% block content %}
 <section class="content-header">
-  <h1>Annotation tasks</h1>
+  <h1>Annotation tasks{% if project %}: {{ project.name }}{% endif %}</h1>
+  {% if filtered %}<a href="{{ url_for('user.annotation_tasks') }}">Show tasks from all my projects</a>{% endif %}
 </section>
 
 <section class="content">
-  {% if assignments %}
-  {# One card per item (image or audio clip): answer all its questions in one sitting. #}
-  {% set groups = assignments | groupby('task.image_id') %}
-  <div class="row">
-    {% for image_id, items in groups %}
+  {% if cards %}
+  {# One card per task (item + question); per-item projects group an item's questions on one card. #}
+  <div class="row task-grid">
+    {% for items in cards %}
     {% set first = items[0] %}
     {% set image = first.task.image %}
     {% set project = first.task.project %}
@@ -51,12 +51,14 @@
           </ul>
         </div>
         <div class="box-footer">
-          {% if pending %}
+          {% if not pending %}
+          <span class="text-muted">Answered.</span>
+          {% elif items|length == 1 %}
+          <a href="{{ url_for('user.annotation_task', assignment_id=first.id) }}" class="btn btn-primary btn-block">Answer</a>
+          {% else %}
           <a href="{{ url_for('user.annotate_image', image_id=image.id, project_id=project.id) }}" class="btn btn-primary btn-block">
             Answer {{ pending|length }} {{ 'question' if pending|length == 1 else 'questions' }}
           </a>
-          {% else %}
-          <span class="text-muted">All questions for this item are answered.</span>
           {% endif %}
         </div>
       </div>

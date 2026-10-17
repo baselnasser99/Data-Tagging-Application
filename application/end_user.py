@@ -309,21 +309,33 @@ def annotation_tasks():
         query = query.filter(AnnotationTask.project_id == project_id)
     assignments = query.order_by(AnnotationTask.project_id, AnnotationTask.image_id, AnnotationTask.question_id).all()
 
+    # One card per task; per-item projects keep one card per item (answered in one sitting).
+    cards = []
+    for a in assignments:
+        prev = cards[-1][-1] if cards else None
+        if (a.task.project.hand_out_per_item and prev is not None
+                and prev.task.project_id == a.task.project_id and prev.task.image_id == a.task.image_id):
+            cards[-1].append(a)
+        else:
+            cards.append([a])
+
     # Name the project only from the user's own assignments, so other projects' names never leak.
     project = assignments[0].task.project if project_id and assignments else None
-    return render_template("user/annotation_tasks.html", assignments=assignments,
+    return render_template("user/annotation_tasks.html", cards=cards,
                            project=project, filtered=bool(project_id))
 
 
 def _next_item(user_id, project_id):
-    """After an item is done, open the user's next unanswered item in the same project."""
+    """After a task (or a per-item project's item) is done, open the user's next unanswered one."""
     nxt = TaskAssignment.query.join(AnnotationTask).filter(
         TaskAssignment.user_id == user_id,
         AnnotationTask.project_id == project_id,
         TaskAssignment.is_completed == False,
     ).order_by(AnnotationTask.image_id, AnnotationTask.question_id).first()
-    if nxt:
+    if nxt and nxt.task.project.hand_out_per_item:
         return redirect(url_for("user.annotate_image", image_id=nxt.task.image_id, project_id=project_id))
+    if nxt:
+        return redirect(url_for("user.annotation_task", assignment_id=nxt.id))
     flash("You have finished all your tasks in this project.", "success")
     return redirect(url_for("user.annotation_tasks", project_id=project_id))
 

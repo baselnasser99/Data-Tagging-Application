@@ -144,7 +144,7 @@ def test_cap_is_respected_and_reported(setup):
     result = distribution.distribute(project)
     assert all(v <= 3 for v in Counter(a.user_id for a in assignments(project)).values())
     assert result.unfilled_slots == 4
-    assert any("Max tasks per user" in w for w in result.warnings)
+    assert any("Max tasks per person" in w for w in result.warnings)
 
 
 def test_small_group_warning(setup):

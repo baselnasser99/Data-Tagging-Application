@@ -156,3 +156,27 @@ def test_annotator_sees_radio_buttons_for_multiple_choice(app, db, answered_proj
     login(client, assignment.user.email)
     page = client.get(f"/user/annotation-task/{assignment.id}").data
     assert b'type="radio"' in page and b"Night" in page and b"<textarea" not in page
+
+
+def test_a_tie_has_no_majority_answer(db, admin_client, answered_project):
+    """Two annotators who disagree produce no majority, not the first answer."""
+    first_image = ProjectImage.query.filter_by(project_id=answered_project.id).order_by(ProjectImage.id).first()
+    tied = next(
+        a for a in QuestionAnswer.query.all()
+        if a.question.question == "Day or night?" and a.task_assignment.task.image_id == first_image.id
+    )
+    tied.answer = "Night"
+    db.session.commit()
+
+    data = json.loads(admin_client.get(f"/admin/project/{answered_project.id}/export.json").data)
+    summaries = {
+        img["file_name"]: q["summary"]
+        for img in data["images"] for q in img["questions"] if q["question"] == "Day or night?"
+    }
+    assert summaries[first_image.original_filename]["majority_answer"] is None
+    assert summaries[first_image.original_filename]["majority_share"] == 0.5
+    assert {s["majority_answer"] for s in summaries.values()} == {None, "Day"}
+
+    rows = csv.DictReader(io.StringIO(admin_client.get(f"/admin/project/{answered_project.id}/export.csv").data.decode()))
+    tied_rows = [r for r in rows if r["file_name"] == first_image.original_filename and r["question"] == "Day or night?"]
+    assert tied_rows and all(r["task_majority_answer"] == "" for r in tied_rows)

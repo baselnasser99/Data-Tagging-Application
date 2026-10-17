@@ -9,6 +9,7 @@ import pytest
 from application import distribution
 from application.models import (
     AnnotationTask,
+    AnswerType,
     GroupProject,
     Project,
     ProjectImage,
@@ -280,3 +281,123 @@ def test_workload_summary(setup):
     summary = {row["user"].id: row for row in distribution.workload_summary(project)}
     assert sum(r["total"] for r in summary.values()) == 3
     assert sum(r["completed"] for r in summary.values()) == 1
+
+
+# ---- partial work and changed settings ------------------------------------------
+
+def test_leaving_with_an_item_half_answered(db, setup):
+    """The answered question stays with the leaver; only the open one moves."""
+    project, group, users = setup(n_images=2, n_questions=2, n_users=2)
+    distribution.distribute(project)
+    leaver, stayer = users
+    answered, unanswered = sorted(
+        (a for a in assignments(project) if a.user_id == leaver.id), key=lambda a: a.id
+    )  # one whole item: two questions
+    complete(answered)
+    open_task_id = unanswered.task_id
+
+    UserGroupMembership.query.filter_by(user_id=leaver.id, group_id=group.id).delete()
+    db.session.commit()
+    distribution.on_member_removed(leaver, group.id)
+
+    assert [a for a in assignments(project) if a.user_id == leaver.id] == [answered]
+    assert answered.is_completed
+    moved = next(a for a in assignments(project) if a.task_id == open_task_id)
+    assert moved.user_id == stayer.id and not moved.is_completed
+    assert stranded_slots(project) == 0
+
+
+def test_lowering_answers_per_task_releases_work_no_longer_needed(setup):
+    project, _, users = setup(n_images=2, n_questions=1, n_users=3, answers_per_task=3)
+    distribution.distribute(project)
+    finished = assignments(project)[0]
+    complete(finished)
+
+    project.answers_per_task = 1
+    result = distribution.apply_answers_per_task(project)
+
+    for task in AnnotationTask.query.filter_by(project_id=project.id):
+        assert len(task.assignments) == 1
+    # the task that already had an answer keeps it and is now complete
+    assert finished.task.assignments == [finished] and finished.task.is_completed
+    assert result.assignments_released == 4  # 6 held, 2 still needed
+
+
+def test_lowering_the_cap_gives_back_unstarted_work(setup):
+    project, _, users = setup(n_images=6, n_questions=2, n_users=2, cap=100)
+    distribution.distribute(project)  # 12 tasks, 6 each
+    finished = sorted((a for a in assignments(project) if a.user_id == users[0].id), key=lambda a: a.id)[:2]
+    for a in finished:
+        complete(a)
+
+    project.max_questions_per_user = 4
+    result = distribution.distribute(project)
+
+    per_user = Counter(a.user_id for a in assignments(project))
+    assert per_user == {users[0].id: 4, users[1].id: 4}
+    assert all(a in assignments(project) and a.is_completed for a in finished)
+    assert result.assignments_released == 4
+    assert stranded_slots(project) == 4  # 12 tasks, room for only 8
+    assert any("limit" in w for w in result.warnings)
+
+
+def _edit_questions(admin_client, project, **fields):
+    # Same fields as the real "Save All Questions" form: no project settings.
+    data = {"action": "update_questions", **fields}
+    return admin_client.post(f"/admin/project/{project.id}/edit-questions", data=data, follow_redirects=True)
+
+
+def test_changing_a_question_type_reopens_its_tasks(admin_client, setup):
+    project, _, users = setup(n_images=2, n_questions=1, n_users=2)
+    distribution.distribute(project)
+    for a in assignments(project):
+        complete(a)
+    q = project.questions[0]
+
+    resp = _edit_questions(admin_client, project, **{
+        f"question-{q.id}": q.question, f"dropdown-{q.id}": "mcq",
+        f"confirm_delete_answers_{q.id}": "true", f"number_of_options-{q.id}": "2",
+        f"mcq-option-1-{q.id}": "Yes", f"mcq-option-2-{q.id}": "No",
+    })
+
+    assert b"will be answered again" in resp.data
+    assert q.answer_type == AnswerType.MCQ and (q.option1, q.option2) == ("Yes", "No")
+    assert QuestionAnswer.query.filter_by(question_id=q.id).count() == 0
+    for task in AnnotationTask.query.filter_by(project_id=project.id):
+        assert not task.is_completed and task.current_answers == 0
+    # the same people are asked again
+    assert len(assignments(project)) == 2 and not any(a.is_completed for a in assignments(project))
+
+
+def test_rewording_an_answered_question_warns_and_keeps_answers_and_settings(admin_client, setup):
+    project, _, users = setup(n_images=1, n_questions=1, n_users=2, answers_per_task=2)
+    distribution.distribute(project)
+    complete(assignments(project)[0])
+    q = project.questions[0]
+
+    # Annotation projects lock the type dropdown, so the browser sends no type.
+    resp = _edit_questions(admin_client, project, **{f"question-{q.id}": "A new meaning?"})
+
+    assert b"was reworded" in resp.data
+    assert q.question == "A new meaning?"
+    assert QuestionAnswer.query.filter_by(question_id=q.id).count() == 1
+    # Regression: saving questions used to reset "answers per task" to 1.
+    assert project.answers_per_task == 2 and len(assignments(project)) == 2
+
+
+def test_deleting_a_question_removes_only_its_tasks_and_answers(admin_client, setup):
+    project, _, users = setup(n_images=2, n_questions=2, n_users=2)
+    distribution.distribute(project)
+    for a in assignments(project):
+        complete(a)
+    gone, kept = project.questions
+    gone_id, kept_id = gone.id, kept.id
+
+    admin_client.post(f"/admin/project/{project.id}/edit-questions",
+                      data={"action": "delete_question", "question_id_to_delete": gone_id})
+
+    assert AnnotationTask.query.filter_by(question_id=gone_id).count() == 0
+    assert QuestionAnswer.query.filter_by(question_id=gone_id).count() == 0
+    assert AnnotationTask.query.filter_by(question_id=kept_id).count() == 2
+    assert QuestionAnswer.query.filter_by(question_id=kept_id).count() == 2
+    assert stranded_slots(project) == 0

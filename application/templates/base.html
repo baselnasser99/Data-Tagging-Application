@@ -56,9 +56,9 @@
                 </li>
                 <li>
                   {% if current_user.role == 'end-user' %}
-                  <a href="{{ url_for('user.profile') }}">Profile and password</a>
+                  <a href="{{ url_for('user.profile') }}">Profile settings</a>
                   {% elif current_user.role == 'admin' %}
-                  <a href="{{ url_for('admin.admin_profile') }}">Profile and password</a>
+                  <a href="{{ url_for('admin.admin_profile') }}">Profile settings</a>
                   {% endif %}
                 </li>
                 <li><a href="{{ url_for('auth.logout') }}">Sign out</a></li>

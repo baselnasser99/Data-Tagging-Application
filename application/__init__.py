@@ -33,13 +33,14 @@ def create_app(config_object=None):
     from .admin import admin
     from .auth import auth
     from .end_user import end_user
-    from .jinja_utils import getattr_safe
+    from .jinja_utils import getattr_safe, plural
 
     app.register_blueprint(auth)
     app.register_blueprint(admin)
     app.register_blueprint(end_user)
 
     app.jinja_env.globals["getattr_safe"] = getattr_safe
+    app.jinja_env.globals["plural"] = plural
     app.jinja_env.globals["app_name"] = app.config["APP_NAME"]
 
     _register_error_handlers(app)

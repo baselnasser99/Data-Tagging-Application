@@ -38,7 +38,7 @@ def test_media_type_is_detected_from_the_file_name():
 def test_zip_with_images_and_audio_stores_each_with_its_type(admin_client):
     project = _create_project(admin_client)
     resp = _upload(admin_client, project, MIXED)
-    assert b"Successfully uploaded 1 images and 3 audio files" in resp.data
+    assert b"Successfully uploaded 1 image and 3 audio files" in resp.data
 
     items = {i.original_filename: i for i in ProjectImage.query.filter_by(project_id=project.id)}
     assert set(items) == {"street.jpg", "birdsong.mp3", "engine.WAV", "voice.ogg"}

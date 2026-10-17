@@ -46,7 +46,7 @@
                     <option value="">Choose a project...</option>
                     {% for project in projects %}
                       <option value="{{ project.id }}">
-                        {{ project.name }} ({{ project.questions | length }} questions)
+                        {{ project.name }} ({{ plural(project.questions | length, "question") }})
                       </option>
                     {% endfor %}
                   </select>
@@ -105,7 +105,7 @@
                         {% for group_project in group.assigned_projects %}
                           <div class="mb-1">
                             <strong>{{ group_project.project.name }}</strong>
-                            <small class="text-muted">({{ group_project.project.questions | length }} questions)</small>
+                            <small class="text-muted">({{ plural(group_project.project.questions | length, "question") }})</small>
                           </div>
                         {% endfor %}
                       {% else %}

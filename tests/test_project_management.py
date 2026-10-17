@@ -258,3 +258,10 @@ def test_end_user_answers_project_directly_and_downloads(user_client, survey, en
     assert QuestionAnswer.query.filter_by(user_id=end_user.id).one().answer == "Direct answer"
     resp = user_client.get(f"/user/download-project/{survey.id}")
     assert b"Direct answer" in resp.data
+
+
+def test_projects_list_download_gives_annotation_projects_the_csv(admin_client, survey, annotation_project):
+    project, _, _ = annotation_project
+    page = admin_client.get("/admin/view-projects").data
+    assert f"/admin/project/{project.id}/export.csv".encode() in page
+    assert f"/admin/download-files/{survey.id}".encode() in page

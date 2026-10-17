@@ -19,6 +19,9 @@ Guarantees, each covered by tests in tests/test_distribution.py:
        and immediately offered to the remaining members; finished work is never touched.
     5. Integrity: regenerating tasks only adds missing (image, question) pairs;
        existing tasks, assignments and answers are kept.
+    6. Settings changes: lowering ``answers_per_task`` or ``max_questions_per_user``
+       releases unfinished assignments that are no longer needed or allowed, and
+       hands them to others where possible; finished work is never removed.
 """
 from __future__ import annotations
 
@@ -34,6 +37,7 @@ from .models import (
     Project,
     ProjectImage,
     Question,
+    QuestionAnswer,
     TaskAssignment,
     User,
     UserGroupMembership,
@@ -141,12 +145,39 @@ def generate_tasks(project: Project) -> DistributionResult:
     return result
 
 
-def apply_answers_per_task(project: Project) -> None:
-    """Propagate a changed ``answers_per_task`` setting to existing tasks."""
+def apply_answers_per_task(project: Project) -> DistributionResult:
+    """Propagate a changed ``answers_per_task`` setting to existing tasks.
+
+    When the setting goes down, a task can hold more people than it now needs;
+    their unfinished assignments are released so nobody answers work that is
+    already covered. Finished answers are always kept.
+    """
+    result = DistributionResult()
     for task in AnnotationTask.query.filter_by(project_id=project.id).all():
         task.required_answers = project.answers_per_task or 1
         task.is_completed = task.current_answers >= task.required_answers
+        surplus = len(task.assignments) - task.required_answers
+        unfinished = sorted((a for a in task.assignments if not a.is_completed), key=lambda a: -a.id)
+        for assignment in unfinished[:max(0, surplus)]:
+            db.session.delete(assignment)
+            result.assignments_released += 1
     db.session.commit()
+    return result
+
+
+def reopen_question(question: Question) -> None:
+    """Delete a question's answers and reopen its tasks, so they are asked again.
+
+    Used when a question's type changes: old answers no longer fit it. The same
+    people keep the tasks. The caller commits.
+    """
+    QuestionAnswer.query.filter_by(question_id=question.id).delete()
+    for task in AnnotationTask.query.filter_by(question_id=question.id).all():
+        task.current_answers = 0
+        task.is_completed = False
+        for assignment in task.assignments:
+            assignment.is_completed = False
+            assignment.completed_date = None
 
 
 # --------------------------------------------------------------------------
@@ -364,9 +395,40 @@ def on_group_detached(group_id: int, project_ids: list[int], member_ids: list[in
     return result
 
 
+def release_over_cap(project: Project) -> DistributionResult:
+    """After ``max_questions_per_user`` is lowered, give back unstarted work above it.
+
+    The most recently assigned work goes back first; finished work is kept even
+    if it alone exceeds the new limit.
+    """
+    result = DistributionResult()
+    cap = project.max_questions_per_user
+    if not cap:  # unset limit (old data): never take work away because of it
+        return result
+    users = eligible_users(project)
+    loads = user_loads(project, users)
+    for user in users:
+        excess = loads[user.id][1] - cap
+        if excess <= 0:
+            continue
+        surplus = (
+            _project_assignments(project.id)
+            .filter(TaskAssignment.user_id == user.id, TaskAssignment.is_completed.is_(False))
+            .order_by(TaskAssignment.id.desc())
+            .limit(excess)
+            .all()
+        )
+        for assignment in surplus:
+            db.session.delete(assignment)
+        result.assignments_released += len(surplus)
+    db.session.commit()
+    return result
+
+
 def distribute(project: Project) -> DistributionResult:
-    """Full pass for a project: create missing tasks, fill slots, balance loads."""
+    """Full pass for a project: create missing tasks, enforce the cap, fill slots, balance loads."""
     result = generate_tasks(project)
+    result.merge(release_over_cap(project))
     result.merge(assign_open_slots(project))
     result.merge(rebalance(project))
     return result

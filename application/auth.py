@@ -13,7 +13,7 @@ MIN_PASSWORD_LENGTH = 6
 
 HOME_BY_ROLE = {
     "admin": "admin.dashboard",
-    "project-admin": "admin.my_projects",
+    "project-admin": "manager.my_projects",
     "end-user": "user.dashboard",
 }
 

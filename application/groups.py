@@ -104,7 +104,7 @@ def manage_group_for_project(project_id, group_id):
     group_project_link = GroupProject.query.filter_by(group_id=group_id, project_id=project_id).first()
     if not group_project_link:
         flash('This group is not associated with your project, or you do not have permission to manage it.', 'danger')
-        return redirect(url_for('admin.project_groups', project_id=project_id))
+        return redirect(url_for('manager.project_groups', project_id=project_id))
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -309,12 +309,11 @@ def distribute_questions_to_group(group, project):
                 ).first()
                 
                 if not existing_assignment:
-                  assignment = UserQuestionAssignment(
-                    user_id=member.id,
+                    db.session.add(UserQuestionAssignment(
+                        user_id=member.id,
                         question_id=question.id,
-                    group_project_id=group_project_id
-                )
-                db.session.add(assignment)
+                        group_project_id=group_project_id,
+                    ))
         log.debug(f"Assigned all {len(questions)} questions to each of {len(members)} members for survey project {project.name}.")
     # Mark questions as distributed (this flag might need review based on exact workflow, but keeping for now)
     group_project_link = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()

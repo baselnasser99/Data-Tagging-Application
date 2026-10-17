@@ -10,7 +10,7 @@
             <small>{{ project.name }}</small>
         </h1>
         <ol class="breadcrumb">
-            <li><a href="{{ url_for('admin.my_projects') }}"><i class="fa fa-dashboard"></i> My Projects</a></li>
+            <li><a href="{{ url_for('manager.my_projects') }}"><i class="fa fa-dashboard"></i> My Projects</a></li>
             <li class="active">{{ project.name }}</li>
         </ol>
     </section>
@@ -83,7 +83,7 @@
                         </dl>
                     </div>
                     <div class="box-footer">
-                        <a href="{{ url_for('admin.edit_project_questions', project_id=project.id) }}" class="btn btn-primary">
+                        <a href="{{ url_for('manager.edit_project_questions', project_id=project.id) }}" class="btn btn-primary">
                             <i class="fa fa-edit"></i> Edit Questions & Settings
                         </a>
                     </div>
@@ -106,7 +106,7 @@
                                     <div class="icon">
                                         <i class="fa fa-users"></i>
                                     </div>
-                                    <a href="{{ url_for('admin.project_admins', project_id=project.id) }}" class="small-box-footer">
+                                    <a href="{{ url_for('manager.project_admins', project_id=project.id) }}" class="small-box-footer">
                                         Manage Admins <i class="fa fa-arrow-circle-right"></i>
                                     </a>
                                 </div>
@@ -121,7 +121,7 @@
                                     <div class="icon">
                                         <i class="fa fa-users"></i>
                                     </div>
-                                    <a href="{{ url_for('admin.project_groups', project_id=project.id) }}" class="small-box-footer">
+                                    <a href="{{ url_for('manager.project_groups', project_id=project.id) }}" class="small-box-footer">
                                         Manage Groups <i class="fa fa-arrow-circle-right"></i>
                                     </a>
                                 </div>
@@ -216,7 +216,7 @@
                         <h3 class="box-title">Project Results</h3>
                     </div>
                     <div class="box-body">
-                        <a href="{{ url_for('admin.project_results', project_id=project.id) }}" class="btn btn-success">
+                        <a href="{{ url_for('manager.project_results', project_id=project.id) }}" class="btn btn-success">
                             <i class="fa fa-bar-chart"></i> View Results
                         </a>
                         <a href="{{ url_for('admin.view_annotation_project', project_id=project.id) }}" class="btn btn-info">

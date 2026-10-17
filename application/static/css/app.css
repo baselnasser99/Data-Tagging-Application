@@ -497,3 +497,11 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
   color: var(--ink-soft);
   font-size: 1.6em;
 }
+
+/* Task cards: a flex grid, so cards of uneven height never leave gaps
+   (Bootstrap 3 floats do), and each row's cards share one height. */
+.task-grid { display: flex; flex-wrap: wrap; }
+.task-grid::before, .task-grid::after { display: none; }
+.task-grid > [class*="col-"] { display: flex; }
+.task-grid .box { display: flex; flex-direction: column; width: 100%; }
+.task-grid .box-body { flex: 1; }

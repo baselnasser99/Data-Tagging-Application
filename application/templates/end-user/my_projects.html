@@ -41,15 +41,15 @@
                 <td style="white-space: pre-line">{{ gp.project.desc[:400]|safe }} ...</td>
                 <td>
                   {% if gp.project.is_annotation_project %}
-                    <span class="badge bg-blue">{{ gp.annotation_tasks_count or 0 }} images</span>
+                    {{ gp.task_total }} {{ 'task' if gp.task_total == 1 else 'tasks' }}, {{ gp.task_left }} left
                   {% else %}
                     {{ gp.project.total_questions }}
                   {% endif %}
                 </td>
                 {% if gp.project.is_annotation_project %}
                   <td>
-                    <a href="{{ url_for('user.annotation_tasks') }}" class="btn btn-info btn-sm w-100">
-                      <i class="fa fa-image"></i> Annotate
+                    <a href="{{ url_for('user.annotation_tasks', project_id=gp.project.id) }}" class="btn btn-info btn-sm w-100">
+                      {% if gp.task_left == 0 and gp.task_total %}Review tasks{% elif gp.task_left < gp.task_total %}Continue tasks{% else %}Start tasks{% endif %}
                     </a>
                   </td>
                 {% elif gp.project.answered %}

@@ -93,3 +93,60 @@ def test_upload_loose_files_and_zips_together(admin_client):
     resp = _upload(admin_client, project, {"loose.png": b"again", "zipped.jpg": b"jpg"})
     assert b"Successfully uploaded 1 image" in resp.data
     assert b"Skipped 1 file already in this project" in resp.data
+
+
+def test_dashboard_chart_data_and_group_progress(app, db, admin_client, make_user):
+    """The chart's JSON must survive the HTML attribute, and progress must count annotation tasks."""
+    import json
+    import re
+
+    group = UserGroup(name="Team")
+    db.session.add(group)
+    db.session.commit()
+    people = [make_user(), make_user()]
+    for p in people:
+        db.session.add(UserGroupMembership(user_id=p.id, group_id=group.id))
+    db.session.commit()
+    project = _create_project(admin_client)  # 2 questions
+    _upload(admin_client, project, {"a.png": b"a"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+
+    mine = TaskAssignment.query.filter_by(user_id=people[0].id).first()
+    client = app.test_client()
+    login(client, people[0].email)
+    client.post(f"/user/annotation-task/{mine.id}", data={"answer": "x"})
+
+    page = admin_client.get("/admin/dashboard").data.decode()
+    weeks = json.loads(re.search(r"data-chart-data='([^']*)'", page).group(1))
+    assert len(weeks) == 12 and sum(w["answers"] for w in weeks) == 1
+    assert "50.0%" in page  # 1 of the group's 2 tasks done
+
+
+def test_assigning_an_empty_group_says_so(db, admin_client):
+    project = _create_project(admin_client)
+    _upload(admin_client, project, {"a.png": b"a"})
+    group = UserGroup(name="Nobody yet")
+    db.session.add(group)
+    db.session.commit()
+    resp = admin_client.post("/admin/assign-project-to-group",
+                             data={"group_id": group.id, "project_id": project.id}, follow_redirects=True)
+    assert b"has no members yet" in resp.data
+
+
+def test_exports_show_annotator_names(app, db, admin_client, make_user):
+    group = UserGroup(name="Team")
+    db.session.add(group)
+    db.session.commit()
+    ada = make_user(name="Ada Lovelace")
+    db.session.add(UserGroupMembership(user_id=ada.id, group_id=group.id))
+    db.session.commit()
+    project = _create_project(admin_client)
+    _upload(admin_client, project, {"a.png": b"a"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+    client = app.test_client()
+    login(client, ada.email)
+    for a in TaskAssignment.query.filter_by(user_id=ada.id):
+        client.post(f"/user/annotation-task/{a.id}", data={"answer": "x"})
+
+    assert b"Ada Lovelace" in admin_client.get(f"/admin/project/{project.id}/export.csv").data
+    assert b"Ada Lovelace" in admin_client.get(f"/admin/download-answers/{ada.id}").data

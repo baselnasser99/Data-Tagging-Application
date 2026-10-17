@@ -222,6 +222,8 @@ def assign_project_to_group():
                 if project.images and project.questions:
                     result = distribution.distribute(project)
                     flash_distribution(result, f'Project "{project.name}" assigned to group "{group.name}".')
+                    if not group.members:
+                        flash(f'Group "{group.name}" has no members yet. They will get tasks when people join.', 'warning')
                     warn_idle_members(project, [m.user for m in group.members])
                 else:
                     flash(f'Project "{project.name}" assigned to group "{group.name}". Upload images and add questions to create tasks.', 'warning')

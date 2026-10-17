@@ -135,6 +135,7 @@ def build_project_export(project: Project) -> dict:
             "answers": [
                 {
                     "annotator": a.user.email,
+                    "annotator_name": a.user.full_name,
                     "answer": a.answer,
                     "submitted_at": a.submitted_date.isoformat() if a.submitted_date else None,
                 }
@@ -176,7 +177,7 @@ def build_project_export(project: Project) -> dict:
 
 CSV_COLUMNS = [
     "image_id", "file_name", "media_type", "question_id", "question", "question_type",
-    "annotator", "answer", "submitted_at", "task_majority_answer", "task_majority_share",
+    "annotator", "annotator_name", "answer", "submitted_at", "task_majority_answer", "task_majority_share",
 ]
 
 
@@ -198,8 +199,8 @@ def to_csv(data: dict) -> str:
                 "task_majority_share": q["summary"].get("majority_share", ""),
             }
             if not q["answers"]:
-                writer.writerow({**base, "annotator": "", "answer": "", "submitted_at": ""})
+                writer.writerow({**base, "annotator": "", "annotator_name": "", "answer": "", "submitted_at": ""})
             for a in q["answers"]:
-                writer.writerow({**base, "annotator": a["annotator"], "answer": a["answer"],
+                writer.writerow({**base, "annotator": a["annotator"], "annotator_name": a["annotator_name"], "answer": a["answer"],
                                  "submitted_at": a["submitted_at"] or ""})
     return out.getvalue()

@@ -30,12 +30,12 @@
               <fieldset class="form-group">
                 <legend style="font-size: 15px; font-weight: 700; border: 0; margin-bottom: 6px;">Role</legend>
                 <div class="radio"><label><input type="radio" name="role" value="annotator" {% if form.get('role', 'annotator') != 'manager' %}checked{% endif %}>
-                  Annotator <span class="text-muted">– answers tasks in the projects of their groups</span></label></div>
+                  Member <span class="text-muted">– answers tasks in the projects of their groups</span></label></div>
                 <div class="radio"><label><input type="radio" name="role" value="manager" {% if form.get('role') == 'manager' %}checked{% endif %}>
                   Manager <span class="text-muted">– runs projects; give them one now or later on the Managers page</span></label></div>
               </fieldset>
               <div class="form-group">
-                <label for="group_id">Add to group (optional, annotators only)</label>
+                <label for="group_id">Add to group (optional, members only)</label>
                 <select class="form-control" id="group_id" name="group_id">
                   <option value="">No group</option>
                   {% for group in groups %}

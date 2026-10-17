@@ -1602,12 +1602,7 @@ def edit_project_questions(project_id):
             project_data = request.form.to_dict(flat=True)
             files = request.files.to_dict(flat=True)
 
-            # Update annotation project settings if applicable
-            if project.is_annotation_project:
-                project.max_questions_per_user = int(request.form.get('max_questions_per_user', project.max_questions_per_user))
-                project.answers_per_task = int(request.form.get('answers_per_task', 1)) # Default to 1 for single completion
-                project.questions_per_image = int(request.form.get('questions_per_image', project.questions_per_image))
-
+            # Settings have their own form ("Update Settings"); this form never sends them.
             for key, value in project_data.items():
                 if key.startswith('question-'):
                     question_id = int(key.split('-')[1])

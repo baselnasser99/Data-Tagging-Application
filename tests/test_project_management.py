@@ -103,6 +103,21 @@ def test_changing_type_with_existing_answers_requires_confirmation(db, admin_cli
     assert QuestionAnswer.query.count() == 1
 
 
+def test_confirmed_type_change_deletes_answers_and_changes_type(db, admin_client, survey, end_user):
+    """Regression: confirming used to delete the answers but keep the old type."""
+    q = survey.questions[0]
+    db.session.add(QuestionAnswer(user_id=end_user.id, question_id=q.id, answer="old"))
+    db.session.commit()
+    admin_client.post(
+        f"/admin/project/{survey.id}/edit-questions",
+        data={"action": "update_questions", f"question-{q.id}": q.question, f"dropdown-{q.id}": "mcq",
+              f"confirm_delete_answers_{q.id}": "true", f"number_of_options-{q.id}": "2",
+              f"mcq-option-1-{q.id}": "Yes", f"mcq-option-2-{q.id}": "No"},
+    )
+    assert q.answer_type == AnswerType.MCQ and (q.option1, q.option2) == ("Yes", "No")
+    assert QuestionAnswer.query.count() == 0
+
+
 def test_add_and_delete_question(admin_client, survey):
     admin_client.post(
         f"/admin/project/{survey.id}/edit-questions",

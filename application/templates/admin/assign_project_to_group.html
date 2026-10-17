@@ -66,79 +66,53 @@
       </div>
     </div>
     
-    <!-- Display current group-project assignments -->
-    <div class="row">
-      <div class="col-xs-12">
-        <div class="box box-info">
+    <!-- Current assignments: one card per group, its projects listed inside -->
+    <h2 class="section-title">Current assignments</h2>
+    {% if groups %}
+    <div class="row task-grid">
+      {% for group in groups %}
+      <div class="col-md-6 col-xs-12">
+        <div class="box">
           <div class="box-header with-border">
-            <h3 class="box-title">Current Group-Project Assignments</h3>
+            <h3 class="box-title">{{ group.name }}</h3>
+            <p class="text-muted" style="margin: 4px 0 0;">
+              {{ plural(group.members | length, "member") }}{% if group.members %}:
+              {% for membership in group.members[:5] %}{{ membership.user.full_name }}{% if not loop.last %}, {% endif %}{% endfor %}{% if group.members | length > 5 %} and {{ group.members | length - 5 }} more{% endif %}{% endif %}
+            </p>
           </div>
           <div class="box-body">
-            <table class="table table-bordered table-hover">
-              <thead>
-                <tr>
-                  <th>Group Name</th>
-                  <th>Members</th>
-                  <th>Assigned Projects</th>
-                  <th>Progress</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for group in groups %}
-                  <tr>
-                    <td>{{ group.name }}</td>
-                    <td>
-                      <span class="badge badge-info">{{ group.members | length }}</span>
-                      {% if group.members %}
-                        <br><small class="text-muted">
-                          {% for membership in group.members[:3] %}
-                            {{ membership.user.full_name }}{% if not loop.last %}, {% endif %}
-                          {% endfor %}
-                          {% if group.members | length > 3 %}
-                            and {{ group.members | length - 3 }} more...
-                          {% endif %}
-                        </small>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if group.assigned_projects %}
-                        {% for group_project in group.assigned_projects %}
-                          <div class="mb-1">
-                            <strong>{{ group_project.project.name }}</strong>
-                            <small class="text-muted">({{ plural(group_project.project.questions | length, "question") }})</small>
-                          </div>
-                        {% endfor %}
-                      {% else %}
-                        <span class="text-muted">No projects assigned</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if group.assigned_projects %}
-                        {% for group_project in group.assigned_projects %}
-                          <div class="mb-1">
-                            {% set done, total = progress[(group.id, group_project.project_id)] %}
-                            {% if not total %}
-                              <span class="text-muted">No work yet</span>
-                            {% else %}
-                              {{ done }} of {{ plural(total, "task") }} done
-                            {% endif %}
-                          </div>
-                        {% endfor %}
-                      {% else %}
-                        <span class="text-muted">N/A</span>
-                      {% endif %}
-                    </td>
-                  </tr>
-                {% else %}
-                  <tr>
-                    <td colspan="4" class="text-center">No groups found. <a href="{{ url_for('groups.create_group') }}">Create your first group</a></td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+            {% if group.assigned_projects %}
+            <ul class="assignment-list">
+              {% for group_project in group.assigned_projects %}
+              {% set done, total = progress[(group.id, group_project.project_id)] %}
+              <li>
+                <div class="assignment-row">
+                  <span><strong>{{ group_project.project.name }}</strong>
+                    <span class="text-muted">· {{ plural(group_project.project.questions | length, "question") }}</span></span>
+                  <span class="text-muted">{% if total %}{{ done }} of {{ plural(total, "task") }} done{% else %}No work yet{% endif %}</span>
+                </div>
+                {% if total %}
+                <div class="progress progress-xs" style="margin: 6px 0 0;" role="progressbar" aria-label="{{ group_project.project.name }} progress"
+                     aria-valuenow="{{ done }}" aria-valuemin="0" aria-valuemax="{{ total }}">
+                  <div class="progress-bar" style="width: {{ (done / total * 100)|round(1) }}%"></div>
+                </div>
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted" style="margin: 0;">No projects assigned yet.</p>
+            {% endif %}
           </div>
         </div>
       </div>
+      {% endfor %}
     </div>
+    {% else %}
+    <div class="box"><div class="empty-state">
+      <strong>No groups yet</strong>
+      <a href="{{ url_for('groups.create_group') }}">Create your first group</a>
+    </div></div>
+    {% endif %}
   </section>
 {% endblock %}

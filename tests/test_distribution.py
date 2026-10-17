@@ -230,6 +230,7 @@ def test_new_member_takes_a_fair_share(db, setup, make_user):
     assert load[newcomer.id] == 4  # 12 tasks / 3 people
     assert max(load.values()) - min(load.values()) <= 1
     assert result.assignments_moved == 4
+    assert sum(result.moves.values()) == 4  # the message names who gave work to whom
 
 
 def test_rebalancing_never_moves_finished_work(db, setup, make_user):

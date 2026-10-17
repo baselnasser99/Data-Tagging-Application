@@ -17,7 +17,8 @@ def flash_distribution(result, success_message=None):
     if result.assignments_released:
         details.append(f"{plural(result.assignments_released, 'unfinished assignment')} released")
     if result.assignments_moved:
-        details.append(f"{plural(result.assignments_moved, 'assignment')} moved to balance workloads")
+        who = ", ".join(f"{a} → {b}: {n}" for (a, b), n in result.moves.items())
+        details.append(f"{plural(result.assignments_moved, 'unstarted assignment')} moved to balance workloads ({who})")
     if details:
         flash("Task distribution: " + ", ".join(details) + ".", "info")
     for warning in result.warnings:

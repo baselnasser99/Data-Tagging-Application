@@ -1,0 +1,92 @@
+/* Apple-style layer on top of app.css (WWDC design talks, translated for the web).
+   Loaded last; deleting this file and its <link> in base.html restores the current look.
+   What it changes, and the principle behind each:
+     - System font with size-specific tracking and leading   (typography)
+     - Translucent, sticky top bar; content scrolls under it  (materials & depth)
+     - Softer, rounder surfaces with layered shadows          (depth encodes hierarchy)
+     - Instant press feedback on every button and link card   (response: feedback on pointer-down)
+     - Messages "materialise" instead of popping in           (materialise, don't just fade)
+     - Reduced motion / transparency / more contrast honoured  (accessibility) */
+
+:root {
+  --radius-sm: 8px;
+  --radius: 12px;
+  --shadow-small: 0 1px 2px rgba(28, 39, 51, 0.06), 0 1px 1px rgba(28, 39, 51, 0.04);
+  --shadow-card: 0 1px 2px rgba(28, 39, 51, 0.05), 0 6px 20px rgba(28, 39, 51, 0.06);
+  --glass: rgba(255, 255, 255, 0.72);
+  --press: transform 100ms ease-out;
+}
+
+/* ---------- typography: system font, tracking by size ---------- */
+html, body { font-size: 15px; }
+body, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6,
+.main-header .logo, .btn, .form-control, .table, .label, .badge {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.content-header > h1 { font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; }
+.box-title, .section-title { letter-spacing: -0.01em; }
+.small-box h3 { letter-spacing: -0.02em; line-height: 1.1; }
+.text-muted, .help-block, small { letter-spacing: 0.01em; }
+
+/* ---------- materials: translucent sticky top bar ---------- */
+.wrapper { overflow-x: clip; }  /* AdminLTE's overflow-x: hidden would stop the bar from sticking */
+.main-header { position: sticky; top: 0; z-index: 1030; }
+.main-header .logo,
+.main-header .navbar {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(28, 39, 51, 0.08);
+}
+.main-header .logo:hover { background: var(--glass); }
+
+/* ---------- depth: soft, rounded surfaces ---------- */
+.box, .card, .panel, .nav-tabs-custom, .small-box, .small-box[class*="bg-"] {
+  border: 0;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+.box-header.with-border { border-bottom-color: rgba(28, 39, 51, 0.07); }
+.box-footer { background: transparent; border-top-color: rgba(28, 39, 51, 0.07); border-radius: 0 0 var(--radius) var(--radius); }
+.table { border-radius: var(--radius-sm); }
+.form-control { border-radius: var(--radius-sm); box-shadow: var(--shadow-small) inset; }
+.progress { border-radius: 99px; height: 6px; overflow: hidden; }
+.progress-bar { border-radius: 99px; transition: width 400ms cubic-bezier(0.25, 1, 0.5, 1); }
+.sidebar-menu > li > a { border-radius: var(--radius-sm); }
+.dropdown-menu, .navbar-nav > .user-menu > .dropdown-menu.account-menu {
+  border: 0; border-radius: var(--radius); box-shadow: 0 12px 32px rgba(28, 39, 51, 0.16);
+  transform-origin: top right;  /* the menu grows out of the button that opened it */
+}
+
+/* ---------- response: feedback the instant you press ---------- */
+.btn { border-radius: var(--radius-sm); transition: var(--press), background-color 150ms, box-shadow 150ms; }
+.btn:active, .btn.active { transform: scale(0.97); box-shadow: none; }
+.sidebar-menu > li > a { transition: var(--press), background-color 150ms; }
+.sidebar-menu > li > a:active { transform: scale(0.98); }
+
+/* Whole cards that are a single link (task cards) press like buttons */
+.task-grid .box:has(.box-footer .btn-block) { transition: var(--press), box-shadow 200ms; }
+.task-grid .box:has(.box-footer .btn-block:active) { transform: scale(0.99); }
+
+/* ---------- motion: messages materialise (scale + blur + opacity together) ---------- */
+.flash-area .alert { animation: materialise 260ms cubic-bezier(0.25, 1, 0.5, 1) both; border-radius: var(--radius-sm); }
+@keyframes materialise {
+  from { opacity: 0; transform: scale(0.98); filter: blur(4px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+
+/* ---------- accessibility ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .btn, .sidebar-menu > li > a, .task-grid .box, .progress-bar { transition: none; }
+  .btn:active, .sidebar-menu > li > a:active, .task-grid .box:has(.box-footer .btn-block:active) { transform: none; }
+  .flash-area .alert { animation: fade 150ms ease both; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .main-header .logo, .main-header .navbar { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+@media (prefers-contrast: more) {
+  .box, .card, .panel, .small-box { box-shadow: none; border: 1px solid var(--line-strong); }
+  .main-header .logo, .main-header .navbar { background: var(--surface); backdrop-filter: none; border-bottom-color: var(--line-strong); }
+}

@@ -41,7 +41,7 @@
             <i class="fa fa-question-circle"></i> Answer All Questions
           </h3>
           <div class="box-tools pull-right">
-            <span class="badge bg-blue">{{ assignments|length }} Questions</span>
+            <span class="badge bg-blue">{{ assignments|length }} {{ 'question' if assignments|length == 1 else 'questions' }}</span>
           </div>
         </div>
         
@@ -49,8 +49,7 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
             <p class="text-muted">
-              <strong>Batch:</strong> {{ batch_index + 1 }} of {{ (total_uncompleted_questions / batch_size)|round(0, 'ceil')|int }}
-              (Questions {{ (batch_index * batch_size) + 1 }} - {{ (batch_index * batch_size) + assignments|length }} of {{ total_uncompleted_questions }} remaining)
+              {{ total_uncompleted_questions }} {{ 'question' if total_uncompleted_questions == 1 else 'questions' }} left for this item{% if total_uncompleted_questions > assignments|length %}, {{ assignments|length }} on this page{% endif %}.
             </p>
             <hr>
             {% for assignment in assignments %}
@@ -104,31 +103,6 @@
             </div>
             {% endif %}
             
-            <div class="row" style="margin-top: 10px;">
-              <div class="col-xs-6">
-                {% if has_prev_page %}
-                <a href="{{ url_for('user.annotate_image', image_id=image.id, project_id=project.id, batch_index=batch_index - 1) }}" class="btn btn-primary btn-block">
-                  <i class="fa fa-arrow-left"></i> Previous Batch
-                </a>
-                {% else %}
-                <button type="button" class="btn btn-default btn-block" disabled>
-                  <i class="fa fa-arrow-left"></i> Previous Batch
-                </button>
-                {% endif %}
-              </div>
-              <div class="col-xs-6">
-                {% if has_next_page %}
-                <a href="{{ url_for('user.annotate_image', image_id=image.id, project_id=project.id, batch_index=batch_index + 1) }}" class="btn btn-primary btn-block">
-                  Next Batch <i class="fa fa-arrow-right"></i>
-                </a>
-                {% else %}
-                <button type="button" class="btn btn-default btn-block" disabled>
-                  Next Batch <i class="fa fa-arrow-right"></i>
-                </button>
-                {% endif %}
-              </div>
-            </div>
-
             <a href="{{ url_for('user.annotation_tasks', project_id=project.id) }}" class="btn btn-default btn-block" style="margin-top: 10px;">
               <i class="fa fa-arrow-left"></i> Back to Annotation Tasks
             </a>

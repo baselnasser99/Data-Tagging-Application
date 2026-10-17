@@ -40,6 +40,12 @@ def test_logout_clears_session(user_client):
     assert user_client.get("/user/dashboard").status_code == 302
 
 
+def test_private_pages_are_not_kept_by_the_browser(user_client):
+    """Regression: after sign-out, the Back button showed the old dashboard."""
+    assert user_client.get("/user/dashboard").headers["Cache-Control"] == "no-store"
+    assert "no-store" not in user_client.get("/static/css/app.css").headers.get("Cache-Control", "")
+
+
 def test_register_creates_end_user_with_hashed_password(client, db):
     from application.models import User
 

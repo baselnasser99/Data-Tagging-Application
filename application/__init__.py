@@ -32,7 +32,7 @@ def create_app(config_object=None):
 
     from .admin import admin
     from .auth import auth
-    from .end_user import end_user
+    from .annotation import annotation
     from .groups import groups
     from .manager import manager
     from .annotation_admin import annotation_admin
@@ -43,7 +43,7 @@ def create_app(config_object=None):
     app.register_blueprint(groups)
     app.register_blueprint(manager)
     app.register_blueprint(annotation_admin)
-    app.register_blueprint(end_user)
+    app.register_blueprint(annotation)
 
     app.jinja_env.globals["getattr_safe"] = getattr_safe
     app.jinja_env.globals["plural"] = plural

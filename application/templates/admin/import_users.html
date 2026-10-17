@@ -46,10 +46,10 @@
           <select class="form-control" id="project" name="project_id">
             <option value="">-- Select a Project --</option>
             {% for project in projects %}
-            <option value="{{ project.id }}">{{ project.name }} {% if project.is_annotation_project %}(Annotation Project){% endif %}</option>
+            <option value="{{ project.id }}">{{ project.name }} {% if project.is_annotation_project %}(project){% endif %}</option>
             {% endfor %}
           </select>
-          <p class="help-block">For regular projects, questions will be assigned. For annotation projects, tasks will be assigned.</p>
+          <p class="help-block">Surveys: every question is assigned. Projects: tasks are shared out fairly.</p>
         </div>
       </div>
       <div class="box-footer">

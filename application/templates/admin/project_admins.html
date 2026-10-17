@@ -1,84 +1,48 @@
 {% extends "base.html" %}
+{% from "includes/manager_form.html" import add_manager_form %}
 
-{% block title %}Project Admins{% endblock %}
+{% block title %}Managers – {{ project.name }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Project Admins</h3>
-                    <div class="card-tools">
-                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addAdminModal">
-                            Add Existing User
-                        </button>
-                        <a href="{{ url_for('manager.create_project_admin', project_id=project.id) }}" class="btn btn-success">
-                            Create New Admin
-                        </a>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <table class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Assigned By</th>
-                                <th>Assigned Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for admin in project_admins %}
-                            <tr>
-                                <td>{{ admin.user.full_name }}</td>
-                                <td>{{ admin.user.email }}</td>
-                                <td>{{ admin.assigner.full_name }}</td>
-                                <td>{{ admin.assigned_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                <td>
-                                    <form action="{{ url_for('manager.remove_project_admin', project_id=project.id, admin_id=admin.id) }}" method="POST" style="display: inline;">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to remove this project admin?')">
-                                            Remove
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<section class="content-header">
+  <h1>Manager<small>{{ project.name }}</small></h1>
+</section>
 
-<!-- Add Existing User as Project Admin Modal -->
-<div class="modal fade" id="addAdminModal" tabindex="-1" role="dialog" aria-labelledby="addAdminModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addAdminModalLabel">Add Existing User as Project Admin</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form action="{{ url_for('manager.add_project_admin', project_id=project.id) }}" method="POST">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="email">User Email</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
-                        <small class="form-text text-muted">Enter the email of an existing user you want to make a project admin. To create a new user, use the "Create New Admin" button.</small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Add Admin</button>
-                </div>
+<section class="content">
+  <div class="row">
+    <div class="col-md-7 col-xs-12">
+      <div class="box">
+        <div class="box-header with-border"><h3 class="box-title">Current manager</h3></div>
+        <div class="box-body">
+          {% for admin in project_admins %}
+          <div class="assignment-row">
+            <span><strong>{{ admin.user.full_name }}</strong> <span class="text-muted">· {{ admin.user.email }}</span><br>
+              <span class="text-muted">Added by {{ admin.assigner.full_name if admin.assigner else 'unknown' }} on {{ admin.assigned_date.strftime('%d %b %Y') }}</span></span>
+            <form action="{{ url_for('manager.remove_project_admin', project_id=project.id, admin_id=admin.id) }}" method="POST"
+                  onsubmit="return confirm('Remove {{ admin.user.full_name }} as manager of this project?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-danger btn-sm">Remove</button>
             </form>
+          </div>
+          {% else %}
+          <p class="text-muted" style="margin: 0;">This project has no manager yet. System admins can always manage it.</p>
+          {% endfor %}
         </div>
+      </div>
     </div>
-</div>
-{% endblock %} 
+
+    {% if not project_admins %}
+    <div class="col-md-5 col-xs-12">
+      <div class="box">
+        <div class="box-header with-border"><h3 class="box-title">Add a manager</h3></div>
+        <div class="box-body">
+          {{ add_manager_form(url_for('manager.add_project_admin', project_id=project.id), candidates) }}
+          <p style="margin: 14px 0 0;">Not in the list?
+            <a href="{{ url_for('manager.create_project_admin', project_id=project.id) }}">Create a new manager account</a>.</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

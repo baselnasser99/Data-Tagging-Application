@@ -67,7 +67,7 @@ def test_new_user_who_gets_nothing_is_reported(db, admin_client, make_user):
     assert b"Late Joiner got no tasks in" in resp.data
     assert b"Answers per task" in resp.data
 
-    # The Generate Tasks page now pre-selects the group already on the project.
+    # The Hand out tasks page now pre-selects the group already on the project.
     page = admin_client.get(f"/admin/generate-annotation-tasks/{project.id}").data
     assert b"selected" in page and b"already working on this project" in page
 
@@ -163,4 +163,63 @@ def test_projects_page_shows_the_whole_description_as_text(admin_client):
     page = admin_client.get("/admin/view-projects").data.decode()
     assert "Label street photos. " * 40 in page  # not cut off
     assert "&lt;b&gt;end&lt;/b&gt;" in page  # shown as text, never run as HTML
-    assert "Annotation project" in page
+    assert "1 question" in page and "Survey" not in page
+
+
+def test_managers_page_add_from_list_or_by_email(admin_client, db, make_user):
+    from application.models import Project, ProjectAdmin
+
+    first, second = Project(name="Alpha", desc="d"), Project(name="Beta", desc="d")
+    db.session.add_all([first, second])
+    db.session.commit()
+    ben, cai = make_user(name="Ben Byte"), make_user(name="Cai Code")
+
+    page = admin_client.get("/admin/managers").data
+    assert b"No manager" in page and b"Ben Byte" in page  # the people list
+
+    # Pick from the list...
+    resp = admin_client.post("/admin/managers/add", data={"project_id": first.id, "user_id": ben.id},
+                             follow_redirects=True)
+    assert b"Ben Byte now manages" in resp.data and ben.role == "project-admin"
+    # ...or type an email, which wins over the list.
+    resp = admin_client.post("/admin/managers/add", data={"project_id": second.id, "user_id": ben.id,
+                                                          "email": cai.email}, follow_redirects=True)
+    assert b"Cai Code now manages" in resp.data
+    assert {(pa.project_id, pa.user_id) for pa in ProjectAdmin.query} == {(first.id, ben.id), (second.id, cai.id)}
+
+    # One manager per project.
+    resp = admin_client.post("/admin/managers/add", data={"project_id": first.id, "user_id": cai.id},
+                             follow_redirects=True)
+    assert b"already has a manager" in resp.data
+    assert b"Every project already has a manager" in resp.data
+
+
+def test_managers_page_is_for_admins_only(app, make_user):
+    user = make_user()
+    client = app.test_client()
+    login(client, user.email)
+    assert client.get("/admin/managers").status_code == 403
+
+
+def test_project_manager_page_has_the_picker(admin_client, db, make_user):
+    from application.models import Project
+
+    project = Project(name="Gamma", desc="d")
+    db.session.add(project)
+    db.session.commit()
+    make_user(name="Dee Data")
+    page = admin_client.get(f"/admin/project/{project.id}/admins").data
+    assert b"Dee Data" in page and b'name="email"' in page and b'name="user_id"' in page
+    assert b'class="content"' in page  # inside the normal page layout, not glued to the sidebar
+
+
+def test_create_a_manager_without_a_project(admin_client):
+    resp = admin_client.post("/admin/create-user", data={
+        "full_name": "Mia Manager", "email": "mia@example.com", "password": "secret123",
+        "role": "manager", "group_id": "",
+    }, follow_redirects=True)
+    assert b"created as a manager" in resp.data
+    assert User.query.filter_by(email="mia@example.com").one().role == "project-admin"
+    assert b"Managers without a project" in resp.data and b"Mia Manager" in resp.data  # lands on Managers
+    assert b"Create a new manager" in resp.data  # the form lives on the Managers page
+    assert b'value="manager" checked' in admin_client.get("/admin/create-user?role=manager").data

@@ -40,8 +40,8 @@
                 <li>Pick the files themselves, or ZIP files containing them, or both</li>
                 <li>Files can be in folders within a ZIP (folder structure will be flattened)</li>
                 <li>Other file types are ignored, and files whose names already exist in this project are skipped</li>
-                <li>Each item is combined with all {{ project.questions|length }} questions to create annotation tasks</li>
-                <li>Annotators see images as pictures and hear audio clips in a built-in player</li>
+                <li>Each item is combined with all {{ project.questions|length }} questions to create tasks</li>
+                <li>People see images as pictures and hear audio clips in a built-in player</li>
               </ul>
             </div>
           </div>
@@ -110,7 +110,7 @@
           <p><strong>Formula:</strong></p>
           <p>Total Tasks = Items × Questions</p>
           <p><strong>Example:</strong></p>
-          <p>1000 items × 5 questions = 5000 annotation tasks</p>
+          <p>1000 items × 5 questions = 5000 tasks</p>
           <p class="text-muted">Each task will be assigned to {{ project.answers_per_task }} different users.</p>
         </div>
       </div>

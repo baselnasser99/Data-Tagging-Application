@@ -30,7 +30,7 @@
 				<div class="box-header with-border">
 					<h3 class="box-title">{{ project.name }}</h3>
 					<p class="text-muted" style="margin: 4px 0 0;">
-						{{ 'Annotation project' if project.is_annotation_project else 'Survey project' }}
+						{{ 'Project' if project.is_annotation_project else 'Survey' }}
 						· {{ plural(project.questions | length, "question") }}
 						{% if project.is_annotation_project %}· {{ plural(project.images | length, "item") }}{% endif %}
 					</p>
@@ -68,7 +68,7 @@
 	{% else %}
 	<div class="box"><div class="empty-state">
 		<strong>No projects yet</strong>
-		<a href="{{ url_for('admin.create_annotation_project') }}">Create an annotation project</a>
+		<a href="{{ url_for('admin.create_annotation_project') }}">Create a project</a>
 	</div></div>
 	{% endif %}
 </section>

@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% from "includes/media.html" import media_item %}
 
-{% block title %}Annotate Image - {{ project.name }}{% endblock %}
+{% block title %}Answer questions - {{ project.name }}{% endblock %}
 
 {% block content %}
 <section class="content-header">
-  <h1>Image Annotation</h1>
+  <h1>Answer questions</h1>
   <ol class="breadcrumb">
     <li><a href="{{ url_for('user.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-    <li><a href="{{ url_for('user.annotation_tasks', project_id=project.id) }}"><i class="fa fa-image"></i> Annotation Tasks</a></li>
-    <li class="active">Annotate Image</li>
+    <li><a href="{{ url_for('user.annotation_tasks', project_id=project.id) }}"><i class="fa fa-image"></i> My tasks</a></li>
+    <li class="active">Answer questions</li>
   </ol>
 </section>
 
@@ -104,7 +104,7 @@
             {% endif %}
             
             <a href="{{ url_for('user.annotation_tasks', project_id=project.id) }}" class="btn btn-default btn-block" style="margin-top: 10px;">
-              <i class="fa fa-arrow-left"></i> Back to Annotation Tasks
+              <i class="fa fa-arrow-left"></i> Back to my tasks
             </a>
           </div>
         </form>

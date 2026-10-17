@@ -524,5 +524,10 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .progress-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .progress-label h4 { margin: 0 0 6px; }
 
-/* Text boxes grow downward only, never wider than their column */
-textarea, textarea.form-control { resize: vertical; max-width: 100%; }
+/* Text boxes: never wider than their column, never taller than half the screen.
+   Where the browser supports it they grow with the text by themselves (no
+   drag handle); elsewhere they can be dragged taller, up to the same limit. */
+textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height: 50vh; }
+@supports (field-sizing: content) {
+  textarea, textarea.form-control { field-sizing: content; resize: none; min-height: 84px; }
+}

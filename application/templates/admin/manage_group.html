@@ -9,7 +9,7 @@
         <a href="#"><i class="fa fa-dashboard"></i> Home</a>
       </li>
       <li>
-        <a href="{{ url_for('admin.view_groups') }}">Groups</a>
+        <a href="{{ url_for('groups.view_groups') }}">Groups</a>
       </li>
       <li class="active">Manage</li>
     </ol>
@@ -118,7 +118,7 @@
             {% endif %}
           </div>
           <div class="box-footer">
-            <a href="{{ url_for('admin.view_groups') }}" class="btn btn-default">
+            <a href="{{ url_for('groups.view_groups') }}" class="btn btn-default">
               <i class="fa fa-arrow-left"></i> Back to Groups
             </a>
           </div>

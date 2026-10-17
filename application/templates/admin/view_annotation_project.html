@@ -6,271 +6,179 @@
 {% block content %}
 <section class="content-header">
   <h1>{{ project.name }}</h1>
-  <ol class="breadcrumb">
-    <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-    <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
-    <li class="active">{{ project.name }}</li>
-  </ol>
+  <p class="text-muted page-subtitle">Progress and results</p>
 </section>
 
 <section class="content">
-  <!-- Progress Overview -->
-  <div class="row">
-    <div class="col-lg-3 col-xs-6">
-      <div class="small-box bg-aqua">
-        <div class="inner">
-          <h3>{{ stats.total_images }}</h3>
-          <p>Items Uploaded{% if stats.total_audio %} ({{ stats.total_audio }} audio){% endif %}</p>
-        </div>
-        <div class="icon">
-          <i class="fa fa-image"></i>
-        </div>
-      </div>
+  <div class="figures">
+    <div class="figure">
+      <span class="figure-value">{{ stats.total_images }}</span>
+      <span class="figure-label">Items{% if stats.total_audio %} ({{ stats.total_audio }} audio){% endif %}</span>
     </div>
-    
-    <div class="col-lg-3 col-xs-6">
-      <div class="small-box bg-green">
-        <div class="inner">
-          <h3>{{ stats.total_tasks }}</h3>
-          <p>Tasks</p>
-        </div>
-        <div class="icon">
-          <i class="fa fa-tasks"></i>
-        </div>
-      </div>
+    <div class="figure">
+      <span class="figure-value">{{ stats.completed_tasks }} of {{ stats.total_tasks }}</span>
+      <span class="figure-label">Tasks done</span>
     </div>
-    
-    <div class="col-lg-3 col-xs-6">
-      <div class="small-box bg-yellow">
-        <div class="inner">
-          <h3>{{ stats.completion_percentage }}%</h3>
-          <p>Tasks Completed</p>
-        </div>
-        <div class="icon">
-          <i class="fa fa-check-circle"></i>
-        </div>
-      </div>
+    {% if project.answers_per_task > 1 %}
+    <div class="figure">
+      <span class="figure-value">{{ stats.completed_assignments }} of {{ stats.total_assignments }}</span>
+      <span class="figure-label">Answers given</span>
     </div>
-    
-    <div class="col-lg-3 col-xs-6">
-      <div class="small-box bg-red">
-        <div class="inner">
-          <h3>{{ stats.total_assignments }}</h3>
-          <p>User Assignments</p>
-        </div>
-        <div class="icon">
-          <i class="fa fa-users"></i>
-        </div>
-      </div>
+    {% endif %}
+    <div class="figure">
+      <span class="figure-value">{{ stats.unique_users }}</span>
+      <span class="figure-label">{{ "Person" if stats.unique_users == 1 else "People" }} with tasks</span>
     </div>
   </div>
-  
-  <div class="row">
-    <!-- Project Details -->
-    <div class="col-md-8">
-      <div class="box box-primary">
-        <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-info-circle"></i> Project Details
-          </h3>
-        </div>
-        <div class="box-body">
-          <table class="table table-bordered">
-            <tr>
-              <th style="width: 30%">Project Name:</th>
-              <td>{{ project.name }}</td>
-            </tr>
-            <tr>
-              <th>Description:</th>
-              <td>{{ project.desc }}</td>
-            </tr>
-            <tr>
-              <th>Project Type:</th>
-              <td><span class="badge bg-blue">{{ 'Images and audio' if stats.total_audio and stats.total_audio < stats.total_images else ('Audio' if stats.total_audio else 'Images') }}</span></td>
-            </tr>
-            <tr>
-              <th>Max tasks per person:</th>
-              <td>{{ project.max_questions_per_user }}</td>
-            </tr>
-            <tr>
-              <th>Required Answers per Task:</th>
-              <td>{{ project.answers_per_task }}</td>
-            </tr>
-            <tr>
-              <th>Hand Out Work:</th>
-              <td>{{ "All of an item's questions to one person" if project.hand_out_per_item else "Each question on its own" }}</td>
-            </tr>
-          </table>
-        </div>
+
+  {% if stats.total_tasks %}
+  <div class="box">
+    <div class="box-body">
+      <div class="progress-label">
+        <h4>Progress</h4>
+        <span class="text-muted">{{ stats.completion_percentage }}% of tasks done</span>
       </div>
-      
-      <!-- Progress Chart -->
-      <div class="box box-success">
-        <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-bar-chart"></i> Completion Progress
-          </h3>
-        </div>
-        <div class="box-body">
-          <div class="progress-group">
-            <span class="progress-text">Task Completion</span>
-            <span class="float-right"><b>{{ stats.completed_tasks }}</b>/{{ stats.total_tasks }}</span>
-            <div class="progress progress-sm">
-              <div class="progress-bar bg-green" style="width: {{ stats.completion_percentage }}%"></div>
-            </div>
-          </div>
-          
-            <div class="progress-group">
-            <span class="progress-text">User Assignment Completion</span>
-            <span class="float-right"><b>{{ stats.completed_assignments }}</b>/{{ stats.total_assignments }}</span>
-            <div class="progress progress-sm">
-              <div class="progress-bar bg-blue" style="width: {{ stats.assignment_completion }}%"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Actions & Info -->
-    <div class="col-md-4">
-      <div class="box box-warning">
-        <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-cog"></i> Actions
-          </h3>
-        </div>
-        <div class="box-body">
-          <a href="{{ url_for('annotation_admin.upload_images', project_id=project.id) }}" class="btn btn-primary btn-block">
-            <i class="fa fa-upload"></i> Upload More Items
-          </a>
-          <a href="{{ url_for('annotation_admin.generate_annotation_tasks', project_id=project.id) }}" class="btn btn-success btn-block">
-            <i class="fa fa-cogs"></i> Hand out new tasks
-          </a>
-          <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-info btn-block">
-            <i class="fa fa-download"></i> Download results (CSV)
-          </a>
-          <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default btn-block">
-            <i class="fa fa-file-code-o"></i> Download results (JSON)
-          </a>
-          <a href="{{ url_for('admin.view_projects') }}" class="btn btn-default btn-block">
-            <i class="fa fa-arrow-left"></i> Back to Projects
-          </a>
-        </div>
-      </div>
-      
-      <div class="box box-info">
-        <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-question-circle"></i> Questions
-          </h3>
-        </div>
-        <div class="box-body">
-          {% for question in questions %}
-          <p><i class="fa fa-check text-green"></i> {{ question.question }}</p>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Sample items -->
-  {% if images %}
-  <div class="row">
-    <div class="col-md-12">
-      <div class="box box-default">
-        <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-image"></i> Sample Items (First 10)
-          </h3>
-        </div>
-        <div class="box-body">
-          <div class="row">
-            {% for image in images %}
-            <div class="col-md-2 col-sm-3 col-xs-4" style="margin-bottom: 15px;">
-              <div class="thumbnail">
-                {{ media_item(project, image, thumbnail=True, img_class="img-responsive",
-                              img_style="height: 120px; width: 100%; object-fit: cover;") }}
-                <div class="caption text-center">
-                  <small>{{ image.original_filename[:20] }}{% if image.original_filename|length > 20 %}...{% endif %}</small>
-                </div>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-          {% if stats.total_images > 10 %}
-          <p class="text-center text-muted">... and {{ plural(stats.total_images - 10, "more item") }}</p>
-          {% endif %}
-        </div>
+      <div class="progress" role="progressbar" aria-label="Tasks done"
+           aria-valuenow="{{ stats.completion_percentage }}" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar" style="width: {{ stats.completion_percentage }}%"></div>
       </div>
     </div>
   </div>
   {% endif %}
-  
-  <!-- Workload per person -->
+
+  <div class="box">
+    <div class="box-body quick-actions">
+      <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-primary">
+        <i class="fa fa-download"></i> Download results (CSV)
+      </a>
+      <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default">
+        <i class="fa fa-download"></i> Download results (JSON)
+      </a>
+      <a href="{{ url_for('annotation_admin.upload_images', project_id=project.id) }}" class="btn btn-default">
+        <i class="fa fa-upload"></i> Upload items
+      </a>
+      <a href="{{ url_for('annotation_admin.generate_annotation_tasks', project_id=project.id) }}" class="btn btn-default">
+        <i class="fa fa-tasks"></i> Hand out tasks
+      </a>
+      <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-default">
+        <i class="fa fa-arrow-left"></i> Project dashboard
+      </a>
+    </div>
+  </div>
+
   {% if workload %}
-  <div class="row">
-    <div class="col-md-12">
+  <div class="box">
+    <div class="box-header with-border">
+      <h3 class="box-title">Workload per person</h3>
+    </div>
+    <div class="box-body table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Person</th>
+            <th class="num">Assigned</th>
+            <th class="num">Completed</th>
+            <th class="num">Still to do</th>
+            <th style="width: 30%;">Progress</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in workload %}
+          {% set pct = (row.completed / row.total * 100) if row.total else 0 %}
+          <tr>
+            <td><strong>{{ row.user.full_name }}</strong><br><span class="text-muted">{{ row.user.email }}</span></td>
+            <td class="num">{{ row.total }}</td>
+            <td class="num">{{ row.completed }}</td>
+            <td class="num">{{ row.open }}</td>
+            <td>
+              <div class="progress" role="progressbar" aria-valuenow="{{ pct|round|int }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ row.user.full_name }} progress">
+                <div class="progress-bar" style="width: {{ pct }}%"></div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row task-grid">
+    <div class="col-md-6 col-xs-12">
       <div class="box">
         <div class="box-header with-border">
-          <h3 class="box-title">Workload per person</h3>
+          <h3 class="box-title">Settings</h3>
         </div>
         <div class="box-body">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Person</th>
-                <th>Assigned</th>
-                <th>Completed</th>
-                <th>Still to do</th>
-                <th style="width: 30%;">Progress</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in workload %}
-              {% set pct = (row.completed / row.total * 100) if row.total else 0 %}
-              <tr>
-                <td>{{ row.user.full_name }} <span class="text-muted">{{ row.user.email }}</span></td>
-                <td>{{ row.total }}</td>
-                <td>{{ row.completed }}</td>
-                <td>{{ row.open }}</td>
-                <td>
-                  <div class="progress" role="progressbar" aria-valuenow="{{ pct|round|int }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ row.user.full_name }} progress">
-                    <div class="progress-bar" style="width: {{ pct }}%"></div>
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+          <dl class="settings-list">
+            <dt>Items</dt>
+            <dd>{{ 'Images and audio' if stats.total_audio and stats.total_audio < stats.total_images else ('Audio' if stats.total_audio else 'Images') }}</dd>
+            <dt>Max tasks per person</dt>
+            <dd>{{ project.max_questions_per_user }}</dd>
+            <dt>Answers per task</dt>
+            <dd>{{ project.answers_per_task }}</dd>
+            <dt>Hand out work</dt>
+            <dd>{{ "All of an item's questions to one person" if project.hand_out_per_item else "Each question on its own" }}</dd>
+          </dl>
         </div>
       </div>
+    </div>
+    <div class="col-md-6 col-xs-12">
+      <div class="box">
+        <div class="box-header with-border">
+          <h3 class="box-title">Questions</h3>
+        </div>
+        <div class="box-body">
+          <ol class="question-list">
+            {% for question in questions %}
+            <li>{{ question.question }}</li>
+            {% else %}
+            <li class="text-muted">No questions yet.</li>
+            {% endfor %}
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if images %}
+  <div class="box">
+    <div class="box-header with-border">
+      <h3 class="box-title">Items</h3>
+      {% if stats.total_images > 10 %}<p class="text-muted" style="margin: 4px 0 0;">The first 10 of {{ stats.total_images }}</p>{% endif %}
+    </div>
+    <div class="box-body">
+      <ul class="item-strip">
+        {% for image in images %}
+        <li>
+          {{ media_item(project, image, thumbnail=True, img_style="height: 96px; width: 100%; object-fit: cover; border-radius: var(--radius-sm);") }}
+          <span class="text-muted">{{ image.original_filename }}</span>
+        </li>
+        {% endfor %}
+      </ul>
     </div>
   </div>
   {% endif %}
 
   {% if exports %}
-  <div class="row">
-    <div class="col-md-12">
-      <div class="box">
-        <div class="box-header with-border">
-          <h3 class="box-title">Export history</h3>
-        </div>
-        <div class="box-body">
-          <table class="table">
-            <thead><tr><th>When</th><th>Who</th><th>Format</th><th>Answers</th></tr></thead>
-            <tbody>
-              {% for e in exports %}
-              <tr>
-                <td>{{ e.created_date.strftime('%Y-%m-%d %H:%M') if e.created_date }}</td>
-                <td>{{ e.user.full_name }}</td>
-                <td>{{ e.file_format | upper }}</td>
-                <td>{{ e.answer_count }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
+  <div class="box">
+    <div class="box-header with-border">
+      <h3 class="box-title">Export history</h3>
+    </div>
+    <div class="box-body table-responsive">
+      <table class="table">
+        <thead><tr><th>When</th><th>Who</th><th>Format</th><th class="num">Answers</th></tr></thead>
+        <tbody>
+          {% for e in exports %}
+          <tr>
+            <td>{{ e.created_date.strftime('%Y-%m-%d %H:%M') if e.created_date }}</td>
+            <td>{{ e.user.full_name }}</td>
+            <td>{{ e.file_format | upper }}</td>
+            <td class="num">{{ e.answer_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
   {% endif %}

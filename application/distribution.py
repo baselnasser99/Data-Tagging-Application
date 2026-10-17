@@ -11,10 +11,13 @@ Vocabulary
 Guarantees, each covered by tests in tests/test_distribution.py:
     1. Uniqueness: a user never receives the same task twice.
     2. Cap: nobody holds more than ``max_questions_per_user`` assignments in a project.
-    3. Fairness: work goes to the eligible user with the lowest load (ties broken
-       by total assignments, then user id, so results are reproducible). Work is
-       handed out per image, so loads stay within one image's worth of questions.
-    3b. One sitting per image: whoever gets an image gets all of its open questions.
+    3. Fairness: work goes to the eligible user with the lowest load, so loads
+       stay within one task of each other. Ties go to whoever has answered that
+       question least, so everyone gets a mix of questions, then by total
+       assignments, then user id, so results are reproducible.
+    3b. Per-item projects (``hand_out_per_item``): whoever gets an item gets all
+       of its open questions, in one sitting; loads then stay within one item's
+       worth of questions.
     4. Completeness: when someone leaves, their unfinished assignments are released
        and immediately offered to the remaining members; finished work is never touched.
     5. Integrity: regenerating tasks only adds missing (image, question) pairs;
@@ -187,10 +190,11 @@ def reopen_question(question: Question) -> None:
 def assign_open_slots(project: Project, users: list[User] | None = None) -> DistributionResult:
     """Fill every task's missing answer slots with the least-loaded eligible users.
 
-    Work is handed out **per image**: when a person receives an image, they get
-    every question for it that still needs an answer, so they answer all of an
-    image's questions in one sitting instead of seeing it again later for a
-    different question. Images with the most missing answers are served first.
+    By default each task is handed out on its own. In per-item projects a person
+    who receives an item gets every question for it that still needs an answer,
+    so they answer all of it in one sitting. Work with the most missing answers
+    is served first; within an item, the starting question rotates from item to
+    item so nobody always ends up with the same question.
     """
     result = DistributionResult()
     users = eligible_users(project) if users is None else users
@@ -204,42 +208,61 @@ def assign_open_slots(project: Project, users: list[User] | None = None) -> Dist
 
     tasks = AnnotationTask.query.filter_by(project_id=project.id).order_by(AnnotationTask.id).all()
     holders: dict[int, set[int]] = {t.id: set() for t in tasks}
-    for task_id, user_id in (
-        db.session.query(TaskAssignment.task_id, TaskAssignment.user_id)
+    seen: Counter = Counter()  # (user, question) -> times that user got that question
+    for task_id, user_id, question_id in (
+        db.session.query(TaskAssignment.task_id, TaskAssignment.user_id, AnnotationTask.question_id)
         .join(AnnotationTask)
         .filter(AnnotationTask.project_id == project.id)
         .all()
     ):
         holders[task_id].add(user_id)
+        seen[user_id, question_id] += 1
 
     def missing(task):
         return max(0, (task.required_answers or 1) - len(holders[task.id]))
 
-    by_image: dict[int, list] = {}
+    per_item = project.hand_out_per_item
+    units: dict[int, list] = {}  # what one person receives at once: an item, or a single task
     for task in tasks:
-        by_image.setdefault(task.image_id, []).append(task)
+        units.setdefault(task.image_id if per_item else task.id, []).append(task)
 
-    def image_missing(image_tasks):
-        return sum(missing(t) for t in image_tasks)
+    def unit_missing(unit_tasks):
+        return sum(missing(t) for t in unit_tasks)
 
-    for image_id in sorted(by_image, key=lambda i: (-image_missing(by_image[i]), i)):
-        image_tasks = by_image[image_id]
-        while image_missing(image_tasks):
-            # People who still lack at least one open question of this image
-            # and have room under the cap; least busy first.
+    item_index = {i: n for n, i in enumerate(sorted({t.image_id for t in tasks}))}
+    question_index = {q: n for n, q in enumerate(sorted({t.question_id for t in tasks}))}
+
+    def unit_order(key):
+        first = units[key][0]
+        item = item_index[first.image_id]
+        # Rotate each item's starting question, so the last person in a round
+        # does not always receive the same question.
+        rotated = (question_index[first.question_id] - item) % max(1, len(question_index))
+        return (-unit_missing(units[key]), item, rotated)
+
+    for key in sorted(units, key=unit_order):
+        unit_tasks = units[key]
+        while unit_missing(unit_tasks):
+            # People who still lack at least one open task of this unit and
+            # have room under the cap.
             candidates = [
                 u.id for u in users
                 if total[u.id] < cap
-                and any(missing(t) and u.id not in holders[t.id] for t in image_tasks)
+                and any(missing(t) and u.id not in holders[t.id] for t in unit_tasks)
             ]
             if not candidates:
-                result.unfilled_slots += image_missing(image_tasks)
+                result.unfilled_slots += unit_missing(unit_tasks)
                 break
-            uid = min(candidates, key=lambda i: (open_load[i], total[i], i))
-            for task in image_tasks:
+            if per_item:
+                uid = min(candidates, key=lambda i: (open_load[i], total[i], i))
+            else:
+                question_id = unit_tasks[0].question_id
+                uid = min(candidates, key=lambda i: (open_load[i], seen[i, question_id], total[i], i))
+            for task in unit_tasks:
                 if missing(task) and uid not in holders[task.id] and total[uid] < cap:
                     db.session.add(TaskAssignment(task_id=task.id, user_id=uid))
                     holders[task.id].add(uid)
+                    seen[uid, task.question_id] += 1
                     open_load[uid] += 1
                     total[uid] += 1
                     result.assignments_created += 1
@@ -269,11 +292,11 @@ def _shortage_warning(project: Project, n_users: int) -> str:
 def rebalance(project: Project, users: list[User] | None = None) -> DistributionResult:
     """Move unstarted work from the busiest person to the least busy one.
 
-    Work moves one image at a time (all of that person's unstarted questions
-    for the image), keeping the "one image, one sitting" property. A move is
-    made only if it narrows the gap between the two people, the receiver holds
-    none of those tasks yet, and stays under the cap. Completed assignments
-    are never moved. Stops when no move narrows the gap.
+    Work moves one task at a time, or in per-item projects one item at a time
+    (all of that person's unstarted questions for it, keeping "one item, one
+    sitting"). A move is made only if it narrows the gap between the two people,
+    the receiver holds none of those tasks yet, and stays under the cap.
+    Completed assignments are never moved. Stops when no move narrows the gap.
     """
     result = DistributionResult()
     users = eligible_users(project) if users is None else users
@@ -301,11 +324,12 @@ def rebalance(project: Project, users: list[User] | None = None) -> Distribution
         )
         bundles: dict[int, list] = {}
         for assignment in heavy_open:
-            bundles.setdefault(assignment.task.image_id, []).append(assignment)
+            key = assignment.task.image_id if project.hand_out_per_item else assignment.task_id
+            bundles.setdefault(key, []).append(assignment)
 
         move = None
-        for image_id in sorted(bundles, key=lambda i: (len(bundles[i]), -i)):
-            bundle = bundles[image_id]
+        for key in sorted(bundles, key=lambda k: (len(bundles[k]), -k)):
+            bundle = bundles[key]
             size = len(bundle)
             if size >= gap:  # moving it would not narrow the gap
                 continue

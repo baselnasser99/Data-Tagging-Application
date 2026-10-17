@@ -1062,7 +1062,8 @@ def create_annotation_project():
             is_annotation_project=True,
             max_questions_per_user=max_questions_per_user,
             answers_per_task=answers_per_task,
-            questions_per_image=total_questions # Set questions_per_image based on total_questions from form
+            questions_per_image=total_questions, # Set questions_per_image based on total_questions from form
+            hand_out_per_item=request.form.get("hand_out") == "item",
         )
         db.session.add(project)
         db.session.flush() # Get the project ID
@@ -1747,6 +1748,8 @@ def edit_project_questions(project_id):
                 project.questions_per_image = int(request.form.get('questions_per_image', project.questions_per_image))
                 project.max_questions_per_user = int(request.form.get('max_questions_per_user', project.max_questions_per_user))
                 project.answers_per_task = int(request.form.get('answers_per_task', 1)) # Default to 1 for single completion
+                if 'hand_out' in request.form:
+                    project.hand_out_per_item = request.form['hand_out'] == 'item'
                 db.session.commit()
                 flash('Project settings updated successfully!', 'success')
                 flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))

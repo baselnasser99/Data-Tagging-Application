@@ -199,7 +199,7 @@ def test_answering_an_image_in_several_batches_skips_nothing(app, db, admin_clie
     group, members = group_with_members
     resp = admin_client.post("/admin/create-annotation-project", data={
         "project_name": "Batches", "project_desc": "d", "answers_per_task": "1",
-        "max_questions_per_user": "100", "total_questions": "3",
+        "max_questions_per_user": "100", "total_questions": "3", "hand_out": "item",
         "question_1": "A?", "question_2": "B?", "question_3": "C?",
     })
     project = Project.query.filter_by(name="Batches").one()
@@ -224,3 +224,15 @@ def test_answering_an_image_in_several_batches_skips_nothing(app, db, admin_clie
             assert resp.headers["Location"].endswith(base)
     assert all(a.is_completed for a in TaskAssignment.query.all())
     assert b"Done" in client.get("/user/annotation-tasks").data
+
+
+def test_hand_out_setting_from_the_forms(admin_client):
+    project = _create_project(admin_client)
+    assert project.hand_out_per_item is False  # default: each question on its own
+    admin_client.post(f"/admin/project/{project.id}/edit-questions", data={
+        "action": "update_project_settings", "hand_out": "item",
+        "answers_per_task": "1", "max_questions_per_user": "100", "questions_per_image": "2",
+    })
+    assert project.hand_out_per_item is True
+    assert b"All of an item&#39;s questions to one person" in admin_client.get(
+        f"/admin/view-annotation-project/{project.id}").data

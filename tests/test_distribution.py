@@ -21,14 +21,19 @@ from application.models import (
 )
 
 
-@pytest.fixture
-def setup(db, make_user):
-    """Build a project with images, questions and a group of annotators."""
+@pytest.fixture(params=[False, True], ids=["per-question", "per-item"])
+def setup(request, db, make_user):
+    """Build a project with images, questions and a group of annotators.
 
-    def _setup(n_images=6, n_questions=2, n_users=3, answers_per_task=1, cap=100):
+    Every test using this fixture runs twice: once handing out single questions
+    (the default) and once handing out whole items.
+    """
+
+    def _setup(n_images=6, n_questions=2, n_users=3, answers_per_task=1, cap=100, per_item=None):
         project = Project(
             name="P", desc="d", is_annotation_project=True,
             answers_per_task=answers_per_task, max_questions_per_user=cap,
+            hand_out_per_item=request.param if per_item is None else per_item,
         )
         group = UserGroup(name=f"G{n_users}-{n_images}")
         db.session.add_all([project, group])
@@ -111,14 +116,14 @@ def test_every_slot_is_filled_and_load_is_even(setup):
     distribution.distribute(project)
     load = open_load(project)
     assert sum(load.values()) == 30
-    # work is handed out per image (3 questions), so loads stay within one image
-    assert max(load.values()) - min(load.values()) <= 3
+    # within one task, or within one image's 3 questions when handing out items
+    assert max(load.values()) - min(load.values()) <= (3 if project.hand_out_per_item else 1)
     assert stranded_slots(project) == 0
 
 
 def test_whoever_gets_an_image_gets_all_its_questions(setup):
     """One sitting per image: an image's questions are not split between people."""
-    project, _, _ = setup(n_images=7, n_questions=3, n_users=3)
+    project, _, _ = setup(n_images=7, n_questions=3, n_users=3, per_item=True)
     distribution.distribute(project)
     owners = {}
     for a in assignments(project):
@@ -287,7 +292,7 @@ def test_workload_summary(setup):
 
 def test_leaving_with_an_item_half_answered(db, setup):
     """The answered question stays with the leaver; only the open one moves."""
-    project, group, users = setup(n_images=2, n_questions=2, n_users=2)
+    project, group, users = setup(n_images=2, n_questions=2, n_users=2, per_item=True)
     distribution.distribute(project)
     leaver, stayer = users
     answered, unanswered = sorted(
@@ -401,3 +406,63 @@ def test_deleting_a_question_removes_only_its_tasks_and_answers(admin_client, se
     assert AnnotationTask.query.filter_by(question_id=kept_id).count() == 2
     assert QuestionAnswer.query.filter_by(question_id=kept_id).count() == 2
     assert stranded_slots(project) == 0
+
+
+# ---- handing out single questions (the thesis default) -----------------------
+
+def _tasks_by_user(project):
+    mine = {}
+    for a in assignments(project):
+        mine.setdefault(a.user_id, []).append(a.task)
+    return mine
+
+
+def test_one_item_two_questions_two_people_get_one_each(setup):
+    project, _, users = setup(n_images=1, n_questions=2, n_users=2, per_item=False)
+    distribution.distribute(project)
+    mine = _tasks_by_user(project)
+    assert sorted(len(t) for t in mine.values()) == [1, 1]
+    assert {t.question_id for tasks in mine.values() for t in tasks} == {q.id for q in project.questions}
+
+
+def test_twenty_five_unique_tasks_for_five_people(setup):
+    """5 items x 5 questions, 5 people, 1 answer each: 5 unique tasks per person."""
+    project, _, users = setup(n_images=5, n_questions=5, n_users=5, per_item=False)
+    distribution.distribute(project)
+    mine = _tasks_by_user(project)
+    assert len(assignments(project)) == 25
+    assert len({a.task_id for a in assignments(project)}) == 25  # nobody shares a task
+    assert sorted(len(t) for t in mine.values()) == [5] * 5
+    # and everyone gets each of the 5 questions once
+    for tasks in mine.values():
+        assert sorted(Counter(t.question_id for t in tasks).values()) == [1] * 5
+
+
+def test_everyone_gets_a_mix_of_questions(setup):
+    """Regression for the first version: with 4 people and 2 questions, each
+    person only ever received one of the two questions."""
+    project, _, users = setup(n_images=8, n_questions=2, n_users=4, per_item=False)
+    distribution.distribute(project)
+    for tasks in _tasks_by_user(project).values():
+        assert sorted(Counter(t.question_id for t in tasks).values()) == [2, 2]
+
+
+def test_uneven_numbers_stay_within_one_task(setup):
+    project, _, users = setup(n_images=7, n_questions=1, n_users=3, per_item=False)
+    distribution.distribute(project)
+    assert sorted(len(t) for t in _tasks_by_user(project).values()) == [2, 2, 3]
+
+
+def test_projects_from_before_this_setting_keep_handing_out_items(app, db, setup):
+    from sqlalchemy import text
+
+    from application import _upgrade_schema
+
+    setup(per_item=False)
+    db.session.commit()
+    db.session.close()
+    with db.engine.begin() as conn:
+        conn.execute(text("ALTER TABLE project DROP COLUMN hand_out_per_item"))
+    _upgrade_schema(app)
+    with db.engine.connect() as conn:
+        assert conn.execute(text("SELECT hand_out_per_item FROM project")).scalar_one() in (1, True)

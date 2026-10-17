@@ -54,6 +54,16 @@
                                         <p class="help-block">Number of users who should answer each question</p>
                                     </div>
                                 </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="hand_out">Hand out work</label>
+                                        <select class="form-control" id="hand_out" name="hand_out">
+                    <option value="question"{% if not project.hand_out_per_item %} selected{% endif %}>Each question on its own (default)</option>
+                    <option value="item"{% if project.hand_out_per_item %} selected{% endif %}>All of an item's questions to one person</option>
+                  </select>
+                                        <p class="help-block">Applies to work handed out from now on; current assignments stay.</p>
+                                    </div>
+                                </div>
                                 {% endif %}
                             </div>
                         </div>

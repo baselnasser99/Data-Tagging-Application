@@ -13,7 +13,6 @@ from functools import wraps
 from flask import abort, flash, redirect, request, url_for
 from flask_login import current_user
 
-from .models import ProjectAdmin
 
 
 def _login_redirect():
@@ -51,7 +50,7 @@ def project_admin_required(func):
 
 
 def project_admin_access_required(func):
-    """System admins, or users who manage at least one project."""
+    """System admins, and managers (also those who don't run a project yet)."""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -59,7 +58,7 @@ def project_admin_access_required(func):
             return _login_redirect()
         if current_user.role == "admin":
             return func(*args, **kwargs)
-        if ProjectAdmin.query.filter_by(user_id=current_user.id).first() is None:
+        if not current_user.is_project_admin():  # the manager role, or managing a project
             abort(403)
         return func(*args, **kwargs)
 

@@ -1,6 +1,7 @@
 """Project managers ("project-admin" role): their projects, dashboards, managers,
 groups, results and question editing. System admins can open these pages too."""
 import uuid
+from datetime import datetime, timedelta
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session
 from werkzeug.utils import secure_filename
@@ -20,13 +21,22 @@ manager = Blueprint("manager", __name__, url_prefix="/admin")
 @manager.route("/my-projects")
 @project_admin_access_required
 def my_projects():
-    user_id = session['id']
-    # Get ProjectAdmin entries for the current user
-    project_admin_entries = ProjectAdmin.query.filter_by(user_id=user_id).all()
-    # Extract the Project objects from these entries
-    projects = [entry.project for entry in project_admin_entries if entry.project]
+    """A manager's home: figures for their projects, shortcuts, and the project cards."""
+    projects = [pa.project for pa in ProjectAdmin.query.filter_by(user_id=session['id']) if pa.project]
     progress = {p.id: project_progress(p) for p in projects}
-    return render_template("admin/my_projects.html", projects=projects, progress=progress)
+    project_ids = [p.id for p in projects]
+    people = {m.user_id for p in projects for gp in p.assigned_groups if gp.group for m in gp.group.members}
+    week_ago = datetime.now() - timedelta(days=7)
+    recent = QuestionAnswer.query.join(Question).filter(
+        Question.project_id.in_(project_ids), QuestionAnswer.submitted_date >= week_ago).count() if project_ids else 0
+    figures = {
+        "projects": len(projects),
+        "done": sum(d for d, _ in progress.values()),
+        "total": sum(t for _, t in progress.values()),
+        "people": len(people),
+        "recent": recent,
+    }
+    return render_template("admin/my_projects.html", projects=projects, progress=progress, figures=figures)
 
 @manager.route("/project/<int:project_id>/dashboard")
 @project_admin_required

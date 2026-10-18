@@ -31,7 +31,7 @@ def create_app(config_object=None):
     csrf.init_app(app)
 
     from .admin import admin
-    from .auth import auth
+    from .auth import MIN_PASSWORD_LENGTH, auth
     from .annotation import annotation
     from .groups import groups
     from .manager import manager
@@ -47,6 +47,7 @@ def create_app(config_object=None):
 
     app.jinja_env.globals["getattr_safe"] = getattr_safe
     app.jinja_env.globals["plural"] = plural
+    app.jinja_env.globals["min_password_length"] = MIN_PASSWORD_LENGTH
     app.jinja_env.globals["sidebar_summary"] = sidebar_summary
     app.jinja_env.globals["app_name"] = app.config["APP_NAME"]
 

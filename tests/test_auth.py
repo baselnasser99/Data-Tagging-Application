@@ -77,7 +77,7 @@ def test_register_rejects_short_password(client, db):
         data={"fullname": "Short", "email": "short@example.com", "password": "123"},
         follow_redirects=True,
     )
-    assert b"at least 6 characters" in resp.data
+    assert b"at least 8 characters" in resp.data
     assert User.query.filter_by(email="short@example.com").first() is None
 
 

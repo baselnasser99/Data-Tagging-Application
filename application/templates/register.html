@@ -16,8 +16,8 @@
   </div>
   <div class="field">
     <label for="password">Password</label>
-    <input id="password" type="password" name="password" autocomplete="new-password" minlength="6" required aria-describedby="password-hint">
-    <span class="hint" id="password-hint">At least 6 characters.</span>
+    <input id="password" type="password" name="password" autocomplete="new-password" minlength="{{ min_password_length }}" required aria-describedby="password-hint">
+    <span class="hint" id="password-hint">At least {{ min_password_length }} characters.</span>
   </div>
   <button type="submit" class="button">Create account</button>
 </form>

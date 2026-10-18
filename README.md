@@ -1,179 +1,146 @@
-# 🖼️ Image Annotation & Survey Management System
+# Data Tagging
 
 [![Tests](https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml/badge.svg)](https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)
+![Flask](https://img.shields.io/badge/flask-3-lightgrey)
+![MySQL](https://img.shields.io/badge/MySQL-8-blue)
 
-A modern web-based platform for managing both image annotation projects and general survey/questionnaire projects, built with Flask. This system allows administrators to create various project types, upload images, define questions (including Multiple Choice), assign tasks to users via groups, and monitor progress. End users can log in, view their assigned tasks, and provide answers efficiently.
+**A web app that shares labelling work fairly across a team.** An admin uploads images or audio clips and writes the questions. The app splits the work into tasks and hands them out so everyone carries the same load, even while people join or leave mid-project. The answers come back as a CSV or JSON dataset, with an agreement score showing how consistently people labelled.
 
----
+Built as my diploma thesis project, then rebuilt to production standards: security fixes, a fairness algorithm verified with measurements, 200+ automated tests, and a redesigned interface. [See what changed since the graded version →](docs/thesis/COMPARISON.md)
 
-## Table of Contents
+![Admin dashboard: projects, people, answers per week and progress per group](docs/screenshots/admin-dashboard.png)
 
-- [Features](#features)
-- [User Roles](#user-roles)
-- [Admin Perspective](#admin-perspective)
-- [Project Admin Perspective](#project-admin-perspective)
-- [End User Perspective](#end-user-perspective)
-- [Installation & Setup](#installation--setup)
-- [Docker Usage](#docker-usage)
-- [Security Notes](#security-notes)
-- [Support](#support)
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/project-overview.png" alt="A project's overview: tasks done, progress and actions"><br><sub><b>Project overview:</b> progress, items, hand-out and settings</sub></td>
+    <td width="50%"><img src="docs/screenshots/member-task.png" alt="A member answering a multiple-choice question about a picture"><br><sub><b>Member's task:</b> one item, one question</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/users.png" alt="Searchable list of people with groups, projects and answers"><br><sub><b>People:</b> search, groups, edit and remove</sub></td>
+    <td><img src="docs/screenshots/all-projects.png" alt="Project cards with status and progress"><br><sub><b>Projects:</b> status and progress at a glance</sub></td>
+  </tr>
+</table>
 
----
-
-## Features
-
-- **Flexible Project Creation**:
-    - **Survey Projects**: For general questionnaires with open-text or multiple-choice questions.
-    - **Annotation Projects**: Label images, audio clips, or a mix of both, with customizable questions per item.
-- **Question Management**:
-    - Create and edit questions with various answer types (Open Text, Multiple Choice).
-    - Define multiple-choice options and correct answers for MCQs.
-    - Attach files (images, audio, video) to questions.
-- **Batch Upload** (for Annotation Projects): one ZIP with images (PNG, JPG, GIF, BMP, WEBP) and/or audio (MP3, WAV, OGG, M4A, FLAC). Annotators see pictures and hear audio in a built-in player.
-- **User Group Management**: Organize users into groups for easier assignment.
-- **Project Assignment to Groups**: Assign projects to entire user groups during project creation or later.
-- **Smart Task Generation & Assignment**: System intelligently distributes questions/tasks to users based on project settings, group assignments, and completion requirements.
-- **Role-Based Access Control**:
-    - **System Admin**: Full control over all projects, users, and groups.
-    - **Project Admin**: Manage specific projects they are assigned to, including questions, images, and group assignments for that project.
-    - **End User**: Access and complete assigned questions/tasks.
-- **Progress Tracking**: Monitor real-time statistics on project completion, user progress, and group performance.
-- **Data Export**: Download submitted answers for analysis.
-- **Intuitive User Interfaces**: Dedicated dashboards and annotation interfaces for different user roles.
-- **Secure Authentication**
+<sub>Screenshots use the demo data from <code>scripts/seed_demo.py</code>.</sub>
 
 ---
 
-## User Roles
+## What it does
 
-The system supports three distinct user roles:
+| | |
+|---|---|
+| **Projects** | Upload images (PNG, JPG, GIF, BMP, WEBP) and audio (MP3, WAV, OGG, M4A, FLAC) as files or ZIPs. Ask free-text or multiple-choice questions about every item. |
+| **Fair hand-out** | Every *item × question* becomes a task. Each task goes to the person with the lightest open workload, never twice to the same person, up to a per-person cap. Optionally, several people can answer each task. |
+| **People come and go** | When someone leaves a group, their unfinished tasks are handed to the rest; when someone joins, workloads are rebalanced. Finished answers are never lost. |
+| **Three roles** | **Admin** (everything), **Manager** (runs their own projects), **Member** (answers their tasks). Each role gets its own home page. |
+| **Progress** | Status and progress on every project card, answers per week, progress per group, and a side-panel summary for each role. |
+| **Export** | CSV or JSON per project, with who answered what and when, the majority answer, and **Fleiss' kappa** for inter-annotator agreement. Every export is logged. |
+| **People admin** | Add people one at a time or from a CSV file, search and filter them, edit details, and remove people safely: their open work is handed on and their answers are kept. |
+| **Surveys** | A simpler mode in which every member answers every question. |
 
--   **System Admin**: Has full administrative privileges across the entire application. Can create, edit, and delete any project, manage all users and groups, and assign project admin roles.
--   **Project Admin**: Assigned to specific projects by a System Admin. Can manage only the projects they are assigned to, including editing project details, questions, uploading images, generating tasks, and assigning groups to their projects. They can also create new project admin users for their assigned projects.
--   **End User**: The primary annotators or respondents. They can log in, view projects/tasks assigned to them (via groups), and submit answers.
+## How the hand-out stays fair
 
----
-
-## Admin Perspective (System Admin)
-
-As a **System Admin**, you can:
-
-1.  **Log in to the Admin Dashboard**
-    -   There is no default account. The first administrator is created on startup from the `ADMIN_EMAIL` and `ADMIN_PASSWORD` settings in your `.env` file (see [Installation & Setup](#installation--setup)).
-2.  **Manage Projects**:
-    -   Create new "Survey" or "Image Annotation" projects.
-    -   Edit existing projects, including project settings (e.g., questions per image, answers per task for annotation projects).
-    -   Manage questions for any project, including adding new questions (Open Text or Multiple Choice), editing existing ones, and deleting them.
-    -   Upload ZIP files of images and/or audio clips for annotation projects.
-    -   Generate and assign annotation tasks.
-    -   View detailed project dashboards and results.
-3.  **Manage Users**: View all registered users, their roles, and activity.
-4.  **Manage Groups**: Create, edit, and delete user groups. Assign projects to groups during project creation or later.
-5.  **Manage Project Admins**: Assign other users the "Project Admin" role for specific projects, granting them limited administrative control.
-6.  **Export Data**: Download comprehensive project answers.
-
----
-
-## Project Admin Perspective
-
-As a **Project Admin**, you can:
-
-1.  **Log in to Your Dashboard**: See an overview of the projects you manage.
-2.  **Manage Your Assigned Projects**:
-    -   Edit project details and settings.
-    -   Add, edit, and delete questions for your projects. This includes defining multiple-choice options and the correct answer for MCQ questions.
-    -   Upload images for your annotation projects.
-    -   Generate annotation tasks and assign them to user groups with smart distribution.
-    -   View project-specific dashboards showing accurate completion percentages based on required answers.
-    -   Monitor real-time progress of tasks and user assignments.
-3.  **Manage Groups for Your Projects**: Assign user groups to your projects.
-4.  **Manage Project-Specific Admins**: Create and remove other Project Admins for the projects you manage.
-
----
-
-## End User Perspective
-
-As an **End User**, you can:
-
-1.  **Register an Account**
-2.  **Log in to Your Dashboard**: View all projects and tasks assigned to you via your groups.
-3.  **Complete Tasks**:
-    -   Access assigned questions/images.
-    -   Provide answers for Open Text questions.
-    -   Select options for Multiple Choice Questions.
-    -   Submit your responses.
-4.  **Track Your Progress**: See how many tasks you have completed and how many remain for each project.
-5.  **Update Your Profile**: Change your password or update your information.
-
----
-
-## Installation & Setup
-
-### Prerequisites
-
--   Python 3.11+
--   Git
--   Docker (optional, for containerized deployment)
-
-### Configuration
-
-All settings come from environment variables. Copy the example file and edit it:
-
-```bash
-cp .env.example .env
+```
+for each task (item, question) still needing answers:
+    candidates = members of the project's groups
+                 who don't hold this task yet and are under the per-person cap
+    give it to the candidate with the fewest open tasks
+        ties → fewest of this question → fewest tasks overall → lowest id
 ```
 
-At minimum set `SECRET_KEY`, `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Without `DATABASE_URL` the app uses a local SQLite file, which is fine for trying it out.
+- **Someone leaves:** their unfinished tasks are released and handed out again with the same rule; their finished work stays.
+- **Someone joins:** open slots are filled first, then unstarted tasks move from the busiest person to the least busy until no move narrows the gap. In the measurements below, loads end within one task of each other.
+- **Several groups on one project** share a single pool of tasks.
 
-### Run locally
+The code is in [`application/distribution.py`](application/distribution.py), and the rules are pinned down by tests in [`tests/test_distribution.py`](tests/test_distribution.py).
+
+## Measured, not assumed
+
+[`scripts/benchmark.py`](scripts/benchmark.py) builds made-up teams and projects on a **MySQL 8** server in GitHub Actions ([workflow](.github/workflows/benchmark.yml)), then times the real distribution code and checks its fairness.
+
+| Tasks | People | Hand out | 10% of people leave | 5% join | Load gap after joining |
+|---:|---:|---:|---:|---:|---:|
+| 1,000 | 20 | 0.39 s | 0.08 s | 0.06 s | 1 |
+| 10,000 | 50 | 4.55 s | 2.26 s | 1.84 s | 1 |
+| 50,000 | 100 | 24.9 s | 15.4 s | 16.9 s | 1 |
+
+- The load gap (most open tasks held by one person minus fewest) is **0** right after hand-out.
+- In every run, every task kept an owner and no finished answer was lost.
+- Batching the database writes made the hand-out **2.5× faster**, and handling 5% newcomers at 50k tasks **15× faster** (250 s → 17 s).
+- **Load test:** 20 people answering at once made 240 requests with **0 errors**; median response time 284 ms.
+
+## Tech stack
+
+- **Backend:** Python 3.11, Flask (app factory and blueprints), SQLAlchemy 2, Flask-Login, Flask-WTF (CSRF)
+- **Database:** MySQL 8 in production, SQLite for development and tests; older databases are upgraded automatically on start
+- **Frontend:** Jinja templates, Bootstrap 3 and AdminLTE 2, a custom design layer (`app.css`, `apple.css`) with reduced-motion and high-contrast fallbacks, Chart.js
+- **Quality:** pytest with ~90% line coverage on Python 3.11 and 3.12, GitHub Actions, Dependabot
+- **Deployment:** Docker Compose (Gunicorn and MySQL)
+
+```
+application/
+├── auth.py              sign-in, sign-up, sessions
+├── admin.py             dashboard, people, CSV import, surveys, downloads
+├── groups.py            groups and their members
+├── manager.py           managers and their pages
+├── annotation_admin.py  projects: create, upload, hand out, progress, export
+├── annotation.py        members' tasks and answers
+├── distribution.py      the fair hand-out algorithm
+├── export.py            CSV/JSON export and agreement scores
+└── permissions.py, models.py, templates/, static/
+```
+
+## Run it
+
+**Codespaces (no install):** on GitHub, click **Code → Codespaces → Create codespace**, then:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+cp .env.example .env          # set SECRET_KEY, ADMIN_EMAIL and ADMIN_PASSWORD
 pip install -r requirements.txt
 flask --app app run --debug
 ```
 
-Open [http://127.0.0.1:5000](http://127.0.0.1:5000) and sign in with the admin email and password from `.env`.
+**Your own computer:** the same steps, after `python -m venv .venv` and activating it (`source .venv/bin/activate`, or `.venv\Scripts\activate` on Windows). Open http://127.0.0.1:5000 and sign in with the admin email and password from `.env`.
 
-### Run with Docker (Flask + MySQL 8)
+**Docker (Flask + MySQL 8):** `cp .env.example .env`, edit the passwords, then `docker compose up --build`.
+
+### Try it with demo data
+
+Fill a separate demo database with 13 people, 3 groups, a manager, two image projects and five weeks of answers:
 
 ```bash
-cp .env.example .env    # then edit the passwords
-docker compose up --build
+export DATABASE_URL=sqlite:///demo.db
+python scripts/seed_demo.py
+flask --app app run --debug
 ```
 
-The app is served by Gunicorn at [http://localhost:5000](http://localhost:5000). Database data, uploads and logs are kept in Docker volumes.
+The script prints the demo sign-ins. It refuses to run on a database that already has people or projects in it.
 
----
-
-## Running the tests
+## Tests
 
 ```bash
 pip install -r requirements-dev.txt
 pytest --cov
 ```
 
-The suite covers authentication and access control, CSRF protection, CSV user import, groups, ZIP upload, task generation and distribution, the annotation workflow and exports. GitHub Actions runs it on every push (see the badge at the top).
+The tests cover sign-in and access control for each role, CSRF, the distribution rules (joins, leaves, caps, several answers per task), uploads, CSV import, exports and agreement scores, database rules, and the security fixes. GitHub Actions runs them on every push.
 
----
+## Security
 
-## Security Notes
+- Passwords are hashed (Werkzeug scrypt); there are no default accounts, and secrets live only in `.env`.
+- Every form has a CSRF token. Cookies are HTTP-only and SameSite, with an idle timeout. Pages are sent with `Cache-Control: no-store`.
+- Access is checked on every route: managers see only their own projects, and members only their own tasks.
+- All user-written text is escaped, including inside confirm dialogs.
+- Sign-ins, failed sign-ins and sign-outs are written to an audit log.
 
--   Passwords are hashed with Werkzeug (PBKDF2/scrypt); no plaintext passwords are stored.
--   Sessions use Flask-Login with HTTP-only, SameSite cookies and an idle timeout (`SESSION_IDLE_MINUTES`).
--   Every form is protected against cross-site request forgery (Flask-WTF CSRF tokens).
--   Role-based access control: Admins, Project Admins and End Users have distinct dashboards and permissions.
--   Sign-ins, failed sign-ins and logouts are written to `logs/audit.log`.
--   No secrets or default accounts are stored in the code.
+## Documentation
 
----
+- [Technical documentation](docs/thesis/updated/DOCUMENTATION.md): architecture, data model, algorithm, export, security, evaluation and limitations
+- [Original vs. updated](docs/thesis/COMPARISON.md): what the graded thesis claimed, what the code did then, and what is true now
+- [Defence presentation](docs/thesis/updated/DEFENSE_PRESENTATION.md) and [defence Q&A](docs/thesis/updated/DEFENSE_FAQ.md)
+- The code as graded: tag [`v1.0-thesis-submitted`](https://github.com/baselnasser99/Data-Tagging-Application/tree/v1.0-thesis-submitted)
 
-## Support
+## License
 
-For technical support or questions about the system, contact your system administrator.
-
----
-
-**Version:** 3.0 (Multi-role & MCQ Support)
-**Last Updated:** June 2025
+[MIT](LICENSE)

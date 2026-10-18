@@ -21,8 +21,8 @@
     <div class="col-md-4 col-sm-6 col-xs-12">
       <div class="box">
         <div class="box-header with-border">
-          <h2 class="box-title task-card-title" title="{{ image.original_filename }}">{{ image.original_filename }}</h2>
-          <p class="text-muted" style="margin: 2px 0 0;">{{ project.name }}</p>
+          <h2 class="box-title task-card-title">{{ project.name }}</h2>
+          <p class="text-muted" style="margin: 2px 0 0;">{{ plural(items | length, "question") }} about this {{ 'clip' if image.is_audio else 'picture' }}</p>
           <div class="box-tools pull-right">
             {% if pending %}
             <span class="badge bg-yellow">{{ pending|length }} to answer</span>
@@ -36,7 +36,7 @@
           {{ media_item(project, image) }}
           {% else %}
           {{ media_item(project, image,
-                        img_style="display: block; width: 100%; height: 170px; object-fit: cover; border-radius: 4px;") }}
+                        img_style="display: block; width: 100%; height: 170px; object-fit: contain; background: var(--canvas); border-radius: 4px;") }}
           {% endif %}
           <ul class="list-unstyled task-questions">
             {% for a in items %}

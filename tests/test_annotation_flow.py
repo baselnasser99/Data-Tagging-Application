@@ -297,3 +297,17 @@ def test_task_list_can_show_one_project_only(app, admin_client, group_with_membe
     stranger = app.test_client()
     login(stranger, [m for m in members if m.id != owner.id][0].email)
     assert b"Birds" not in stranger.get(f"/user/annotation-tasks?project_id={birds.id}").data
+
+
+def test_members_see_the_project_and_question_not_file_names(app, admin_client, group_with_members):
+    group, members = group_with_members
+    project = _create_project(admin_client)
+    _upload(admin_client, project, {"IMG_20240101_123456.png": b"a"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+    client = app.test_client()
+    login(client, members[0].email)
+    mine = TaskAssignment.query.filter_by(user_id=members[0].id).first()
+    for path in ("/user/annotation-tasks", f"/user/annotation-task/{mine.id}"):
+        page = client.get(path).data
+        assert b"Street scenes" in page
+        assert b">IMG_20240101_123456.png" not in page and b"Image:</strong>" not in page  # alt text may keep it

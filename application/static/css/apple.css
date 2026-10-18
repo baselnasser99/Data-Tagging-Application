@@ -32,7 +32,7 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .text-muted, .help-block, small { letter-spacing: 0.01em; }
 
 /* ---------- materials: translucent sticky top bar ---------- */
-.wrapper { overflow-x: clip; }  /* AdminLTE's overflow-x: hidden would stop the bar from sticking */
+.wrapper { overflow-x: clip; overflow-y: visible; }  /* AdminLTE's hidden/auto would make .wrapper the scroller and stop the bar from sticking */
 .main-header { position: sticky; top: 0; z-index: 1030; }
 .main-header .logo,
 .main-header .navbar {

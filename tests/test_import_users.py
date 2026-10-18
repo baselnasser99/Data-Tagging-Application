@@ -95,3 +95,12 @@ def test_import_page_is_a_tab_of_add_users(admin_client):
     page = admin_client.get("/admin/create-user?tab=csv").data
     assert b'name="csv_file"' in page and b'name="full_name"' not in page
     assert b'name="full_name"' in admin_client.get("/admin/create-user").data
+
+
+def test_csv_import_skips_bad_emails_and_long_names_but_keeps_the_rest(admin_client):
+    rows = "full_name,email,password\nAda,ada@example.com,secret123\nNo At,not-an-email,secret123\n" + "x" * 101 + ",long@example.com,secret123\n"
+    resp = admin_client.post("/admin/import-users", data={"csv_file": _csv(rows)},
+                             content_type="multipart/form-data", follow_redirects=True)
+    assert b"Row 3: needs a valid email address" in resp.data and b"Row 4: needs a valid email address" in resp.data
+    assert User.query.filter_by(email="ada@example.com").one()
+    assert not User.query.filter(User.email.in_(["not-an-email", "long@example.com"])).count()

@@ -513,11 +513,13 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .assignment-list { list-style: none; margin: 0; padding: 0; }
 .assignment-list > li { padding: 10px 0; border-top: 1px solid var(--line); }
 .assignment-list > li:first-child { border-top: 0; padding-top: 0; }
-.assignment-row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.assignment-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 /* Project cards: full description, buttons wrap, Delete set apart */
 .project-desc { white-space: pre-line; overflow-wrap: anywhere; margin: 0; }
-.project-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.project-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* Ends the first row of card buttons, so every card puts the same buttons on the same row */
+.project-actions-break { flex-basis: 100%; height: 0; }
 .project-actions .project-delete { margin: 0 0 0 auto; }
 
 /* Progress: numbers sit beside the label, never inside the bar */
@@ -558,3 +560,6 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .task-questions { margin: 12px 0 0; }
 .task-questions > li { padding: 3px 0; font-weight: 600; overflow-wrap: anywhere; }
 .task-questions > li.text-muted { font-weight: 400; }
+/* Form pages read best at a comfortable width, not stretched across a wide screen */
+.form-page { max-width: 880px; }
+.quiz-section + .quiz-section { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }

@@ -7,8 +7,8 @@ from .extns import db
 
 class User(UserMixin, db.Model):
     id = Column(Integer, primary_key=True)
-    full_name = Column(String(50), nullable=False)
-    email = Column(String(30), unique=True, nullable=False)
+    full_name = Column(String(100), nullable=False)
+    email = Column(String(255), unique=True, nullable=False)  # real addresses easily pass 30 characters
     password_hash = Column(String(500), nullable=False)
     role = Column(String(20), nullable=False)  # 'admin', 'project-admin', or 'end-user'
 
@@ -232,6 +232,8 @@ class ProjectImage(db.Model):
 
 class AnnotationTask(db.Model):
     """Individual image-question pairs that need to be answered"""
+    # One task per (project, item, question), even if "Hand out tasks" runs twice at the same moment.
+    __table_args__ = (db.UniqueConstraint('project_id', 'image_id', 'question_id', name='unique_task_item_question'),)
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("project.id"), nullable=False)
     image_id = Column(Integer, ForeignKey("project_image.id"), nullable=False)

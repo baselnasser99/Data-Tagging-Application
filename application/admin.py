@@ -185,166 +185,145 @@ def create_user():
 @admin.route("/import-users", methods=['GET', 'POST'])
 @admin_required
 def import_users():
-    if request.method == 'POST':
-        if 'csv_file' not in request.files:
-            flash('No file part', 'danger')
-            return redirect(request.url)
-        
-        csv_file = request.files['csv_file']
-        if csv_file.filename == '':
-            flash('No selected file', 'danger')
-            return redirect(request.url)
-        
-        if not csv_file.filename.lower().endswith('.csv'):
-            flash('Invalid file type. Please upload a CSV file.', 'danger')
-            return redirect(request.url)
+    """Create people from a CSV file, then optionally add them to a group and/or a project."""
+    if request.method == 'GET':
+        return render_template('admin/import_users.html', groups=UserGroup.query.all(), projects=Project.query.all())
 
-        stream = io.StringIO(csv_file.stream.read().decode("UTF8"))
-        csv_reader = csv.reader(stream)
-        header = next(csv_reader, None) # Skip header row
+    csv_file = request.files.get('csv_file')
+    if csv_file is None:
+        flash('No file part', 'danger')
+        return redirect(request.url)
+    if csv_file.filename == '':
+        flash('No selected file', 'danger')
+        return redirect(request.url)
+    if not csv_file.filename.lower().endswith('.csv'):
+        flash('Invalid file type. Please upload a CSV file.', 'danger')
+        return redirect(request.url)
 
-        if not header or not all(col in header for col in ['full_name', 'email', 'password']):
-            flash('CSV must contain "full_name", "email", and "password" columns.', 'danger')
-            return redirect(request.url)
+    rows = list(csv.reader(io.StringIO(csv_file.stream.read().decode("UTF8"))))
+    header = rows[0] if rows else None
+    if not header or not all(col in header for col in ['full_name', 'email', 'password']):
+        flash('CSV must contain "full_name", "email", and "password" columns.', 'danger')
+        return redirect(request.url)
 
-        full_name_idx = header.index('full_name')
-        email_idx = header.index('email')
-        password_idx = header.index('password')
+    users, created, duplicates, invalid, messages = _create_users_from_rows(header, rows[1:])
+    if request.form.get('user_group_id'):
+        _add_imported_to_group(users, request.form['user_group_id'])
+    if request.form.get('project_id'):
+        _give_imported_project(users, request.form['project_id'])
 
-        users_created = 0
-        users_skipped_duplicate = 0
-        users_skipped_invalid = 0
-        errors = []
-        users_to_assign = [] # Collect users (new and existing) for assignment
+    flash(f"CSV Import Complete: {plural(created, 'user')} created, "
+          f"{plural(duplicates, 'duplicate')} skipped, "
+          f"{plural(invalid, 'invalid row')} skipped.", 'info')
+    for message in messages:
+        flash(message, 'warning')
+    return redirect(url_for('admin.users'))
 
-        # Store the original stream position to reset it for the second pass if needed
-        # This is not needed if we convert csv_reader to a list.
-        # original_stream_pos = csv_file.stream.tell()
 
-        # To handle the csv_reader being an iterator, we'll store the rows in a list
-        # and then process them. For very large files, this might need optimization
-        # (e.g., processing in chunks or using a temporary file).
-        # For now, assuming CSVs are not excessively large.
-        csv_file.stream.seek(0) # Reset stream position to the beginning
-        stream_for_processing = io.StringIO(csv_file.stream.read().decode("UTF8"))
-        csv_reader_for_processing = csv.reader(stream_for_processing)
-        next(csv_reader_for_processing, None) # Skip header row again
+def _create_users_from_rows(header, rows):
+    """Create a member per row. Returns (people to place, created, duplicates, invalid, messages).
 
-        for i, row in enumerate(csv_reader_for_processing): # Use the new reader for processing
-            try:
-                full_name = row[full_name_idx].strip()
-                email = row[email_idx].strip()
-                password = row[password_idx].strip() if password_idx < len(row) else ''
+    People who already exist are not created again but are still placed in the group/project.
+    """
+    name_col, email_col, password_col = (header.index(c) for c in ('full_name', 'email', 'password'))
+    users, messages = [], []
+    created = duplicates = invalid = 0
+    for line, row in enumerate(rows, start=2):  # line 1 is the header
+        try:
+            full_name = row[name_col].strip()
+            email = row[email_col].strip()
+            password = row[password_col].strip() if password_col < len(row) else ''
 
-                if not full_name or not email:
-                    users_skipped_invalid += 1
-                    errors.append(f"Row {i+2}: Missing full name or email. Skipped.")
-                    continue
+            if not full_name or not email:
+                invalid += 1
+                messages.append(f"Row {line}: Missing full name or email. Skipped.")
+                continue
 
-                existing_user = User.query.filter_by(email=email).first()
-                if existing_user:
-                    users_skipped_duplicate += 1
-                    errors.append(f"Row {i+2}: User with email '{email}' already exists. Skipped creation, but will attempt assignment.")
-                    users_to_assign.append(existing_user) # Add existing user for potential assignment
-                    continue
-                
-                # Missing or too-short passwords are replaced with a random one.
-                # The admin must see it, otherwise the user could never sign in.
-                if not password or len(password) < MIN_PASSWORD_LENGTH:
-                    reason = "had no password" if not password else f"had a password shorter than {MIN_PASSWORD_LENGTH} characters"
-                    password = secrets.token_urlsafe(8)
-                    errors.append(
-                        f"Row {i+2}: {email} {reason}, so a temporary password was created: {password} "
-                        "Share it with them and ask them to change it after signing in."
-                    )
+            existing = User.query.filter_by(email=email).first()
+            if existing:
+                duplicates += 1
+                messages.append(f"Row {line}: User with email '{email}' already exists. Skipped creation, but will attempt assignment.")
+                users.append(existing)
+                continue
 
-                new_user = User()
-                new_user.register_end_user(full_name, email, password)
-                db.session.add(new_user) # Add to session
-                db.session.flush() # Get ID for new_user before commit
-                users_created += 1
-                users_to_assign.append(new_user) # Add newly created user for assignment
+            # Missing or too-short passwords are replaced with a random one.
+            # The admin must see it, otherwise the user could never sign in.
+            if not password or len(password) < MIN_PASSWORD_LENGTH:
+                reason = "had no password" if not password else f"had a password shorter than {MIN_PASSWORD_LENGTH} characters"
+                password = secrets.token_urlsafe(8)
+                messages.append(
+                    f"Row {line}: {email} {reason}, so a temporary password was created: {password} "
+                    "Share it with them and ask them to change it after signing in."
+                )
 
-            except IndexError:
-                users_skipped_invalid += 1
-                errors.append(f"Row {i+2}: Malformed row. Skipped.")
-            except Exception as e:
-                db.session.rollback() # Rollback any partial changes for this user
-                users_skipped_invalid += 1
-                errors.append(f"Row {i+2}: Error processing row: {str(e)}. Skipped.")
-        
-        db.session.commit() # Commit all successful user creations
+            user = User()
+            user.register_end_user(full_name, email, password)
+            db.session.add(user)
+            db.session.flush()  # gives the user an id for the group/project step
+            created += 1
+            users.append(user)
+        except IndexError:
+            invalid += 1
+            messages.append(f"Row {line}: Malformed row. Skipped.")
+        except Exception as e:
+            db.session.rollback()
+            invalid += 1
+            messages.append(f"Row {line}: Error processing row: {str(e)}. Skipped.")
+    db.session.commit()
+    return users, created, duplicates, invalid, messages
 
-        # Get selected group and project for assignment
-        selected_group_id = request.form.get('user_group_id')
-        selected_project_id = request.form.get('project_id')
 
-        # Process assignments for all users (new and existing) that were successfully identified/created from CSV
-        if selected_group_id:
-            group = db.session.get(UserGroup, selected_group_id)
-            if group:
-                group_assignments_made = 0
-                for user in users_to_assign:
-                    existing_membership = UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).first()
-                    if not existing_membership:
-                        membership = UserGroupMembership(user_id=user.id, group_id=group.id)
-                        db.session.add(membership)
-                        group_assignments_made += 1
-                db.session.commit()
-                if group_assignments_made > 0:
-                    flash(f"{group_assignments_made} users assigned to group '{group.name}'.", 'success')
-                else:
-                    flash(f"All users from CSV are already in group '{group.name}'.", 'info')
-            else:
-                flash("Selected user group not found for assignment.", 'warning')
+def _add_imported_to_group(users, group_id):
+    group = db.session.get(UserGroup, group_id)
+    if not group:
+        flash("Selected user group not found for assignment.", 'warning')
+        return
+    added = 0
+    for user in users:
+        if not UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).first():
+            db.session.add(UserGroupMembership(user_id=user.id, group_id=group.id))
+            added += 1
+    db.session.commit()
+    if added:
+        flash(f"{added} users assigned to group '{group.name}'.", 'success')
+    else:
+        flash(f"All users from CSV are already in group '{group.name}'.", 'info')
 
-        if selected_project_id:
-            project = db.session.get(Project, selected_project_id)
-            if project:
-                project_assignments_made = 0
-                if project.is_annotation_project:
-                    if AnnotationTask.query.filter_by(project_id=project.id).first():
-                        users = {u.id: u for u in distribution.eligible_users(project)}
-                        users.update({u.id: u for u in users_to_assign})
-                        result = distribution.assign_open_slots(project, users=list(users.values()))
-                        flash_distribution(result)
-                        if not result.assignments_created:
-                            flash(f"No open tasks were left to assign in '{project.name}'.", 'info')
-                    else:
-                        flash(f"No tasks found for project '{project.name}'. Hand out tasks first.", 'warning')
-                else:
-                    # For regular projects, assign questions directly to each user
-                    for user in users_to_assign:
-                        for question in project.questions:
-                            existing_assignment = UserQuestionAssignment.query.filter_by(user_id=user.id, question_id=question.id).first()
-                            if not existing_assignment:
-                                assignment = UserQuestionAssignment(
-                                    user_id=user.id,
-                                    question_id=question.id,
-                                    group_project_id=f"imported-{project.id}" # A unique identifier for imported users not tied to a group
-                                )
-                                db.session.add(assignment)
-                                project_assignments_made += 1
-                    db.session.commit()
-                    if project_assignments_made > 0:
-                        flash(f"{project_assignments_made} questions assigned to users for project '{project.name}'.", 'success')
-                    else:
-                        flash(f"All users from CSV are already assigned questions in project '{project.name}'.", 'info')
-            else:
-                flash("Selected project not found for assignment.", 'warning')
 
-        summary_message = (f"CSV Import Complete: {plural(users_created, 'user')} created, "
-                           f"{plural(users_skipped_duplicate, 'duplicate')} skipped, "
-                           f"{plural(users_skipped_invalid, 'invalid row')} skipped.")
-        flash(summary_message, 'info')
-        for error in errors:
-            flash(error, 'warning')
+def _give_imported_project(users, project_id):
+    project = db.session.get(Project, project_id)
+    if not project:
+        flash("Selected project not found for assignment.", 'warning')
+        return
 
-        return redirect(url_for('admin.users')) # Redirect to users list
+    if project.is_annotation_project:
+        if not AnnotationTask.query.filter_by(project_id=project.id).first():
+            flash(f"No tasks found for project '{project.name}'. Hand out tasks first.", 'warning')
+            return
+        everyone = {u.id: u for u in distribution.eligible_users(project)}
+        everyone.update({u.id: u for u in users})
+        result = distribution.assign_open_slots(project, users=list(everyone.values()))
+        flash_distribution(result)
+        if not result.assignments_created:
+            flash(f"No open tasks were left to assign in '{project.name}'.", 'info')
+        return
 
-    groups = UserGroup.query.all()
-    projects = Project.query.all()
-    return render_template('admin/import_users.html', groups=groups, projects=projects)
+    # Surveys: every imported person gets every question.
+    added = 0
+    for user in users:
+        for question in project.questions:
+            if not UserQuestionAssignment.query.filter_by(user_id=user.id, question_id=question.id).first():
+                db.session.add(UserQuestionAssignment(
+                    user_id=user.id, question_id=question.id,
+                    group_project_id=f"imported-{project.id}",  # not tied to a group
+                ))
+                added += 1
+    db.session.commit()
+    if added:
+        flash(f"{added} questions assigned to users for project '{project.name}'.", 'success')
+    else:
+        flash(f"All users from CSV are already assigned questions in project '{project.name}'.", 'info')
+
 
 @admin.route("/create-project", methods=['GET', 'POST'])
 @project_admin_access_required

@@ -240,169 +240,146 @@ def project_groups(project_id):
     assigned_groups = [gp.group for gp in project.assigned_groups]
     return render_template("admin/project_groups.html", project=project, assigned_groups=assigned_groups)
 
-# New route for Project Admins to edit questions
 @manager.route("/project/<int:project_id>/edit-questions", methods=['GET', 'POST'])
 @project_admin_required
 def edit_project_questions(project_id):
+    """Edit questions and settings. The page has one form per action."""
     project = db.get_or_404(Project, project_id)
-
     if request.method == 'POST':
-        action = request.form.get('action')
-
-        if action == 'update_questions':
-            project_data = request.form.to_dict(flat=True)
-            files = request.files.to_dict(flat=True)
-
-            # Settings have their own form ("Update Settings"); this form never sends them.
-            for key, value in project_data.items():
-                if key.startswith('question-'):
-                    question_id = int(key.split('-')[1])
-                    question = db.session.get(Question, question_id)
-                    if question:
-                        if value.strip() != question.question.strip() and QuestionAnswer.query.filter_by(question_id=question_id).count():
-                            flash(f'"{question.question}" was reworded to "{value}". Its existing answers were given to the old '
-                                  'wording and are kept as they are. If the meaning changed, add a new question instead.', 'warning')
-                        question.question = value
-
-                        # Update answer type and options if submitted
-                        old_answer_type = question.answer_type
-                        answer_type_key = f'dropdown-{question_id}'
-                        if answer_type_key in project_data:
-                            new_answer_type_value = project_data[answer_type_key]
-                            new_answer_type = AnswerType.TEXT if new_answer_type_value == 'text' else AnswerType.MCQ
-
-                            # Check if question type is being changed and if there are existing answers
-                            if old_answer_type != new_answer_type:
-                                existing_answers_count = QuestionAnswer.query.filter_by(question_id=question_id).count()
-                                if existing_answers_count > 0:
-                                    if request.form.get(f'confirm_delete_answers_{question_id}') != 'true':
-                                        flash(f'Cannot change question type for "{question.question}" as it has existing answers. Check "Delete existing answers" to proceed.', 'danger')
-                                        continue  # leave this question's type and options unchanged
-                                    # Old answers do not fit the new type: delete them and ask again.
-                                    distribution.reopen_question(question)
-                                    flash(f'Existing answers for question "{question.question}" were deleted due to type change. Its tasks will be answered again.', 'info')
-
-                            # Proceed with updating answer type and options
-                            question.answer_type = new_answer_type
-
-                            # Clear existing MCQ options if changing to text
-                            if question.answer_type == AnswerType.TEXT:
-                                for i in range(1, 7): # Assuming max 6 options
-                                    setattr(question, f'option{i}', None)
-                                question.number_of_options = 0
-                                question.answer = project_data.get(f'answer-{question_id}', '') # Update text answer
-
-                            # Update MCQ options if changing to mcq or staying as mcq
-                            elif question.answer_type == AnswerType.MCQ:
-                                question.number_of_options = int(request.form.get(f'number_of_options-{question_id}', 0))
-                                for i in range(1, 7): # Assuming max 6 options
-                                    option_key = f'mcq-option-{i}-{question_id}'
-                                    if option_key in project_data:
-                                        setattr(question, f'option{i}', project_data[option_key])
-                                    else:
-                                        setattr(question, f'option{i}', None) # Clear if option removed
-                                # For MCQ, get the correct answer from the dropdown
-                                mcq_answer_key = f'mcq-correct-answer-{question_id}'
-                                if mcq_answer_key in project_data:
-                                    question.answer = project_data[mcq_answer_key]
-                                else:
-                                    question.answer = None
-
-                        # Handle file uploads
-                        file_key = f'questionfile-{question_id}'
-                        if file_key in files and files[file_key].filename != '':
-                             file = files[file_key]
-                             filename = str(uuid.uuid4()) + secure_filename(file.filename)
-                             file.save(upload_path(filename))
-                             question.file_path = filename
-
-
-            db.session.commit()
-            flash('Project questions and settings updated successfully!', 'success')
-            if project.is_annotation_project:
-                flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))
-            return redirect(url_for('manager.project_dashboard', project_id=project_id))
-
-        elif action == 'add_question':
-            # Enhanced logic for adding a new question
-            new_question_text = request.form.get('new_question_text', 'New Question')
-            new_question_type = request.form.get('new_question_type', 'text')
-            
-            question = Question(
-                question=new_question_text,
-                project_id=project.id,
-                answer_type=AnswerType.TEXT if new_question_type == 'text' else AnswerType.MCQ
-            )
-            
-            # If it's an MCQ, handle the options
-            if new_question_type == 'mcq':
-                num_options = int(request.form.get('new_question_num_options', 0))
-                question.number_of_options = num_options
-                
-                for i in range(1, num_options + 1):
-                    option_value = request.form.get(f'new_question_option_{i}', '')
-                    setattr(question, f'option{i}', option_value)
-            
-            db.session.add(question)
-            db.session.commit()
-            flash('New question added!', 'success')
-            
-            # A new question creates new tasks for every image; existing answers stay.
-            if project.is_annotation_project:
-                flash_distribution(distribution.distribute(project))
-            else: # For survey projects
-                for group_project in project.assigned_groups:
-                    if group_project.group:
-                        distribute_questions_to_group(group_project.group, project)
-
-            # Redirect back to the edit page to see the new question
-            return redirect(url_for('manager.edit_project_questions', project_id=project.id))
-
-        elif action == 'delete_question':
-            question_id_to_delete = request.form.get('question_id_to_delete')
-            question = db.session.get(Question, question_id_to_delete)
-            if question and question.project_id == project.id:
-                # Delete related answers first
-                QuestionAnswer.query.filter_by(question_id=question.id).delete()
-                
-                # Delete related annotation tasks if this is an annotation project
-                if project.is_annotation_project:
-                    tasks = AnnotationTask.query.filter_by(question_id=question.id).all()
-                    for task in tasks:
-                        # Delete task assignments
-                        TaskAssignment.query.filter_by(task_id=task.id).delete()
-                        db.session.delete(task)
-                
-                # Delete user question assignments for this question
-                UserQuestionAssignment.query.filter_by(question_id=question.id).delete()
-
-                db.session.delete(question)
-                db.session.commit()
-                flash('Question deleted.', 'success')
-                
-                # Only the deleted question's tasks are gone; rebalance what is left.
-                if project.is_annotation_project:
-                    distribution.rebalance(project)
-                else: # For survey projects
-                    for group_project in project.assigned_groups:
-                        if group_project.group:
-                            distribute_questions_to_group(group_project.group, project)
-            else:
-                flash('Error deleting question.', 'danger')
-            # Redirect back to the edit page
-            return redirect(url_for('manager.edit_project_questions', project_id=project.id))
-        
-        elif action == 'update_project_settings':
-            # Update project settings only
-            if project.is_annotation_project:
-                project.questions_per_image = int(request.form.get('questions_per_image', project.questions_per_image))
-                project.max_questions_per_user = int(request.form.get('max_questions_per_user', project.max_questions_per_user))
-                project.answers_per_task = int(request.form.get('answers_per_task', 1)) # Default to 1 for single completion
-                if 'hand_out' in request.form:
-                    project.hand_out_per_item = request.form['hand_out'] == 'item'
-                db.session.commit()
-                flash('Project settings updated successfully!', 'success')
-                flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))
-            return redirect(url_for('manager.project_dashboard', project_id=project_id))
-
+        action = _EDIT_ACTIONS.get(request.form.get('action'))
+        if action:
+            return action(project)
     return render_template("admin/edit_project_questions.html", project=project)
+
+
+def _update_questions(project):
+    """Save the wording, answer type, options and file of every question on the form.
+
+    Settings have their own form ("Update Settings"); this form never sends them.
+    """
+    form = request.form.to_dict(flat=True)
+    files = request.files.to_dict(flat=True)
+    for key, value in form.items():
+        if key.startswith('question-'):
+            question = db.session.get(Question, int(key.split('-')[1]))
+            if question:
+                _update_question(question, value, form, files)
+
+    db.session.commit()
+    flash('Project questions and settings updated successfully!', 'success')
+    if project.is_annotation_project:
+        flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))
+    return redirect(url_for('manager.project_dashboard', project_id=project.id))
+
+
+def _update_question(question, text, form, files):
+    qid = question.id
+    has_answers = QuestionAnswer.query.filter_by(question_id=qid).count() > 0
+    if text.strip() != question.question.strip() and has_answers:
+        flash(f'"{question.question}" was reworded to "{text}". Its existing answers were given to the old '
+              'wording and are kept as they are. If the meaning changed, add a new question instead.', 'warning')
+    question.question = text
+
+    if f'dropdown-{qid}' in form:
+        new_type = AnswerType.TEXT if form[f'dropdown-{qid}'] == 'text' else AnswerType.MCQ
+        if new_type != question.answer_type and has_answers:
+            if request.form.get(f'confirm_delete_answers_{qid}') != 'true':
+                flash(f'Cannot change question type for "{question.question}" as it has existing answers. '
+                      'Check "Delete existing answers" to proceed.', 'danger')
+                return  # leave this question's type, options and file unchanged
+            # Old answers do not fit the new type: delete them and ask again.
+            distribution.reopen_question(question)
+            flash(f'Existing answers for question "{question.question}" were deleted due to type change. '
+                  'Its tasks will be answered again.', 'info')
+        question.answer_type = new_type
+
+        if new_type == AnswerType.TEXT:
+            for i in range(1, 7):
+                setattr(question, f'option{i}', None)
+            question.number_of_options = 0
+            question.answer = form.get(f'answer-{qid}', '')
+        else:
+            question.number_of_options = int(request.form.get(f'number_of_options-{qid}', 0))
+            for i in range(1, 7):
+                setattr(question, f'option{i}', form.get(f'mcq-option-{i}-{qid}'))  # None clears a removed option
+            question.answer = form.get(f'mcq-correct-answer-{qid}')
+
+    upload = files.get(f'questionfile-{qid}')
+    if upload and upload.filename != '':
+        filename = str(uuid.uuid4()) + secure_filename(upload.filename)
+        upload.save(upload_path(filename))
+        question.file_path = filename
+
+
+def _add_question(project):
+    kind = request.form.get('new_question_type', 'text')
+    question = Question(
+        question=request.form.get('new_question_text', 'New Question'),
+        project_id=project.id,
+        answer_type=AnswerType.TEXT if kind == 'text' else AnswerType.MCQ,
+    )
+    if kind == 'mcq':
+        question.number_of_options = int(request.form.get('new_question_num_options', 0))
+        for i in range(1, question.number_of_options + 1):
+            setattr(question, f'option{i}', request.form.get(f'new_question_option_{i}', ''))
+    db.session.add(question)
+    db.session.commit()
+    flash('New question added!', 'success')
+
+    # A new question creates new tasks for every item; existing answers stay.
+    if project.is_annotation_project:
+        flash_distribution(distribution.distribute(project))
+    else:
+        _redistribute_survey(project)
+    return redirect(url_for('manager.edit_project_questions', project_id=project.id))
+
+
+def _delete_question(project):
+    question = db.session.get(Question, request.form.get('question_id_to_delete'))
+    if not question or question.project_id != project.id:
+        flash('Error deleting question.', 'danger')
+        return redirect(url_for('manager.edit_project_questions', project_id=project.id))
+
+    QuestionAnswer.query.filter_by(question_id=question.id).delete()
+    if project.is_annotation_project:
+        for task in AnnotationTask.query.filter_by(question_id=question.id).all():
+            TaskAssignment.query.filter_by(task_id=task.id).delete()
+            db.session.delete(task)
+    UserQuestionAssignment.query.filter_by(question_id=question.id).delete()
+    db.session.delete(question)
+    db.session.commit()
+    flash('Question deleted.', 'success')
+
+    # Only the deleted question's tasks are gone; rebalance what is left.
+    if project.is_annotation_project:
+        distribution.rebalance(project)
+    else:
+        _redistribute_survey(project)
+    return redirect(url_for('manager.edit_project_questions', project_id=project.id))
+
+
+def _update_settings(project):
+    if project.is_annotation_project:
+        project.questions_per_image = int(request.form.get('questions_per_image', project.questions_per_image))
+        project.max_questions_per_user = int(request.form.get('max_questions_per_user', project.max_questions_per_user))
+        project.answers_per_task = int(request.form.get('answers_per_task', 1))
+        if 'hand_out' in request.form:
+            project.hand_out_per_item = request.form['hand_out'] == 'item'
+        db.session.commit()
+        flash('Project settings updated successfully!', 'success')
+        flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))
+    return redirect(url_for('manager.project_dashboard', project_id=project.id))
+
+
+def _redistribute_survey(project):
+    for group_project in project.assigned_groups:
+        if group_project.group:
+            distribute_questions_to_group(group_project.group, project)
+
+
+_EDIT_ACTIONS = {
+    'update_questions': _update_questions,
+    'add_question': _add_question,
+    'delete_question': _delete_question,
+    'update_project_settings': _update_settings,
+}

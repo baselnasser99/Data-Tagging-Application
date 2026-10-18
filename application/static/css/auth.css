@@ -149,8 +149,8 @@ a:hover { color: var(--ink-soft); }
 
 /* The picture reacts a little to the pointer: the image under the mouse lifts
    slightly and comes forward. No movement for people who ask for reduced motion. */
-@media (hover: hover) {
-  .tile { transition: transform 180ms ease-out, box-shadow 180ms ease-out, opacity 180ms ease-out; }
+@media (hover: hover) and (pointer: fine) {
+  .tile { transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 180ms ease, opacity 180ms ease; }
   .tile:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(28, 39, 51, 0.12); opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) { .tile, .tile:hover { transition: none; transform: none; } }
@@ -228,7 +228,10 @@ a:hover { color: var(--ink-soft); }
   text-decoration: none;
 }
 
+.button { transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 150ms ease; }
 .button:hover { background: var(--ink-soft); color: #fff; }
+.button:active { transform: scale(0.97); }  /* the sign-in button answers the press, like the app's buttons */
+@media (prefers-reduced-motion: reduce) { .button:active { transform: none; } }
 
 .switch {
   margin: 24px 0 0;

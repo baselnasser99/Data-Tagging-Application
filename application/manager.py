@@ -359,14 +359,20 @@ def _delete_question(project):
 
 
 def _update_settings(project):
+    name = (request.form.get('project_name') or '').strip()
+    if name:
+        project.name = name
+    if 'project_desc' in request.form:
+        project.desc = request.form['project_desc']
     if project.is_annotation_project:
         project.questions_per_image = int(request.form.get('questions_per_image', project.questions_per_image))
         project.max_questions_per_user = int(request.form.get('max_questions_per_user', project.max_questions_per_user))
         project.answers_per_task = int(request.form.get('answers_per_task', 1))
         if 'hand_out' in request.form:
             project.hand_out_per_item = request.form['hand_out'] == 'item'
-        db.session.commit()
-        flash('Project settings updated successfully!', 'success')
+    db.session.commit()
+    flash('Project settings updated successfully!', 'success')
+    if project.is_annotation_project:
         flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))
     return redirect(url_for('manager.project_dashboard', project_id=project.id))
 

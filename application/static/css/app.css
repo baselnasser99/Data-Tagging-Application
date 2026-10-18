@@ -563,4 +563,9 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .task-questions > li.text-muted { font-weight: 400; }
 /* Form pages read best at a comfortable width, not stretched across a wide screen */
 .form-page { max-width: 880px; }
+.content.form-page { margin-left: 0; margin-right: 0; }  /* AdminLTE centres .content; keep forms in line with the title */
 .quiz-section + .quiz-section { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+/* Elements hidden by script stay hidden even when a class gives them a display (e.g. .checkbox) */
+[hidden] { display: none !important; }
+/* Multiple-choice options: three per row on wide screens */
+.option-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0 16px; }

@@ -46,39 +46,10 @@ def test_private_pages_are_not_kept_by_the_browser(user_client):
     assert "no-store" not in user_client.get("/static/css/app.css").headers.get("Cache-Control", "")
 
 
-def test_register_creates_end_user_with_hashed_password(client, db):
-    from application.models import User
-
-    resp = client.post(
-        "/register",
-        data={"fullname": "New Person", "email": "new@example.com", "password": "secret123"},
-    )
-    assert resp.status_code == 302
-    user = User.query.filter_by(email="new@example.com").one()
-    assert user.role == "end-user"
-    assert user.password_hash != "secret123"
-    assert user.check_password("secret123")
-
-
-def test_register_rejects_duplicate_email(client, end_user):
-    resp = client.post(
-        "/register",
-        data={"fullname": "Dup", "email": end_user.email, "password": "secret123"},
-        follow_redirects=True,
-    )
-    assert b"already exist" in resp.data
-
-
-def test_register_rejects_short_password(client, db):
-    from application.models import User
-
-    resp = client.post(
-        "/register",
-        data={"fullname": "Short", "email": "short@example.com", "password": "123"},
-        follow_redirects=True,
-    )
-    assert b"at least 8 characters" in resp.data
-    assert User.query.filter_by(email="short@example.com").first() is None
+def test_there_is_no_public_sign_up(client):
+    # The admin adds people (thesis); nobody can create their own account.
+    assert client.get("/register").status_code == 404
+    assert b"Create an account" not in client.get("/login").data
 
 
 @pytest.mark.parametrize("path", ["/admin/dashboard", "/admin/users", "/user/dashboard", "/user/my-projects"])

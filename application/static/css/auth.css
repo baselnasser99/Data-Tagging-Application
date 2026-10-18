@@ -233,14 +233,6 @@ a:hover { color: var(--ink-soft); }
 .button:active { transform: scale(0.97); }  /* the sign-in button answers the press, like the app's buttons */
 @media (prefers-reduced-motion: reduce) { .button:active { transform: none; } }
 
-.switch {
-  margin: 24px 0 0;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-}
-
-.switch a { font-weight: 700; }
 
 .alert {
   margin: 0 0 20px;

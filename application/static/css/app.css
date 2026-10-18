@@ -529,6 +529,9 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
   display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
 .option-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; max-width: 420px; }
 
+/* A form with a side panel (New project): the pair stays a comfortable width */
+.content.form-wide { max-width: 1120px; margin-left: 0; margin-right: 0; }
+
 /* Group cards: one line per project, with its progress */
 .assignment-list { list-style: none; margin: 0; padding: 0; }
 .assignment-list > li { padding: 10px 0; border-top: 1px solid var(--line); }

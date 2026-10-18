@@ -1,484 +1,250 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Project Questions - {{ project.name }}{% endblock %}
+{% block title %}{{ project.name }} – questions and settings{% endblock %}
+
+{#
+  One page, three forms (the server tells them apart by their "action" field):
+  settings, a new question, and all existing questions together.
+  Deleting a question uses its own small form; its button sits in the question's
+  card through the HTML form="..." attribute, because forms can't be nested.
+#}
+{% macro option_fields(prefix, suffix, question=None) %}
+  <div class="option-grid">
+    {% for i in range(1, 7) %}
+    <div class="form-group option-group" data-option="{{ i }}">
+      <label for="{{ prefix }}{{ i }}{{ suffix }}">Option {{ i }}</label>
+      <input type="text" class="form-control" id="{{ prefix }}{{ i }}{{ suffix }}" name="{{ prefix }}{{ i }}{{ suffix }}"
+             value="{{ (question['option' ~ i] if question else '') or '' }}">
+    </div>
+    {% endfor %}
+  </div>
+{% endmacro %}
 
 {% block content %}
-    <section class="content-header">
-        <h1>
-            Edit Project Questions
-            <small>{{ project.name }}</small>
-        </h1>
-        <ol class="breadcrumb">
-            <li><a href="{{ url_for('manager.my_projects') }}"><i class="fa fa-dashboard"></i> My Projects</a></li>
-            <li><a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ project.name }}</a></li>
-            <li class="active">Edit Questions</li>
-        </ol>
-    </section>
+<section class="content-header">
+  <h1>{{ project.name }}</h1>
+  <p class="text-muted page-subtitle">Questions and settings</p>
+</section>
 
-    <section class="content">
-        <!-- Project Settings -->
+<section class="content form-page">
+
+  <!-- Settings -->
+  <div class="box">
+    <div class="box-header with-border"><h3 class="box-title">Settings</h3></div>
+    <form method="POST" action="{{ url_for('manager.edit_project_questions', project_id=project.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="update_project_settings">
+      <div class="box-body">
+        <div class="form-group">
+          <label for="project_name">Name</label>
+          <input type="text" class="form-control" id="project_name" name="project_name" value="{{ project.name }}" required>
+        </div>
+        <div class="form-group">
+          <label for="project_desc">Description</label>
+          <textarea class="form-control" id="project_desc" name="project_desc" rows="2">{{ project.desc or '' }}</textarea>
+        </div>
+        {% if project.is_annotation_project %}
         <div class="row">
-            <div class="col-md-12">
-                <div class="box box-primary">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Project Settings</h3>
-                    </div>
-                    <form method="POST" action="{{ url_for('manager.edit_project_questions', project_id=project.id) }}">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="action" value="update_project_settings">
-                        <div class="box-body">
-                            <div class="row">
-                                {% if project.is_annotation_project %}
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="questions_per_image">Questions Per Image</label>
-                                        <input type="number" class="form-control" id="questions_per_image" name="questions_per_image" 
-                                            value="{{ project.questions_per_image }}" min="1" max="20">
-                                        <p class="help-block">Number of questions to ask for each image</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="max_questions_per_user">Max tasks per person</label>
-                                        <input type="number" class="form-control" id="max_questions_per_user" name="max_questions_per_user" 
-                                            value="{{ project.max_questions_per_user }}" min="1">
-                                        <p class="help-block">Maximum tasks each person can be given.</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="answers_per_task">Answers Per Task</label>
-                                        <input type="number" class="form-control" id="answers_per_task" name="answers_per_task" 
-                                            value="{{ project.answers_per_task }}" min="1">
-                                        <p class="help-block">Number of users who should answer each question</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="hand_out">Hand out work</label>
-                                        <select class="form-control" id="hand_out" name="hand_out">
-                    <option value="question"{% if not project.hand_out_per_item %} selected{% endif %}>Each question on its own (default)</option>
-                    <option value="item"{% if project.hand_out_per_item %} selected{% endif %}>All of an item's questions to one person</option>
-                  </select>
-                                        <p class="help-block">Applies to work handed out from now on; current assignments stay.</p>
-                                    </div>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="box-footer">
-                            <button type="submit" class="btn btn-primary">Update Settings</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+          <div class="col-sm-6 form-group">
+            <label for="max_questions_per_user">Max tasks per person</label>
+            <input type="number" class="form-control" id="max_questions_per_user" name="max_questions_per_user"
+                   value="{{ project.max_questions_per_user }}" min="1">
+            <p class="help-block">Nobody is given more tasks than this.</p>
+          </div>
+          <div class="col-sm-6 form-group">
+            <label for="answers_per_task">Answers per task</label>
+            <input type="number" class="form-control" id="answers_per_task" name="answers_per_task"
+                   value="{{ project.answers_per_task }}" min="1">
+            <p class="help-block">How many different people answer each task.</p>
+          </div>
         </div>
-
-        <!-- Add New Question -->
         <div class="row">
-            <div class="col-md-12">
-                <div class="box box-success">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Add New Question</h3>
-                        <div class="box-tools pull-right">
-                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
-                        </div>
-                    </div>
-                    <form method="POST" action="{{ url_for('manager.edit_project_questions', project_id=project.id) }}" enctype="multipart/form-data">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="action" value="add_question">
-                        <div class="box-body">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label for="new_question_text">Question Text</label>
-                                        <textarea class="form-control" id="new_question_text" name="new_question_text" rows="3" required></textarea>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Question Type</label>
-                                        <div class="radio">
-                                            <label>
-                                                <input type="radio" name="new_question_type" value="text" checked {% if project.is_annotation_project %}onclick="return false;" onkeydown="return false;"{% endif %}>
-                                                Open Text
-                                            </label>
-                                        </div>
-                                        {% if not project.is_annotation_project %}
-                                        <div class="radio">
-                                            <label>
-                                                <input type="radio" name="new_question_type" value="mcq">
-                                                Multiple Choice
-                                            </label>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="col-md-6" id="new_mcq_options" style="display: none;">
-                                    <div class="form-group">
-                                        <label for="new_question_num_options">Number of Options</label>
-                                        <select class="form-control" id="new_question_num_options" name="new_question_num_options">
-                                            <option value="2">2</option>
-                                            <option value="3">3</option>
-                                            <option value="4" selected>4</option>
-                                            <option value="5">5</option>
-                                            <option value="6">6</option>
-                                        </select>
-                                    </div>
-                                    <div id="new_mcq_options_container">
-                                        <div class="form-group">
-                                            <label for="new_question_option_1">Option 1</label>
-                                            <input type="text" class="form-control" id="new_question_option_1" name="new_question_option_1">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="new_question_option_2">Option 2</label>
-                                            <input type="text" class="form-control" id="new_question_option_2" name="new_question_option_2">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="new_question_option_3">Option 3</label>
-                                            <input type="text" class="form-control" id="new_question_option_3" name="new_question_option_3">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="new_question_option_4">Option 4</label>
-                                            <input type="text" class="form-control" id="new_question_option_4" name="new_question_option_4">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="new_question_option_5">Option 5</label>
-                                            <input type="text" class="form-control" id="new_question_option_5" name="new_question_option_5">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="new_question_option_6">Option 6</label>
-                                            <input type="text" class="form-control" id="new_question_option_6" name="new_question_option_6">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="new_question_correct_answer">Correct Answer</label>
-                                            <select class="form-control" id="new_question_correct_answer" name="new_question_correct_answer">
-                                                <option value="1">Option 1</option>
-                                                <option value="2">Option 2</option>
-                                                <option value="3">Option 3</option>
-                                                <option value="4">Option 4</option>
-                                                <option value="5">Option 5</option>
-                                                <option value="6">Option 6</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="box-footer">
-                            <button type="submit" class="btn btn-success">Add Question</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+          <div class="col-sm-6 form-group">
+            <label for="hand_out">Hand out work</label>
+            <select class="form-control" id="hand_out" name="hand_out">
+              <option value="question"{% if not project.hand_out_per_item %} selected{% endif %}>Each question on its own (default)</option>
+              <option value="item"{% if project.hand_out_per_item %} selected{% endif %}>All of an item's questions to one person</option>
+            </select>
+            <p class="help-block">Applies to work handed out from now on; current tasks stay.</p>
+          </div>
+          {% if project.hand_out_per_item %}
+          <div class="col-sm-6 form-group">
+            <label for="questions_per_image">Questions per page</label>
+            <input type="number" class="form-control" id="questions_per_image" name="questions_per_image"
+                   value="{{ project.questions_per_image }}" min="1" max="20">
+            <p class="help-block">How many of an item's questions a person sees at once.</p>
+          </div>
+          {% endif %}
         </div>
+        {% endif %}
+      </div>
+      <div class="box-footer">
+        <button type="submit" class="btn btn-primary">Save settings</button>
+      </div>
+    </form>
+  </div>
 
-        <!-- Existing Questions -->
-        <div class="row">
-            <div class="col-md-12">
-                <div class="box box-info">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Existing Questions</h3>
-                    </div>
-                    <form method="POST" action="{{ url_for('manager.edit_project_questions', project_id=project.id) }}" enctype="multipart/form-data">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="action" value="update_questions">
-                        <div class="box-body">
-                            {% for question in project.questions %}
-                            <div class="box box-default">
-                                <div class="box-header with-border">
-                                    <h4 class="box-title">Question #{{ loop.index }}</h4>
-                                    <div class="box-tools pull-right">
-                                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
-                                        <button type="button" class="btn btn-danger btn-xs delete-question" data-question-id="{{ question.id }}">
-                                            <i class="fa fa-trash"></i> Delete
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="box-body">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="form-group">
-                                                <label for="question-{{ question.id }}">Question Text</label>
-                                                <textarea class="form-control" id="question-{{ question.id }}" name="question-{{ question.id }}" rows="3" required>{{ question.question }}</textarea>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label>Question Type</label>
-                                                <select class="form-control question-type" id="dropdown-{{ question.id }}" name="dropdown-{{ question.id }}" data-question-id="{{ question.id }}"
-                                                {% if project.is_annotation_project %}disabled{% endif %}>
-                                                    <option value="text" {% if question.answer_type.value == 'text' %}selected{% endif %}>Open Text</option>
-                                                    <option value="mcq" {% if question.answer_type.value == 'mcq' %}selected{% endif %}>Multiple Choice</option>
-                                                </select>
-                                                </div>
-                                                <div class="form-group" id="confirm-delete-answers-{{ question.id }}" style="display: none;">
-                                                    <div class="checkbox">
-                                                        <label>
-                                                            <input type="checkbox" name="confirm_delete_answers_{{ question.id }}" value="true"> Delete existing answers for this question
-                                                        </label>
-                                                    </div>
-                                                    <p class="help-block text-danger">Changing question type will delete all existing answers for this question.</p>
-                                                </div>
-                                            </div>
-                                        <div class="col-md-6">
-                                            {% if question.file_path %}
-                                            <div class="form-group">
-                                                <label>Current File</label>
-                                                <p><a href="/static/uploads/{{ question.file_path }}" target="_blank">View File</a></p>
-                                            </div>
-                                            {% endif %}
-                                            {% if not project.is_annotation_project %}
-                                            <div class="form-group">
-                                                <label for="questionfile-{{ question.id }}">Upload File (Optional)</label>
-                                                <input type="file" id="questionfile-{{ question.id }}" name="questionfile-{{ question.id }}">
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- MCQ Options -->
-                                    <div class="mcq-options" id="mcq-options-{{ question.id }}" {% if question.answer_type.value != 'mcq' %}style="display: none;"{% endif %}>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="number_of_options-{{ question.id }}">Number of Options</label>
-                                                    <select class="form-control num-options" id="number_of_options-{{ question.id }}" name="number_of_options-{{ question.id }}" data-question-id="{{ question.id }}">
-                                                        <option value="2" {% if question.number_of_options == 2 %}selected{% endif %}>2</option>
-                                                        <option value="3" {% if question.number_of_options == 3 %}selected{% endif %}>3</option>
-                                                        <option value="4" {% if question.number_of_options == 4 %}selected{% endif %}>4</option>
-                                                        <option value="5" {% if question.number_of_options == 5 %}selected{% endif %}>5</option>
-                                                        <option value="6" {% if question.number_of_options == 6 %}selected{% endif %}>6</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group option-group" data-option="1" {% if question.number_of_options < 1 %}style="display: none;"{% endif %}>
-                                                    <label for="mcq-option-1-{{ question.id }}">Option 1</label>
-                                                    <input type="text" class="form-control" id="mcq-option-1-{{ question.id }}" name="mcq-option-1-{{ question.id }}" value="{{ question.option1 or '' }}">
-                                                </div>
-                                                <div class="form-group option-group" data-option="2" {% if question.number_of_options < 2 %}style="display: none;"{% endif %}>
-                                                    <label for="mcq-option-2-{{ question.id }}">Option 2</label>
-                                                    <input type="text" class="form-control" id="mcq-option-2-{{ question.id }}" name="mcq-option-2-{{ question.id }}" value="{{ question.option2 or '' }}">
-                                                </div>
-                                                <div class="form-group option-group" data-option="3" {% if question.number_of_options < 3 %}style="display: none;"{% endif %}>
-                                                    <label for="mcq-option-3-{{ question.id }}">Option 3</label>
-                                                    <input type="text" class="form-control" id="mcq-option-3-{{ question.id }}" name="mcq-option-3-{{ question.id }}" value="{{ question.option3 or '' }}">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group option-group" data-option="4" {% if question.number_of_options < 4 %}style="display: none;"{% endif %}>
-                                                    <label for="mcq-option-4-{{ question.id }}">Option 4</label>
-                                                    <input type="text" class="form-control" id="mcq-option-4-{{ question.id }}" name="mcq-option-4-{{ question.id }}" value="{{ question.option4 or '' }}">
-                                                </div>
-                                                <div class="form-group option-group" data-option="5" {% if question.number_of_options < 5 %}style="display: none;"{% endif %}>
-                                                    <label for="mcq-option-5-{{ question.id }}">Option 5</label>
-                                                    <input type="text" class="form-control" id="mcq-option-5-{{ question.id }}" name="mcq-option-5-{{ question.id }}" value="{{ question.option5 or '' }}">
-                                                </div>
-                                                <div class="form-group option-group" data-option="6" {% if question.number_of_options < 6 %}style="display: none;"{% endif %}>
-                                                    <label for="mcq-option-6-{{ question.id }}">Option 6</label>
-                                                    <input type="text" class="form-control" id="mcq-option-6-{{ question.id }}" name="mcq-option-6-{{ question.id }}" value="{{ question.option6 or '' }}">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-12">
-                                                <div class="form-group">
-                                                    <label for="mcq-correct-answer-{{ question.id }}">Correct Answer</label>
-                                                    <select class="form-control" id="mcq-correct-answer-{{ question.id }}" name="mcq-correct-answer-{{ question.id }}">
-                                                        {% for i in range(1, question.number_of_options + 1) %}
-                                                            <option value="{{ i }}" {% if question.answer == i|string %}selected{% endif %}>Option {{ i }}</option>
-                                                        {% endfor %}
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Text Answer -->
-                                    <div class="text-answer" id="text-answer-{{ question.id }}" {% if question.answer_type.value != 'text' %}style="display: none;"{% endif %}>
-                                        <div class="row">
-                                            <div class="col-md-12">
-                                                <div class="form-group">
-                                                    <label for="answer-{{ question.id }}">Default Answer (Optional)</label>
-                                                    <input type="text" class="form-control" id="answer-{{ question.id }}" name="answer-{{ question.id }}" value="{{ question.answer or '' }}">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        <div class="box-footer">
-                            <button type="submit" class="btn btn-primary">Save All Questions</button>
-                            <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-default">Cancel</a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </section>
-
-<!-- Delete Question Modal -->
-<div class="modal fade" id="deleteQuestionModal" tabindex="-1" role="dialog" aria-labelledby="deleteQuestionModalLabel">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="deleteQuestionModalLabel">Confirm Delete</h4>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this question? This action cannot be undone.</p>
-                <p>All answers associated with this question will also be deleted.</p>
-            </div>
-            <div class="modal-footer">
-                <form method="POST" action="{{ url_for('manager.edit_project_questions', project_id=project.id) }}">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="action" value="delete_question">
-                    <input type="hidden" name="question_id_to_delete" id="question_id_to_delete">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Delete Question</button>
-                </form>
-            </div>
-        </div>
+  <!-- Existing questions -->
+  <div class="box">
+    <div class="box-header with-border">
+      <h3 class="box-title">Questions</h3>
+      <p class="text-muted" style="margin: 4px 0 0;">{{ plural(project.questions | length, "question") }}{% if project.is_annotation_project %}, asked about every item{% endif %}</p>
     </div>
-</div>
+    {% if project.questions %}
+    <form method="POST" action="{{ url_for('manager.edit_project_questions', project_id=project.id) }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="update_questions">
+      <div class="box-body">
+        {% for question in project.questions %}
+        {% set qid = question.id %}
+        <div class="quiz-section question-editor" data-question-id="{{ qid }}">
+          <div class="assignment-row" style="margin-bottom: 6px;">
+            <label for="question-{{ qid }}" style="margin: 0;">Question {{ loop.index }}</label>
+            <button type="submit" form="delete-question-{{ qid }}" class="btn btn-danger btn-sm"
+                    aria-label="Delete question {{ loop.index }}">Delete</button>
+          </div>
+          <textarea class="form-control" id="question-{{ qid }}" name="question-{{ qid }}" rows="1" required>{{ question.question }}</textarea>
 
+          <div class="row" style="margin-top: 10px;">
+            <div class="col-sm-6 form-group">
+              <label for="dropdown-{{ qid }}">Answer type</label>
+              <select class="form-control question-type" id="dropdown-{{ qid }}" name="dropdown-{{ qid }}"
+                      data-initial="{{ question.answer_type.value }}">
+                <option value="text" {% if question.answer_type.value == 'text' %}selected{% endif %}>Free text</option>
+                <option value="mcq" {% if question.answer_type.value == 'mcq' %}selected{% endif %}>Multiple choice</option>
+              </select>
+            </div>
+            <div class="col-sm-6 form-group mcq-only">
+              <label for="number_of_options-{{ qid }}">Number of options</label>
+              <select class="form-control num-options" id="number_of_options-{{ qid }}" name="number_of_options-{{ qid }}">
+                {% for n in range(2, 7) %}
+                <option value="{{ n }}" {% if question.number_of_options == n or (question.number_of_options < 2 and n == 2) %}selected{% endif %}>{{ n }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="checkbox type-change-confirm" hidden>
+            <label>
+              <input type="checkbox" name="confirm_delete_answers_{{ qid }}" value="true">
+              Delete this question's existing answers (they don't fit the new answer type)
+            </label>
+          </div>
+
+          <div class="mcq-only">{{ option_fields('mcq-option-', '-' ~ qid, question) }}</div>
+
+          {% if not project.is_annotation_project %}
+          {# Surveys can keep a reference answer and an attached file; projects have no right answers. #}
+          <div class="row">
+            <div class="col-sm-6 form-group mcq-only">
+              <label for="mcq-correct-answer-{{ qid }}">Correct answer (optional)</label>
+              <select class="form-control correct-answer" id="mcq-correct-answer-{{ qid }}" name="mcq-correct-answer-{{ qid }}">
+                {% for i in range(1, 7) %}
+                <option value="{{ i }}" {% if question.answer == i|string %}selected{% endif %}>Option {{ i }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-6 form-group text-only">
+              <label for="answer-{{ qid }}">Correct answer (optional)</label>
+              <input type="text" class="form-control" id="answer-{{ qid }}" name="answer-{{ qid }}" value="{{ question.answer or '' }}">
+            </div>
+            <div class="col-sm-6 form-group">
+              <label for="questionfile-{{ qid }}">Attach a file (optional)</label>
+              <input type="file" class="form-control" id="questionfile-{{ qid }}" name="questionfile-{{ qid }}">
+              {% if question.file_path %}<p class="help-block"><a href="{{ url_for('static', filename='uploads/' ~ question.file_path) }}" target="_blank" rel="noopener">Current file</a></p>{% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="box-footer quick-actions">
+        <button type="submit" class="btn btn-primary">Save questions</button>
+        <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-default">Back to project</a>
+      </div>
+    </form>
+    {% else %}
+    <div class="empty-state"><strong>No questions yet</strong>Add the first one below.</div>
+    {% endif %}
+  </div>
+
+  {% for question in project.questions %}
+  <form id="delete-question-{{ question.id }}" method="POST" hidden
+        action="{{ url_for('manager.edit_project_questions', project_id=project.id) }}"
+        onsubmit="return confirm('Delete this question and all of its answers? This cannot be undone.')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="delete_question">
+    <input type="hidden" name="question_id_to_delete" value="{{ question.id }}">
+  </form>
+  {% endfor %}
+
+  <!-- New question -->
+  <div class="box">
+    <div class="box-header with-border"><h3 class="box-title">Add a question</h3></div>
+    <form method="POST" action="{{ url_for('manager.edit_project_questions', project_id=project.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="add_question">
+      <div class="box-body question-editor">
+        <div class="form-group">
+          <label for="new_question_text">Question</label>
+          <textarea class="form-control" id="new_question_text" name="new_question_text" rows="1" required placeholder="What do you want to ask?"></textarea>
+        </div>
+        <div class="row">
+          <div class="col-sm-6 form-group">
+            <label for="new_question_type">Answer type</label>
+            <select class="form-control question-type" id="new_question_type" name="new_question_type" data-initial="text">
+              <option value="text">Free text</option>
+              <option value="mcq">Multiple choice</option>
+            </select>
+          </div>
+          <div class="col-sm-6 form-group mcq-only">
+            <label for="new_question_num_options">Number of options</label>
+            <select class="form-control num-options" id="new_question_num_options" name="new_question_num_options">
+              {% for n in range(2, 7) %}<option value="{{ n }}" {% if n == 4 %}selected{% endif %}>{{ n }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="mcq-only">{{ option_fields('new_question_option_', '') }}</div>
+        {% if project.is_annotation_project %}
+        <p class="help-block" style="margin: 0;">The new question is asked about every item, and its tasks are handed out straight away.</p>
+        {% endif %}
+      </div>
+      <div class="box-footer">
+        <button type="submit" class="btn btn-primary"><i class="fa fa-plus"></i> Add question</button>
+      </div>
+    </form>
+  </div>
+</section>
 {% endblock %}
 
 {% block scripts %}
 <script>
-$(function() {
-    // Function to handle showing/hiding MCQ options based on question type
-    function toggleMcqOptions(questionId, questionType) {
-        if (questionType === 'mcq') {
-            $('#mcq-options-' + questionId).show();
-            $('#text-answer-' + questionId).hide();
-        } else {
-            $('#mcq-options-' + questionId).hide();
-            $('#text-answer-' + questionId).show();
-        }
+// Each question editor: show the multiple-choice fields only for multiple choice, only as many
+// option boxes as chosen, and ask to confirm deleting answers when an existing question's type changes.
+document.querySelectorAll('.question-editor').forEach(function (editor) {
+  var type = editor.querySelector('.question-type');
+  var count = editor.querySelector('.num-options');
+  var confirmBox = editor.querySelector('.type-change-confirm');
+  var correct = editor.querySelector('.correct-answer');
+  function update() {
+    var mcq = type.value === 'mcq';
+    var n = parseInt(count.value, 10);
+    editor.querySelectorAll('.mcq-only').forEach(function (el) { el.hidden = !mcq; });
+    editor.querySelectorAll('.text-only').forEach(function (el) { el.hidden = mcq; });
+    editor.querySelectorAll('.option-group').forEach(function (el) {
+      var shown = mcq && parseInt(el.dataset.option, 10) <= n;
+      el.hidden = !shown;
+      el.querySelector('input').disabled = !shown;  // hidden options are not sent, so they are cleared
+    });
+    if (correct) {
+      Array.prototype.forEach.call(correct.options, function (o) { o.hidden = parseInt(o.value, 10) > n; });
+      if (parseInt(correct.value, 10) > n) correct.value = '1';
     }
-
-    // Function to handle showing/hiding option fields based on number of options
-    function updateMcqOptionFields(questionId, numOptions) {
-        // Hide all options first
-        $('#mcq-options-' + questionId + ' .option-group').hide();
-        
-        // Show only the selected number of options
-        for (var i = 1; i <= numOptions; i++) {
-            $('#mcq-options-' + questionId + ' .option-group[data-option="' + i + '"]').show();
-        }
-        
-        // Dynamically update the correct answer dropdown
-        var correctAnswerDropdown = $('#mcq-correct-answer-' + questionId);
-        correctAnswerDropdown.empty(); // Clear existing options
-        for (var i = 1; i <= numOptions; i++) {
-            correctAnswerDropdown.append($('<option>', {
-                value: i,
-                text: 'Option ' + i
-            }));
-        }
-        // Select the first option by default if no previous selection or if previous selection is now invalid
-        if (correctAnswerDropdown.find('option:selected').length === 0 || parseInt(correctAnswerDropdown.val()) > numOptions) {
-            correctAnswerDropdown.val('1');
-        }
-    }
-
-    // Initial setup for existing questions on page load
-    $('.question-type').each(function() {
-        var questionId = $(this).data('question-id');
-        var questionType = $(this).val();
-        $(this).data('initial-type', questionType); // Store initial type
-        toggleMcqOptions(questionId, questionType);
-    });
-
-    $('.num-options').each(function() {
-        var questionId = $(this).data('question-id');
-        var numOptions = parseInt($(this).val());
-        updateMcqOptionFields(questionId, numOptions);
-    });
-
-    // Event listeners for existing questions
-    $('.question-type').change(function() {
-        var questionId = $(this).data('question-id');
-        var newQuestionType = $(this).val();
-        var oldQuestionType = $(this).find('option:selected').data('old-type'); // Get the previously selected type
-
-        // Show warning if type is changing and there are existing answers (handled server-side)
-        // For now, just show the checkbox if type is changing
-        if ($(this).data('initial-type') !== newQuestionType) {
-            $('#confirm-delete-answers-' + questionId).show();
-        } else {
-            $('#confirm-delete-answers-' + questionId).hide();
-        }
-
-        toggleMcqOptions(questionId, newQuestionType);
-    });
-
-    $('.num-options').change(function() {
-        var questionId = $(this).data('question-id');
-        var numOptions = parseInt($(this).val());
-        updateMcqOptionFields(questionId, numOptions);
-    });
-
-    // New question type toggle
-    $('input[name="new_question_type"]').change(function() {
-        if ($(this).val() === 'mcq') {
-            $('#new_mcq_options').show();
-            // Trigger change for new question num options to show default options
-            $('#new_question_num_options').trigger('change');
-        } else {
-            $('#new_mcq_options').hide();
-        }
-    });
-
-    // New question number of options change
-    $('#new_question_num_options').change(function() {
-        var numOptions = parseInt($(this).val());
-        
-        // Hide all options first
-        $('#new_mcq_options_container .form-group').hide();
-        
-        // Show only the selected number of options
-        for (var i = 1; i <= numOptions; i++) {
-            $('#new_mcq_options_container .form-group:nth-child(' + i + ')').show();
-        }
-        
-        // Dynamically update the correct answer dropdown
-        var correctAnswerDropdown = $('#new_question_correct_answer');
-        correctAnswerDropdown.empty(); // Clear existing options
-        for (var i = 1; i <= numOptions; i++) {
-            correctAnswerDropdown.append($('<option>', {
-                value: i,
-                text: 'Option ' + i
-            }));
-        }
-        // Select the first option by default if no previous selection or if previous selection is now invalid
-        if (correctAnswerDropdown.find('option:selected').length === 0 || parseInt(correctAnswerDropdown.val()) > numOptions) {
-            correctAnswerDropdown.val('1');
-        }
-    });
-
-    // Initial setup for new question on page load if it's already set to MCQ (e.g., after form submission with error)
-    if ($('input[name="new_question_type"]:checked').val() === 'mcq') {
-        $('#new_mcq_options').show();
-        $('#new_question_num_options').trigger('change');
-    }
-
-    // Delete question button
-    $('.delete-question').click(function() {
-        var questionId = $(this).data('question-id');
-        $('#question_id_to_delete').val(questionId);
-        $('#deleteQuestionModal').modal('show');
-    });
+    if (confirmBox) confirmBox.hidden = type.value === type.dataset.initial;
+  }
+  type.addEventListener('change', update);
+  count.addEventListener('change', update);
+  update();
 });
 </script>
 {% endblock %}

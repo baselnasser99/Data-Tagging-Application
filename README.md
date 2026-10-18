@@ -132,6 +132,7 @@ The tests cover sign-in and access control for each role, CSRF, the distribution
 - Every form has a CSRF token. Cookies are HTTP-only and SameSite, with an idle timeout. Pages are sent with `Cache-Control: no-store`.
 - Access is checked on every route: managers see only their own projects, and members only their own tasks.
 - All user-written text is escaped, including inside confirm dialogs.
+- After 5 wrong passwords, an account pauses for 15 minutes (stored in the database, so it holds across server processes).
 - Sign-ins, failed sign-ins and sign-outs are written to an audit log.
 
 ## Documentation

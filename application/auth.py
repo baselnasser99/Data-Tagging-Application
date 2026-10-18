@@ -1,15 +1,19 @@
 import logging
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_user, logout_user
 
+from .extns import db
 from .models import User
 
 auth = Blueprint("auth", __name__)
 audit = logging.getLogger("audit")
 
 MIN_PASSWORD_LENGTH = 6
+MAX_FAILED_LOGINS = 5  # wrong passwords in a row before the account pauses
+LOCK_MINUTES = 15
 
 HOME_BY_ROLE = {
     "admin": "admin.dashboard",
@@ -50,11 +54,26 @@ def login():
         email = (request.form.get("email") or "").strip()
         password = request.form.get("password") or ""
         user = User.query.filter_by(email=email).first()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        if user and user.locked_until and user.locked_until > now:  # checked first: a right guess is refused too
+            audit.info("LOGIN_LOCKED email=%s ip=%s", email, request.remote_addr)
+            flash(f"Too many wrong passwords. Try again in {LOCK_MINUTES} minutes.", "danger")
+            return redirect(url_for("auth.login"))
 
         if not user or not user.active or not user.check_password(password):
             audit.info("LOGIN_FAILED email=%s ip=%s", email, request.remote_addr)
+            if user:
+                user.failed_logins = (user.failed_logins or 0) + 1
+                if user.failed_logins >= MAX_FAILED_LOGINS:
+                    user.failed_logins, user.locked_until = 0, now + timedelta(minutes=LOCK_MINUTES)
+                db.session.commit()
             flash("Email address or password is incorrect!", "danger")
             return redirect(url_for("auth.login"))
+
+        if user.failed_logins or user.locked_until:
+            user.failed_logins, user.locked_until = 0, None
+            db.session.commit()
 
         session.clear()
         login_user(user)

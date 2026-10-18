@@ -12,6 +12,9 @@ class User(UserMixin, db.Model):
     password_hash = Column(String(500), nullable=False)
     role = Column(String(20), nullable=False)  # 'admin', 'project-admin', or 'end-user'
     active = Column(db.Boolean, nullable=False, default=True, server_default=db.true())  # False = removed by an admin; answers kept
+    # Kept in the database (not in memory) so the limit holds across Gunicorn workers and restarts.
+    failed_logins = Column(Integer, nullable=False, default=0, server_default="0")
+    locked_until = Column(db.DateTime, nullable=True)  # UTC; no sign-in before this time
 
     question_answers = db.relationship(
         "QuestionAnswer", backref="user", lazy=True)

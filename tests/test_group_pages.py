@@ -180,3 +180,20 @@ def test_manager_sees_and_assigns_only_their_own_projects(app, db, admin_client,
     resp = client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": survey.id})
     assert resp.status_code == 403
     assert GroupProject.query.filter_by(group_id=group.id).count() == 1  # only the admin's assignment
+
+
+def test_manager_cannot_change_members_of_a_group_shared_with_other_projects(
+        app, db, admin_client, make_user, make_project_admin, team, photo_project, survey):
+    group, members = team
+    for project in (photo_project, survey):  # the group also works on a survey the manager doesn't run
+        admin_client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": project.id})
+    client = _manager_client(app, make_project_admin, photo_project)
+    url = f"/admin/project/{photo_project.id}/manage-group/{group.id}"
+
+    page = client.get(url).data
+    assert b"also works on Survey" in page and b"Add to group" not in page
+
+    newcomer = make_user()
+    assert client.post(url, data={"action": "add_user", "user_id": newcomer.id}).status_code == 403
+    assert client.post(url, data={"action": "remove_user", "user_id": members[0].id}).status_code == 403
+    assert UserGroupMembership.query.filter_by(group_id=group.id).count() == 2  # unchanged

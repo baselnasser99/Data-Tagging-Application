@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ user.full_name }} – {{ app_name }}{% endblock %}
+
+{% block content %}
+  <section class="content-header">
+    <h1>Edit {{ user.full_name }}</h1>
+    <p class="text-muted page-subtitle">Their tasks, answers and groups stay exactly as they are.</p>
+  </section>
+
+  <section class="content form-page">
+    <div class="box">
+      <form method="POST" action="{{ url_for('admin.edit_user', user_id=user.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="box-body">
+          <div class="form-group">
+            <label for="full_name">Full name</label>
+            <input type="text" class="form-control" id="full_name" name="full_name" maxlength="100" required
+                   value="{{ form.get('full_name', user.full_name) }}">
+          </div>
+          <div class="form-group">
+            <label for="email">Email address</label>
+            <input type="email" class="form-control" id="email" name="email" maxlength="255" required
+                   value="{{ form.get('email', user.email) }}">
+            <p class="help-block">They sign in with this address. Answers downloaded earlier keep the old one.</p>
+          </div>
+          <div class="form-group">
+            <label for="password">New password</label>
+            <input type="password" class="form-control" id="password" name="password" minlength="6" autocomplete="new-password">
+            <p class="help-block">Leave it empty to keep their current password. If they forgot it, set a new one and share it with them.</p>
+          </div>
+        </div>
+        <div class="box-footer quick-actions">
+          <button type="submit" class="btn btn-primary">Save changes</button>
+          <a href="{{ url_for('admin.users') }}" class="btn btn-default">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </section>
+{% endblock %}

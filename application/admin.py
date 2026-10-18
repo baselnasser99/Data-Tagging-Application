@@ -6,7 +6,7 @@ import os
 import uuid
 import secrets
 
-from flask import Blueprint, request, redirect, url_for, flash, render_template, session
+from flask import Blueprint, abort, request, redirect, url_for, flash, render_template, session
 from sqlalchemy import delete
 from werkzeug.utils import secure_filename
 
@@ -16,7 +16,8 @@ from .auth import MIN_PASSWORD_LENGTH
 from .jinja_utils import plural
 from . import distribution
 from .feedback import flash_distribution, warn_idle_members
-from .groups import assign_questions_to_new_group_member, group_progress, project_progress, set_up_new_project
+from .groups import (assign_questions_to_new_group_member, group_progress, project_progress,
+                     remove_pending_assignments_from_removed_group_member, set_up_new_project)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
@@ -46,7 +47,7 @@ def public_file_url(filename):
 @admin_required
 def dashboard():
     total_projects = Project.query.count()
-    total_users = User.query.filter_by(role='end-user').count()
+    total_users = User.query.filter_by(role='end-user', active=True).count()
     total_groups = UserGroup.query.count()
 
     weeks_data = weekly_answers()
@@ -128,7 +129,90 @@ def users():
             'answer_count': QuestionAnswer.query.filter_by(user_id=user.id).count(),
             'assigned_groups': [m.group for m in user_group_memberships if m.group]
         })
-    return render_template('admin/users.html', users_data=users_data)
+    users_data.sort(key=lambda d: (not d['user'].active, d['user'].full_name.lower()))
+    groups = UserGroup.query.order_by(UserGroup.name).all()
+    return render_template('admin/users.html', users_data=users_data, groups=groups)
+
+
+def _member_or_404(user_id):
+    user = db.session.get(User, user_id)
+    if user is None or user.role != 'end-user':
+        abort(404)  # admins and managers are changed on their own pages
+    return user
+
+
+def _has_finished_work(user):
+    return (QuestionAnswer.query.filter_by(user_id=user.id).first() is not None
+            or TaskAssignment.query.filter_by(user_id=user.id, is_completed=True).first() is not None)
+
+
+@admin.route("/users/<int:user_id>/edit", methods=['GET', 'POST'])
+@admin_required
+def edit_user(user_id):
+    """Change a member's name, email or password. Their work is linked by id, so nothing else changes."""
+    user = _member_or_404(user_id)
+    if request.method == 'POST':
+        full_name = (request.form.get('full_name') or '').strip()
+        email = (request.form.get('email') or '').strip()
+        password = request.form.get('password') or ''
+        error = None
+        if not full_name or not email:
+            error = 'Please enter a name and an email address.'
+        elif len(full_name) > 100 or len(email) > 255 or '@' not in email:
+            error = 'Please enter a valid email address and a name of at most 100 characters.'
+        elif User.query.filter(User.email == email, User.id != user.id).first():
+            error = f'Someone else already uses {email}.'
+        elif password and len(password) < MIN_PASSWORD_LENGTH:
+            error = f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.'
+        if error:
+            flash(error, 'danger')
+            return render_template('admin/edit_user.html', user=user, form=request.form)
+        user.full_name, user.email = full_name, email
+        if password:
+            user.set_password(password)
+        db.session.commit()
+        flash(f'{full_name} was updated.' + (' Share the new password with them.' if password else ''), 'success')
+        return redirect(url_for('admin.users'))
+    return render_template('admin/edit_user.html', user=user, form={})
+
+
+@admin.route("/users/<int:user_id>/remove", methods=['POST'])
+@admin_required
+def remove_user(user_id):
+    """Take a member out of every group and hand their unfinished tasks to the others.
+
+    People with finished work are only switched off (they can't sign in, and their
+    answers stay in every export); people without any are deleted for good.
+    """
+    user = _member_or_404(user_id)
+    name = user.full_name
+    for membership in UserGroupMembership.query.filter_by(user_id=user.id).all():
+        group = membership.group
+        db.session.delete(membership)
+        db.session.commit()
+        remove_pending_assignments_from_removed_group_member(user, group)
+    if _has_finished_work(user):
+        user.active = False
+        db.session.commit()
+        flash(f'{name} was removed and can no longer sign in. Their answers are kept; '
+              'their unfinished tasks went to the rest of their groups.', 'success')
+    else:
+        for model in (TaskAssignment, UserQuestionAssignment, ExportLog):
+            model.query.filter_by(user_id=user.id).delete()
+        db.session.delete(user)
+        db.session.commit()
+        flash(f'{name} was deleted. They had no answers yet.', 'success')
+    return redirect(url_for('admin.users'))
+
+
+@admin.route("/users/<int:user_id>/restore", methods=['POST'])
+@admin_required
+def restore_user(user_id):
+    user = _member_or_404(user_id)
+    user.active = True
+    db.session.commit()
+    flash(f'{user.full_name} can sign in again. Add them to a group to give them work.', 'success')
+    return redirect(url_for('admin.users'))
 
 @admin.route("/create-user", methods=['GET', 'POST'])
 @admin_required

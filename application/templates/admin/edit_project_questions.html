@@ -97,12 +97,15 @@
       <div class="box-body">
         {% for question in project.questions %}
         {% set qid = question.id %}
-        <div class="quiz-section question-editor" data-question-id="{{ qid }}">
-          <div class="assignment-row" style="margin-bottom: 6px;">
-            <label for="question-{{ qid }}" style="margin: 0;">Question {{ loop.index }}</label>
+        <div class="question-card question-editor" data-question-id="{{ qid }}">
+          <div class="question-card-head">
+            <span class="question-number" aria-hidden="true">{{ loop.index }}</span>
+            <label for="question-{{ qid }}">Question {{ loop.index }}</label>
+            <span class="text-muted question-kind">{{ "Multiple choice" if question.answer_type.value == "mcq" else "Free text" }}</span>
             <button type="submit" form="delete-question-{{ qid }}" class="btn btn-danger btn-sm"
                     aria-label="Delete question {{ loop.index }}">Delete</button>
           </div>
+          <div class="question-card-body">
           <textarea class="form-control" id="question-{{ qid }}" name="question-{{ qid }}" rows="1" required>{{ question.question }}</textarea>
 
           <div class="row" style="margin-top: 10px;">
@@ -155,6 +158,7 @@
             </div>
           </div>
           {% endif %}
+          </div>
         </div>
         {% endfor %}
       </div>

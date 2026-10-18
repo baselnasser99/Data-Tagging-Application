@@ -24,10 +24,11 @@
           <div class="tile is-selected"><span class="corners"></span><span class="tag">bicycle</span></div>
           <div class="tile"></div>
         </div>
-        <p class="specimen-caption">Image 5 of 6, question 2 of 3</p>
+        <p class="specimen-caption" aria-hidden="true">Image <span data-n>5</span> of 6, question <span data-q>2</span> of 3</p>
 
-        <h1>Label your data as a team, without the spreadsheet.</h1>
-        <p>Upload a dataset, write your questions once, and the work is split fairly across your team. When someone leaves, their unfinished items go back to the team.</p>
+        <h1>Labelling work, shared fairly across your team.</h1>
+        <p>Upload images or audio and write your questions once. Everyone gets an even share of the tasks,
+          and if someone leaves, their unfinished work moves to the others automatically.</p>
       </div>
     </section>
 
@@ -38,5 +39,34 @@
       </div>
     </main>
   </div>
+  <script>
+  // The picture on the left labels one image after another, slowly. Nothing moves
+  // for people who ask their system for less motion.
+  (function () {
+    if (!window.matchMedia || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var tiles = Array.prototype.slice.call(document.querySelectorAll('.specimen .tile'));
+    var n = document.querySelector('.specimen-caption [data-n]');
+    var q = document.querySelector('.specimen-caption [data-q]');
+    var tags = ['tree', 'car', 'house', 'dog', 'bicycle', 'bird'];
+    var current = 4, question = 2;
+    if (tiles.length !== 6 || !n || !q) return;
+    setInterval(function () {
+      question = question % 3 + 1;
+      if (question === 1) current = (current + 1) % tiles.length;
+      tiles.forEach(function (tile, i) {
+        tile.classList.toggle('is-done', i < current);
+        tile.classList.toggle('is-selected', i === current);
+        var tag = tile.querySelector('.tag'), corners = tile.querySelector('.corners');
+        if (i === current && !tag) {
+          tile.insertAdjacentHTML('beforeend', '<span class="corners"></span><span class="tag"></span>');
+        } else if (i !== current && tag) { tag.remove(); corners.remove(); }
+      });
+      var label = tiles[current].querySelector('.tag');
+      label.textContent = tags[(current + question) % tags.length];
+      label.classList.remove('is-new'); void label.offsetWidth; label.classList.add('is-new');
+      n.textContent = current + 1; q.textContent = question;
+    }, 1800);
+  })();
+  </script>
 </body>
 </html>

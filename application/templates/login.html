@@ -2,7 +2,7 @@
 {% block title %}Sign in{% endblock %}
 {% block form %}
 <h2>Sign in</h2>
-<p class="lede">Use the email address your project coordinator registered.</p>
+<p class="lede">Use the email address your admin registered for you.</p>
 {% include "flash_messages.html" %}
 <form action="{{ url_for('auth.login', next=request.args.get('next')) }}" method="POST" novalidate>
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

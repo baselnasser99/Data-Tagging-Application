@@ -109,7 +109,7 @@ def _upgrade_schema(app):
         if column in existing:
             continue
         with db.engine.begin() as conn:
-            conn.execute(text(f"ALTER TABLE `{table}` ADD COLUMN `{column}` {definition}")  # quoted: `user` is a keyword)
+            conn.execute(text(f"ALTER TABLE `{table}` ADD COLUMN `{column}` {definition}"))  # quoted: `user` is a keyword
         app.logger.info("Database upgraded: added %s.%s", table, column)
 
     if "user" in tables and db.engine.dialect.name == "mysql":  # SQLite doesn't enforce lengths

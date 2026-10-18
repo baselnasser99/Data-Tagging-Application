@@ -134,10 +134,10 @@ def users():
     return render_template('admin/users.html', users_data=users_data, groups=groups)
 
 
-def _member_or_404(user_id):
+def _member_or_404(user_id, roles=('end-user',)):
     user = db.session.get(User, user_id)
-    if user is None or user.role != 'end-user':
-        abort(404)  # admins and managers are changed on their own pages
+    if user is None or user.role not in roles:
+        abort(404)  # admins change themselves on their profile page
     return user
 
 
@@ -149,8 +149,9 @@ def _has_finished_work(user):
 @admin.route("/users/<int:user_id>/edit", methods=['GET', 'POST'])
 @admin_required
 def edit_user(user_id):
-    """Change a member's name, email or password. Their work is linked by id, so nothing else changes."""
-    user = _member_or_404(user_id)
+    """Change a member's or manager's name, email or password. Work is linked by id, so nothing else changes."""
+    user = _member_or_404(user_id, roles=('end-user', 'project-admin'))
+    back = url_for('manager.managers') if user.role == 'project-admin' else url_for('admin.users')
     if request.method == 'POST':
         full_name = (request.form.get('full_name') or '').strip()
         email = (request.form.get('email') or '').strip()
@@ -166,14 +167,14 @@ def edit_user(user_id):
             error = f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.'
         if error:
             flash(error, 'danger')
-            return render_template('admin/edit_user.html', user=user, form=request.form)
+            return render_template('admin/edit_user.html', user=user, form=request.form, back=back)
         user.full_name, user.email = full_name, email
         if password:
             user.set_password(password)
         db.session.commit()
         flash(f'{full_name} was updated.' + (' Share the new password with them.' if password else ''), 'success')
-        return redirect(url_for('admin.users'))
-    return render_template('admin/edit_user.html', user=user, form={})
+        return redirect(back)
+    return render_template('admin/edit_user.html', user=user, form={}, back=back)
 
 
 @admin.route("/users/<int:user_id>/remove", methods=['POST'])

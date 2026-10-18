@@ -87,3 +87,11 @@ def test_csv_import_into_a_group_hands_out_the_groups_work(admin_client, db):
     for email in ("ada@example.com", "alan@example.com"):
         user = User.query.filter_by(email=email).one()
         assert TaskAssignment.query.filter_by(user_id=user.id).count() == 2  # 4 tasks shared by 2 people
+
+
+def test_import_page_is_a_tab_of_add_users(admin_client):
+    resp = admin_client.get("/admin/import-users")
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/admin/create-user?tab=csv")
+    page = admin_client.get("/admin/create-user?tab=csv").data
+    assert b'name="csv_file"' in page and b'name="full_name"' not in page
+    assert b'name="full_name"' in admin_client.get("/admin/create-user").data

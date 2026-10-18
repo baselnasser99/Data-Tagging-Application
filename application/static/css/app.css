@@ -170,7 +170,8 @@ a:hover, a:focus { color: var(--ink-soft); }
 .sidebar-menu > li > a:hover { background: var(--canvas); color: var(--ink); }
 
 /* The panel runs the full height of the window, so its bottom can hold a summary and your account */
-.main-sidebar { position: fixed; top: 0; bottom: 0; display: flex; flex-direction: column; overflow-y: auto; }
+.main-sidebar { position: fixed; top: 0; bottom: 0; display: flex; flex-direction: column; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent; }  /* only scrolls on short windows; keep the bar quiet */
 .main-sidebar > nav { flex: none; }
 .sidebar-foot { margin-top: auto; padding: 16px 12px 14px; display: flex; flex-direction: column; gap: 12px; }
 .sidebar-card { background: var(--canvas); border-radius: var(--radius); padding: 14px; }

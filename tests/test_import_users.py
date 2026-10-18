@@ -36,7 +36,7 @@ def test_csv_import_replaces_short_password_and_shows_it_to_admin(admin_client):
 
     data = {"csv_file": _csv("full_name,email,password\nShort,short@example.com,hello\n")}
     resp = admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data", follow_redirects=True)
-    assert b"shorter than 6 characters" in resp.data
+    assert b"shorter than 8 characters" in resp.data
     temp = re.search(rb"temporary password was created: (\S+) ", resp.data).group(1).decode()
     user = User.query.filter_by(email="short@example.com").one()
     assert not user.check_password("hello")

@@ -702,8 +702,8 @@ def admin_profile():
                 flash('New passwords do not match', 'danger')
                 return redirect(url_for('admin.admin_profile'))
 
-            if len(new_password) < 6:
-                flash('Password must be at least 6 characters long', 'danger')
+            if len(new_password) < MIN_PASSWORD_LENGTH:
+                flash(f'Password must be at least {MIN_PASSWORD_LENGTH} characters long', 'danger')
                 return redirect(url_for('admin.admin_profile'))
 
             admin_user.set_password(new_password)

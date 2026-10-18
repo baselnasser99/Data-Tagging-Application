@@ -348,6 +348,10 @@ def _create_users_from_rows(header, rows):
                 invalid += 1
                 messages.append(f"Row {line}: Missing full name or email. Skipped.")
                 continue
+            if len(full_name) > 100 or len(email) > 255 or '@' not in email:  # same rule as Edit user
+                invalid += 1
+                messages.append(f"Row {line}: needs a valid email address and a name of at most 100 characters. Skipped.")
+                continue
 
             existing = User.query.filter_by(email=email).first()
             if existing:

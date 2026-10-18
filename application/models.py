@@ -11,6 +11,7 @@ class User(UserMixin, db.Model):
     email = Column(String(255), unique=True, nullable=False)  # real addresses easily pass 30 characters
     password_hash = Column(String(500), nullable=False)
     role = Column(String(20), nullable=False)  # 'admin', 'project-admin', or 'end-user'
+    active = Column(db.Boolean, nullable=False, default=True, server_default=db.true())  # False = removed by an admin; answers kept
 
     question_answers = db.relationship(
         "QuestionAnswer", backref="user", lazy=True)
@@ -28,6 +29,10 @@ class User(UserMixin, db.Model):
         foreign_keys="ProjectAdmin.assigned_by",
         lazy=True
     )
+
+    @property
+    def is_active(self):  # Flask-Login: removed people cannot sign in
+        return self.active
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

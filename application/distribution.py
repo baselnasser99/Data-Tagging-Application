@@ -31,7 +31,8 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass, field
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, insert
+from sqlalchemy.orm import joinedload
 
 from .extns import db
 from .models import (
@@ -131,21 +132,16 @@ def generate_tasks(project: Project) -> DistributionResult:
         (t.image_id, t.question_id)
         for t in AnnotationTask.query.filter_by(project_id=project.id).all()
     }
-    for image in images:
-        for question in questions:
-            if (image.id, question.id) in existing:
-                continue
-            db.session.add(
-                AnnotationTask(
-                    project_id=project.id,
-                    image_id=image.id,
-                    question_id=question.id,
-                    required_answers=project.answers_per_task or 1,
-                    current_answers=0,
-                    is_completed=False,
-                )
-            )
-            result.tasks_created += 1
+    rows = [
+        dict(project_id=project.id, image_id=image.id, question_id=question.id,
+             required_answers=project.answers_per_task or 1, current_answers=0, is_completed=False)
+        for image in images for question in questions
+        if (image.id, question.id) not in existing
+    ]
+    if rows:
+        # One batched INSERT: adding ORM objects one by one costs a database round trip per task.
+        db.session.execute(insert(AnnotationTask), rows)
+    result.tasks_created = len(rows)
     db.session.commit()
     return result
 
@@ -242,6 +238,7 @@ def assign_open_slots(project: Project, users: list[User] | None = None) -> Dist
         rotated = (question_index[first.question_id] - item) % max(1, len(question_index))
         return (-unit_missing(units[key]), item, rotated)
 
+    new_assignments = []
     for key in sorted(units, key=unit_order):
         unit_tasks = units[key]
         while unit_missing(unit_tasks):
@@ -262,13 +259,15 @@ def assign_open_slots(project: Project, users: list[User] | None = None) -> Dist
                 uid = min(candidates, key=lambda i: (open_load[i], seen[i, question_id], total[i], i))
             for task in unit_tasks:
                 if missing(task) and uid not in holders[task.id] and total[uid] < cap:
-                    db.session.add(TaskAssignment(task_id=task.id, user_id=uid))
+                    new_assignments.append(dict(task_id=task.id, user_id=uid))
                     holders[task.id].add(uid)
                     seen[uid, task.question_id] += 1
                     open_load[uid] += 1
                     total[uid] += 1
                     result.assignments_created += 1
 
+    if new_assignments:
+        db.session.execute(insert(TaskAssignment), new_assignments)  # one batch, see generate_tasks
     db.session.commit()
 
     if result.unfilled_slots:
@@ -299,33 +298,39 @@ def rebalance(project: Project, users: list[User] | None = None) -> Distribution
     sitting"). A move is made only if it narrows the gap between the two people,
     the receiver holds none of those tasks yet, and stays under the cap.
     Completed assignments are never moved. Stops when no move narrows the gap.
+
+    The project's assignments are read once and the moves are worked out in
+    memory, then saved together: re-reading every workload after each single
+    move made adding one person to a large project take close to a minute.
     """
     result = DistributionResult()
     users = eligible_users(project) if users is None else users
     if len(users) < 2:
         return result
     cap = project.max_questions_per_user or 0
+    ids = {u.id for u in users}
+    names = {u.id: u.full_name for u in users}
+
+    open_work = {uid: [] for uid in ids}  # each person's unfinished assignments
+    held = {uid: set() for uid in ids}    # every task each person holds, finished or not
+    total = Counter()
+    for assignment in _project_assignments(project.id).options(joinedload(TaskAssignment.task)):
+        if assignment.user_id not in ids:
+            continue
+        held[assignment.user_id].add(assignment.task_id)
+        total[assignment.user_id] += 1
+        if not assignment.is_completed:
+            open_work[assignment.user_id].append(assignment)
 
     while True:
-        loads = user_loads(project, users)
-        by_open = sorted(users, key=lambda u: (loads[u.id][0], u.id))
+        by_open = sorted(ids, key=lambda uid: (len(open_work[uid]), uid))
         light, heavy = by_open[0], by_open[-1]
-        gap = loads[heavy.id][0] - loads[light.id][0]
+        gap = len(open_work[heavy]) - len(open_work[light])
         if gap <= 1:
             break
 
-        light_tasks = {
-            tid for (tid,) in db.session.query(TaskAssignment.task_id)
-            .join(AnnotationTask)
-            .filter(AnnotationTask.project_id == project.id, TaskAssignment.user_id == light.id)
-        }
-        heavy_open = (
-            _project_assignments(project.id)
-            .filter(TaskAssignment.user_id == heavy.id, TaskAssignment.is_completed.is_(False))
-            .all()
-        )
         bundles: dict[int, list] = {}
-        for assignment in heavy_open:
+        for assignment in open_work[heavy]:
             key = assignment.task.image_id if project.hand_out_per_item else assignment.task_id
             bundles.setdefault(key, []).append(assignment)
 
@@ -335,19 +340,25 @@ def rebalance(project: Project, users: list[User] | None = None) -> Distribution
             size = len(bundle)
             if size >= gap:  # moving it would not narrow the gap
                 continue
-            if any(a.task_id in light_tasks for a in bundle):
+            if any(a.task_id in held[light] for a in bundle):
                 continue
-            if loads[light.id][1] + size > cap:
+            if total[light] + size > cap:
                 continue
             move = bundle
             break
         if move is None:
             break
         for assignment in move:
-            assignment.user_id = light.id
-        db.session.commit()
+            assignment.user_id = light
+            open_work[heavy].remove(assignment)
+            open_work[light].append(assignment)
+            held[heavy].discard(assignment.task_id)
+            held[light].add(assignment.task_id)
+        total[heavy] -= len(move)
+        total[light] += len(move)
         result.assignments_moved += len(move)
-        result.moves[(heavy.full_name, light.full_name)] += len(move)
+        result.moves[(names[heavy], names[light])] += len(move)
+    db.session.commit()
     return result
 
 
@@ -366,13 +377,13 @@ def projects_for_group(group_id: int) -> list[Project]:
 def release_user(user: User, project: Project) -> DistributionResult:
     """Remove a user's unfinished assignments in a project. Finished ones stay."""
     result = DistributionResult()
-    open_assignments = _project_assignments(project.id).filter(
-        TaskAssignment.user_id == user.id, TaskAssignment.is_completed.is_(False)
-    ).all()
-    for assignment in open_assignments:
-        db.session.delete(assignment)
+    open_ids = [aid for (aid,) in db.session.query(TaskAssignment.id).join(AnnotationTask).filter(
+        AnnotationTask.project_id == project.id,
+        TaskAssignment.user_id == user.id, TaskAssignment.is_completed.is_(False))]
+    if open_ids:  # one DELETE instead of loading and deleting each assignment
+        TaskAssignment.query.filter(TaskAssignment.id.in_(open_ids)).delete(synchronize_session=False)
     db.session.commit()
-    result.assignments_released = len(open_assignments)
+    result.assignments_released = len(open_ids)
     return result
 
 

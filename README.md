@@ -7,7 +7,22 @@
 
 **A web app that shares labelling work fairly across a team.** An admin uploads images or audio clips and writes the questions. The app splits the work into tasks and hands them out so everyone carries the same load, even while people join or leave mid-project. The answers come back as a CSV or JSON dataset, with an agreement score showing how consistently people labelled.
 
-Built as my diploma thesis project, then rebuilt to production standards: security fixes, a fairness algorithm verified with measurements, 200+ automated tests, and a redesigned interface.
+Built as my diploma thesis project, then rebuilt to production standards: security fixes, a fairness algorithm verified with measurements, 200+ automated tests, and a redesigned interface. [See what changed since the graded version →](docs/thesis/COMPARISON.md)
+
+![Admin dashboard: projects, people, answers per week and progress per group](docs/screenshots/admin-dashboard.png)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/project-overview.png" alt="A project's overview: tasks done, progress and actions"><br><sub><b>Project overview:</b> progress, items, hand-out and settings</sub></td>
+    <td width="50%"><img src="docs/screenshots/member-task.png" alt="A member answering a multiple-choice question about a picture"><br><sub><b>Member's task:</b> one item, one question</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/users.png" alt="Searchable list of people with groups, projects and answers"><br><sub><b>People:</b> search, groups, edit and remove</sub></td>
+    <td><img src="docs/screenshots/all-projects.png" alt="Project cards with status and progress"><br><sub><b>Projects:</b> status and progress at a glance</sub></td>
+  </tr>
+</table>
+
+<sub>Screenshots use the demo data from <code>scripts/seed_demo.py</code>.</sub>
 
 ---
 
@@ -118,6 +133,13 @@ The tests cover sign-in and access control for each role, CSRF, the distribution
 - Access is checked on every route: managers see only their own projects, and members only their own tasks.
 - All user-written text is escaped, including inside confirm dialogs.
 - Sign-ins, failed sign-ins and sign-outs are written to an audit log.
+
+## Documentation
+
+- [Technical documentation](docs/thesis/updated/DOCUMENTATION.md): architecture, data model, algorithm, export, security, evaluation and limitations
+- [Original vs. updated](docs/thesis/COMPARISON.md): what the graded thesis claimed, what the code did then, and what is true now
+- [Defence presentation](docs/thesis/updated/DEFENSE_PRESENTATION.md) and [defence Q&A](docs/thesis/updated/DEFENSE_FAQ.md)
+- The code as graded: tag [`v1.0-thesis-submitted`](https://github.com/baselnasser99/Data-Tagging-Application/tree/v1.0-thesis-submitted)
 
 ## License
 

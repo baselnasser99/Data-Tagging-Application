@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from flask import send_file, make_response
 import csv
 import io
@@ -44,44 +45,12 @@ def public_file_url(filename):
 @admin.route("/dashboard")
 @admin_required
 def dashboard():
-    from sqlalchemy import func
-    from datetime import datetime, timedelta
-
     total_projects = Project.query.count()
     total_users = User.query.filter_by(role='end-user').count()
     total_groups = UserGroup.query.count()
 
-    # Get weekly answer statistics for the last 12 weeks
-    weeks_data = []
-    for i in range(12):
-        week_start = datetime.now() - timedelta(weeks=i+1)
-        week_end = datetime.now() - timedelta(weeks=i)
-
-        answers_count = QuestionAnswer.query.filter(
-            QuestionAnswer.submitted_date >= week_start,
-            QuestionAnswer.submitted_date < week_end
-        ).count()
-
-        weeks_data.append({
-            'week': f"{week_start.day} {week_start:%b}",  # the week's first day, e.g. "3 Aug"
-            'answers': answers_count
-        })
-
-    # Reverse to show oldest to newest
-    weeks_data.reverse()
-
-    # Group progress: the share of this group's work that is done, counting
-    # annotation tasks (finished assignments) and survey questions (answered).
-    group_stats = []
-    for group in UserGroup.query.all():
-        project_ids = [gp.project_id for gp in group.assigned_projects]
-        done, total = group_progress(group, project_ids)
-        group_stats.append({
-            'name': group.name,
-            'members': len(group.members),
-            'projects': len(project_ids),
-            'completion_rate': round(done / total * 100, 1) if total else 0,
-        })
+    weeks_data = weekly_answers()
+    group_stats = group_stats_for(UserGroup.query.all())
 
     return render_template('admin/dashboard.html',
                          total_projects=total_projects,
@@ -89,6 +58,37 @@ def dashboard():
                          total_groups=total_groups,
                          weeks_data=weeks_data,
                          group_stats=group_stats)
+
+def weekly_answers(project_ids=None):
+    """Answers submitted per week over the last 12 weeks, oldest first; only these projects if given."""
+    now = datetime.now()
+    weeks = []
+    for i in range(11, -1, -1):
+        start, end = now - timedelta(weeks=i + 1), now - timedelta(weeks=i)
+        query = QuestionAnswer.query.filter(QuestionAnswer.submitted_date >= start, QuestionAnswer.submitted_date < end)
+        if project_ids is not None:
+            query = query.join(Question).filter(Question.project_id.in_(project_ids))
+        weeks.append({'week': f"{start.day} {start:%b}",  # the week's first day, e.g. "3 Aug"
+                      'answers': query.count()})
+    return weeks
+
+
+def group_stats_for(groups, project_ids=None):
+    """Each group's share of finished work, counting only these projects if given.
+
+    Annotation work counts finished task assignments, survey work answered questions.
+    """
+    stats = []
+    for group in groups:
+        ids = [gp.project_id for gp in group.assigned_projects
+               if project_ids is None or gp.project_id in project_ids]
+        if project_ids is not None and not ids:
+            continue
+        done, total = group_progress(group, ids)
+        stats.append({'name': group.name, 'members': len(group.members), 'projects': len(ids),
+                      'completion_rate': round(done / total * 100, 1) if total else 0})
+    return stats
+
 
 @admin.route("/users")
 @admin_required
@@ -578,7 +578,7 @@ def download_answers(user_id):
 
 
 @admin.route("/profile", methods=['GET', 'POST'])
-@admin_required
+@project_admin_access_required  # admins and managers; each edits only their own account
 def admin_profile():
     admin_user = db.session.get(User, session['id'])
 

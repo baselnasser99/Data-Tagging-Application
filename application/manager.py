@@ -7,7 +7,7 @@ from flask import Blueprint, request, redirect, url_for, flash, render_template,
 from werkzeug.utils import secure_filename
 
 from . import distribution
-from .admin import upload_path
+from .admin import group_stats_for, upload_path, weekly_answers
 from .extns import db
 from .feedback import flash_distribution
 from .groups import distribute_questions_to_group, project_progress
@@ -36,7 +36,10 @@ def my_projects():
         "people": len(people),
         "recent": recent,
     }
-    return render_template("admin/my_projects.html", projects=projects, progress=progress, figures=figures)
+    groups = {gp.group.id: gp.group for p in projects for gp in p.assigned_groups if gp.group}
+    return render_template("admin/my_projects.html", projects=projects, progress=progress, figures=figures,
+                           weeks_data=weekly_answers(project_ids),
+                           group_stats=group_stats_for(groups.values(), set(project_ids)))
 
 @manager.route("/project/<int:project_id>/dashboard")
 @project_admin_required

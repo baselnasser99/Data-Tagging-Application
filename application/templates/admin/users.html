@@ -1,65 +1,112 @@
 {% extends 'base.html' %}
 
+{% block title %}Users – {{ app_name }}{% endblock %}
+
 {% block content %}
-  <!-- Content Header (Page header) -->
+  {% set active = users_data | selectattr('user.active') | list %}
+  {% set no_group = active | rejectattr('assigned_groups') | list %}
   <section class="content-header">
     <h1>Users</h1>
-    <ol class="breadcrumb">
-      <li>
-        <a href="#"><i class="fa fa-dashboard"></i> Home</a>
-      </li>
-      <li>Users</li>
-    </ol>
-  </section>
-  <section>
+    <p class="text-muted page-subtitle">
+      {{ plural(active | length, "member") }}{% if no_group %} · {{ no_group | length }} without a group{% endif %}
+    </p>
   </section>
 
-  <section class="content">
-    <div class="quick-actions" style="margin-bottom: 16px;">
+  <section class="content form-wide">
+    <div class="people-toolbar">
+      <label class="sr-only" for="people-search">Search users</label>
+      <div class="people-search">
+        <i class="fa fa-search" aria-hidden="true"></i>
+        <input type="search" id="people-search" class="form-control" placeholder="Search by name, email or group" autocomplete="off">
+      </div>
+      <label class="sr-only" for="people-filter">Show</label>
+      <select id="people-filter" class="form-control people-filter">
+        <option value="">Everyone</option>
+        <option value="none">No group</option>
+        {% for group in groups %}<option value="g{{ group.id }}">{{ group.name }}</option>{% endfor %}
+        <option value="removed">Removed</option>
+      </select>
       <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary">
-        <i class="fa fa-user-plus"></i> Add users
+        <i class="fa fa-user-plus" aria-hidden="true"></i> Add users
       </a>
     </div>
+
     <div class="box">
-      <div class="box-body table-responsive">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Groups</th>
-              <th class="num">Projects</th>
-              <th class="num">Answers</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for user_data in users_data %}
-              <tr>
-                <td><strong>{{ user_data.user.full_name }}</strong><br><span class="text-muted">{{ user_data.user.email }}</span></td>
-                <td>
-                  {% for group in user_data.assigned_groups %}
-                    <span class="badge">{{ group.name }}</span>
-                  {% else %}
-                    <span class="text-muted">No group</span>
-                  {% endfor %}
-                </td>
-                <td class="num">{{ user_data.assigned_projects_count }}</td>
-                <td class="num">
-                  {% if user_data.answer_count %}
-                  <a class="btn btn-default btn-sm" href="{{ url_for('admin.download_answers', user_id=user_data.user.id) }}"
-                     aria-label="Download {{ user_data.user.full_name }}'s {{ user_data.answer_count }} answers as CSV">
-                    <i class="fa fa-download" aria-hidden="true"></i> {{ user_data.answer_count }}
-                  </a>
-                  {% else %}
-                  <span class="text-muted">0</span>
-                  {% endif %}
-                </td>
-              </tr>
+      <ul class="people-list" id="people-list">
+        {% for d in users_data %}
+        {% set u = d.user %}
+        {% set tones = ['blue', 'green', 'amber', 'violet', 'teal'] %}
+        <li class="person{% if not u.active %} is-removed{% endif %}"
+            data-search="{{ (u.full_name ~ ' ' ~ u.email ~ ' ' ~ (d.assigned_groups | map(attribute='name') | join(' '))) | lower }}"
+            data-groups="{% if not u.active %}removed{% elif not d.assigned_groups %}none{% else %}{% for g in d.assigned_groups %}g{{ g.id }} {% endfor %}{% endif %}"
+            {% if not u.active %}hidden{% endif %}>
+          <span class="person-avatar tone-{{ tones[u.id % 5] }}" aria-hidden="true">{{ u.full_name[:1] | upper }}</span>
+          <div class="person-who">
+            <strong>{{ u.full_name }}</strong>
+            <span class="text-muted">{{ u.email }}</span>
+          </div>
+          <div class="person-groups">
+            {% if not u.active %}
+              <span class="chip chip-muted">Removed</span>
             {% else %}
-              <tr><td colspan="4" class="text-muted">No members yet.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+              {% for g in d.assigned_groups %}<span class="chip">{{ g.name }}</span>{% else %}<span class="chip chip-warn">No group</span>{% endfor %}
+            {% endif %}
+          </div>
+          <div class="person-figures">
+            <span><strong>{{ d.assigned_projects_count }}</strong> {{ "project" if d.assigned_projects_count == 1 else "projects" }}</span>
+            <span><strong>{{ d.answer_count }}</strong> {{ "answer" if d.answer_count == 1 else "answers" }}</span>
+          </div>
+          <div class="person-actions">
+            {% if d.answer_count %}
+            <a class="btn btn-default btn-sm" href="{{ url_for('admin.download_answers', user_id=u.id) }}"
+               title="Download answers" aria-label="Download {{ u.full_name }}'s answers as CSV"><i class="fa fa-download" aria-hidden="true"></i></a>
+            {% endif %}
+            {% if u.active %}
+            <a class="btn btn-default btn-sm" href="{{ url_for('admin.edit_user', user_id=u.id) }}" aria-label="Edit {{ u.full_name }}">Edit</a>
+            <form method="POST" action="{{ url_for('admin.remove_user', user_id=u.id) }}"
+                  data-confirm="Remove {{ u.full_name }}? Their unfinished tasks go to the rest of their groups.{% if d.answer_count %} Their answers are kept.{% endif %}"
+                  onsubmit="return confirm(this.dataset.confirm)">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-default btn-sm btn-quiet-danger" aria-label="Remove {{ u.full_name }}">Remove</button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('admin.restore_user', user_id=u.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-default btn-sm" aria-label="Restore {{ u.full_name }}">Restore</button>
+            </form>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      <div class="empty-state" id="people-empty" {% if active %}hidden{% endif %}>
+        <strong>{% if users_data %}Nobody matches{% else %}No members yet{% endif %}</strong>
+        {% if users_data %}Try another name, or choose "Everyone".{% else %}Add people with "Add users" above.{% endif %}
       </div>
     </div>
+    <p class="text-muted" id="people-count" aria-live="polite"></p>
   </section>
+
+<script>
+// Search and filter on the page itself: the list is small enough to never need a round trip.
+(function () {
+  var search = document.getElementById('people-search'), filter = document.getElementById('people-filter');
+  var rows = document.querySelectorAll('#people-list .person'), empty = document.getElementById('people-empty');
+  var count = document.getElementById('people-count');
+  function apply() {
+    var words = search.value.toLowerCase().trim().split(/\s+/).filter(Boolean), want = filter.value, shown = 0;
+    rows.forEach(function (row) {
+      var groups = row.dataset.groups.split(' ');
+      var inView = want ? groups.indexOf(want) !== -1 : groups[0] !== 'removed';
+      var match = words.every(function (w) { return row.dataset.search.indexOf(w) !== -1; });
+      row.hidden = !(inView && match);
+      if (!row.hidden) shown++;
+    });
+    empty.hidden = shown > 0;
+    count.textContent = (words.length || want) ? 'Showing ' + shown + ' of ' + rows.length : '';
+  }
+  search.addEventListener('input', apply);
+  filter.addEventListener('change', apply);
+})();
+</script>
 {% endblock %}

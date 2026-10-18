@@ -616,6 +616,41 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 /* A form with a side panel (New project): the pair stays a comfortable width */
 .content.form-wide { max-width: 1120px; margin-left: 0; margin-right: 0; }
 
+/* Users page: a searchable list of people instead of a spreadsheet. */
+.people-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.people-search { position: relative; flex: 1 1 280px; }
+.people-search .fa { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.people-search .form-control { padding-left: 34px; }
+.people-filter { width: auto; flex: 0 0 auto; }
+.people-list { list-style: none; margin: 0; padding: 0; }
+.person { display: grid; grid-template-columns: 40px minmax(180px, 1.4fr) minmax(140px, 1.2fr) auto auto;
+  gap: 14px; align-items: center; padding: 12px 18px; border-top: 1px solid var(--line); }
+.person:first-child { border-top: 0; }
+.person[hidden] { display: none; }
+.person-avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; }
+.person-avatar.tone-blue { background: var(--tint-blue); color: var(--tint-blue-ink); }
+.person-avatar.tone-green { background: var(--tint-green); color: var(--tint-green-ink); }
+.person-avatar.tone-amber { background: var(--tint-amber); color: var(--tint-amber-ink); }
+.person-avatar.tone-violet { background: var(--tint-violet); color: var(--tint-violet-ink); }
+.person-avatar.tone-teal { background: var(--tint-teal); color: var(--tint-teal-ink); }
+.person-who { min-width: 0; display: flex; flex-direction: column; }
+.person-who strong, .person-who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person-groups { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--canvas);
+  border: 1px solid var(--line); font-size: 12.5px; color: var(--ink); }
+.chip-warn { background: var(--marker-soft); border-color: transparent; }
+.chip-muted { color: var(--muted); }
+.person-figures { display: flex; gap: 16px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.person-figures strong { color: var(--ink); }
+.person-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.person-actions form { margin: 0; }
+.btn-quiet-danger:hover, .btn-quiet-danger:focus { color: var(--danger); border-color: var(--danger); }
+.person.is-removed .person-who, .person.is-removed .person-avatar { opacity: .6; }
+@media (max-width: 900px) {
+  .person { grid-template-columns: 40px 1fr auto; }
+  .person-groups, .person-figures, .person-actions { grid-column: 2 / -1; justify-content: flex-start; }
+}
+
 /* Group cards: one line per project, with its progress */
 .assignment-list { list-style: none; margin: 0; padding: 0; }
 .assignment-list > li { padding: 10px 0; border-top: 1px solid var(--line); }

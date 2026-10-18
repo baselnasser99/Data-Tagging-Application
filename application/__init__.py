@@ -76,7 +76,8 @@ def create_app(config_object=None):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(User, int(user_id))
+    user = db.session.get(User, int(user_id))
+    return user if user and user.active else None  # a removed person is signed out at once
 
 
 # Columns added after the first release. ``db.create_all()`` creates missing
@@ -86,6 +87,7 @@ _ADDED_COLUMNS = [
     ("project_image", "media_type", "VARCHAR(10) NOT NULL DEFAULT 'image'"),
     # Projects created before this setting existed keep handing out whole items.
     ("project", "hand_out_per_item", "BOOLEAN NOT NULL DEFAULT 1"),
+    ("user", "active", "BOOLEAN NOT NULL DEFAULT 1"),
 ]
 
 
@@ -107,7 +109,7 @@ def _upgrade_schema(app):
         if column in existing:
             continue
         with db.engine.begin() as conn:
-            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
+            conn.execute(text(f"ALTER TABLE `{table}` ADD COLUMN `{column}` {definition}"))  # quoted: `user` is a keyword
         app.logger.info("Database upgraded: added %s.%s", table, column)
 
     if "user" in tables and db.engine.dialect.name == "mysql":  # SQLite doesn't enforce lengths

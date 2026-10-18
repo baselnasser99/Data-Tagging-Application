@@ -120,3 +120,15 @@ def test_project_cards_show_status_and_progress(admin_client, db, sample_project
     page = admin_client.get("/admin/view-projects").data
     assert b"In progress" in page and b"1 of 2 tasks done" in page
     assert b"Needs questions" in page  # the empty survey from sample_project
+
+
+def test_manager_without_a_project_reaches_their_home_page(app, make_user):
+    """Managers created on the Managers page have no project yet; they used to get 'Access denied'."""
+    from tests.conftest import login
+
+    manager = make_user(role="project-admin", name="New Manager")
+    client = app.test_client()
+    login(client, manager.email)
+    page = client.get("/admin/my-projects")
+    assert page.status_code == 200 and b"No projects yet" in page.data
+    assert client.get("/admin/create-annotation-project").status_code == 200  # can start their first project

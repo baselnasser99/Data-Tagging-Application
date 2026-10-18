@@ -41,37 +41,64 @@
             </div>
             
             <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="total_questions">Number of questions</label>
-                  <input type="number" class="form-control" id="total_questions"
-                         name="total_questions" value="0" min="0" max="20">
-                  <p class="help-block">Total number of questions you want to create for this project. Set to 0 for no initial questions.</p>
-                </div>
-              </div>
 
               <div class="col-md-6">
                 <div class="form-group">
-                  <label for="assigned_group_id">Group</label>
+                  <label for="assigned_group_id">Group (optional)</label>
                   <select class="form-control" id="assigned_group_id" name="assigned_group_id">
-                    <option value="">Select a group (Optional)...</option>
+                    <option value="">No group yet</option>
                     {% for group in groups %}
                       <option value="{{ group.id }}">{{ group.name }} ({{ group.members|length }} {{ "person" if group.members|length == 1 else "people" }})</option>
                     {% endfor %}
                   </select>
-                  <p class="help-block">Select the user group to assign this project to.</p>
+                  <p class="help-block">You can also choose one when you hand out tasks.</p>
                 </div>
               </div>
             </div>
 
-            <!-- Custom Questions Section -->
+            <!-- Questions: added one by one; each multiple-choice option has its own box -->
             <div class="form-group">
               <label>Questions</label>
-              <p class="help-block">Define the questions that will be asked for every image or audio clip:</p>
-              <div id="questions-container">
-                <div id="dynamic-questions"></div>
-              </div>
+              <p class="help-block">Asked about every image or audio clip. You can add more later.</p>
+              <input type="hidden" id="total_questions" name="total_questions" value="0">
+              <div id="dynamic-questions"></div>
+              <button type="button" class="btn btn-default" id="add-question"><i class="fa fa-plus"></i> Add a question</button>
             </div>
+
+            <template id="question-template">
+              <div class="question-card">
+                <div class="question-card-head">
+                  <span class="question-number" aria-hidden="true"></span>
+                  <label class="question-label"></label>
+                  <button type="button" class="btn btn-danger btn-sm remove-question">Remove</button>
+                </div>
+                <div class="question-card-body">
+                  <div class="row">
+                    <div class="col-sm-8 form-group">
+                      <input type="text" class="form-control question-text" required
+                             placeholder="For example: Is the photo taken during the day or at night?">
+                    </div>
+                    <div class="col-sm-4 form-group">
+                      <select class="form-control question-type" aria-label="Answer type">
+                        <option value="text">Free text</option>
+                        <option value="mcq">Multiple choice</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="question-options" hidden>
+                    <p class="help-block" style="margin-top: 0;">Options people choose from (2 to 6).</p>
+                    <div class="option-list"></div>
+                    <button type="button" class="btn btn-default btn-sm add-option"><i class="fa fa-plus"></i> Add option</button>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <template id="option-template">
+              <div class="option-row">
+                <input type="text" class="form-control" placeholder="Option">
+                <button type="button" class="btn btn-default btn-sm remove-option" aria-label="Remove this option">&times;</button>
+              </div>
+            </template>
 
             <div class="row">
               <div class="col-md-6">
@@ -152,67 +179,70 @@
 
 {% block scripts %}
 <script>
-$(document).ready(function() {
-    // Function to create a new question input
-    function createQuestionInput(index) {
-        return `
-            <div class="question-row" data-index="${index}" style="border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px;">
-                <div class="row">
-                    <div class="col-md-8">
-                        <div class="form-group">
-                            <label for="question_${index}">Question ${index}</label>
-                            <input type="text" class="form-control" id="question_${index}" name="question_${index}"
-                                   placeholder="For example: Is the photo taken during the day or at night?">
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="question_type_${index}">Answer type</label>
-                            <select class="form-control question-type" id="question_type_${index}" name="question_type_${index}" data-index="${index}">
-                                <option value="text">Free text</option>
-                                <option value="mcq">Multiple choice</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group question-options" id="options_wrap_${index}" style="display: none;">
-                    <label for="question_options_${index}">Options, one per line (2 to 6)</label>
-                    <textarea class="form-control" id="question_options_${index}" name="question_options_${index}" rows="3"
-                              placeholder="Day&#10;Night"></textarea>
-                </div>
-            </div>
-        `;
-    }
+// Questions are added one at a time. Multiple choice gets one box per option (2 to 6),
+// so options can't run together the way lines in a text box can.
+(function () {
+  var list = document.getElementById('dynamic-questions');
+  var total = document.getElementById('total_questions');
+  var questionTemplate = document.getElementById('question-template');
+  var optionTemplate = document.getElementById('option-template');
 
-    $(document).on('change', '.question-type', function() {
-        $('#options_wrap_' + $(this).data('index')).toggle($(this).val() === 'mcq');
+  // Names carry the question's number (question_1, question_type_1, question_options_1 ...),
+  // so they are rewritten whenever a question is added or removed.
+  function renumber() {
+    var cards = list.querySelectorAll('.question-card');
+    cards.forEach(function (card, i) {
+      var n = i + 1;
+      card.querySelector('.question-number').textContent = n;
+      var label = card.querySelector('.question-label');
+      label.textContent = 'Question ' + n;
+      label.htmlFor = 'question_' + n;
+      var text = card.querySelector('.question-text');
+      text.id = 'question_' + n; text.name = 'question_' + n;
+      card.querySelector('.question-type').name = 'question_type_' + n;
+      card.querySelectorAll('.option-row input').forEach(function (input, j) {
+        input.name = 'question_options_' + n;
+        input.setAttribute('aria-label', 'Question ' + n + ', option ' + (j + 1));
+      });
     });
+    total.value = cards.length;
+  }
 
-    // Update questions when total_questions changes
-    $('#total_questions').on('change', function() {
-        let totalQuestions = parseInt($(this).val());
-        const questionsContainer = $('#dynamic-questions');
-        questionsContainer.empty();
-
-        // Validate input
-        if (totalQuestions < 0) {
-            $(this).val(0);
-            totalQuestions = 0;
-        } else if (totalQuestions > 20) {
-            $(this).val(20);
-            totalQuestions = 20;
-        }
-
-        // Create question inputs only if totalQuestions > 0
-        if (totalQuestions > 0) {
-            for (let i = 1; i <= totalQuestions; i++) {
-                questionsContainer.append(createQuestionInput(i));
-            }
-        }
+  function updateOptions(card) {
+    var mcq = card.querySelector('.question-type').value === 'mcq';
+    var rows = card.querySelectorAll('.option-row');
+    card.querySelector('.question-options').hidden = !mcq;
+    rows.forEach(function (row, j) {
+      var input = row.querySelector('input');
+      input.disabled = !mcq;          // free-text questions send no options
+      input.required = mcq && j < 2;  // at least two options before the form can be sent
+      row.querySelector('.remove-option').disabled = rows.length <= 2;
     });
-    
-    // Initial call to set question inputs based on default value (now 0)
-    $('#total_questions').trigger('change');
-});
+    card.querySelector('.add-option').disabled = rows.length >= 6;
+  }
+
+  function addOption(card) {
+    card.querySelector('.option-list').appendChild(optionTemplate.content.cloneNode(true));
+    renumber(); updateOptions(card);
+  }
+
+  document.getElementById('add-question').addEventListener('click', function () {
+    list.appendChild(questionTemplate.content.cloneNode(true));
+    var card = list.lastElementChild;
+    addOption(card); addOption(card);
+    card.querySelector('.question-text').focus();
+  });
+
+  list.addEventListener('click', function (event) {
+    var card = event.target.closest('.question-card');
+    if (!card) return;
+    if (event.target.closest('.remove-question')) { card.remove(); renumber(); }
+    else if (event.target.closest('.add-option')) { addOption(card); card.querySelector('.option-row:last-child input').focus(); }
+    else if (event.target.closest('.remove-option')) { event.target.closest('.option-row').remove(); renumber(); updateOptions(card); }
+  });
+  list.addEventListener('change', function (event) {
+    if (event.target.classList.contains('question-type')) updateOptions(event.target.closest('.question-card'));
+  });
+})();
 </script>
 {% endblock %}

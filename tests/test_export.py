@@ -180,3 +180,13 @@ def test_a_tie_has_no_majority_answer(db, admin_client, answered_project):
     rows = csv.DictReader(io.StringIO(admin_client.get(f"/admin/project/{answered_project.id}/export.csv").data.decode()))
     tied_rows = [r for r in rows if r["file_name"] == first_image.original_filename and r["question"] == "Day or night?"]
     assert tied_rows and all(r["task_majority_answer"] == "" for r in tied_rows)
+
+
+def test_multiple_choice_options_from_separate_boxes(admin_client):
+    """The New project page sends one box per option; empty boxes are ignored."""
+    admin_client.post("/admin/create-annotation-project", data={
+        "project_name": "Boxes", "project_desc": "d", "total_questions": "1",
+        "question_1": "Which animal?", "question_type_1": "mcq", "question_options_1": ["Cat", " ", "Dog"],
+    })
+    question = Project.query.filter_by(name="Boxes").one().questions[0]
+    assert (question.number_of_options, question.option1, question.option2) == (2, "Cat", "Dog")

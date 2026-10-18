@@ -59,9 +59,11 @@ def create_annotation_project():
                 if not text:
                     continue
                 kind = request.form.get(f"question_type_{i}", "text")
-                options = [o.strip() for o in (request.form.get(f"question_options_{i}") or "").splitlines() if o.strip()]
+                # One box per option; a single box with one option per line is accepted too.
+                options = [o.strip() for value in request.form.getlist(f"question_options_{i}")
+                           for o in value.splitlines() if o.strip()]
                 if kind == "mcq" and not 2 <= len(options) <= 6:
-                    flash(f'Question {i} is multiple choice, so it needs between 2 and 6 options, one per line.', "error")
+                    flash(f'Question {i} is multiple choice, so it needs between 2 and 6 options.', "error")
                     db.session.rollback()
                     return redirect(request.url)
                 parsed.append((text, kind, options))

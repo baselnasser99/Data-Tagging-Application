@@ -5,7 +5,7 @@ from application.models import Project, UserGroup
 STATIC_ADMIN_PAGES = [
     "/admin/dashboard",
     "/admin/users",
-    "/admin/import-users",
+    "/admin/create-user?tab=csv",
     "/admin/create-project",
     "/admin/view-projects",
     "/admin/profile",

@@ -277,6 +277,17 @@ def _next_item(user_id, project_id):
     return redirect(url_for("annotation.annotation_tasks", project_id=project_id))
 
 
+def _save_answer(assignment, text):
+    """Store one answer and mark the assignment done; the task is done once it has enough answers."""
+    db.session.add(QuestionAnswer(user_id=assignment.user_id, question_id=assignment.task.question_id,
+                                  answer=text, task_assignment_id=assignment.id))
+    assignment.is_completed = True
+    assignment.completed_date = db.func.current_timestamp()
+    assignment.task.current_answers += 1
+    if assignment.task.current_answers >= assignment.task.required_answers:
+        assignment.task.is_completed = True
+
+
 @annotation.route("/annotation-task/<int:assignment_id>", methods=["GET", "POST"])
 @user_required
 def annotation_task(assignment_id):
@@ -300,24 +311,7 @@ def annotation_task(assignment_id):
             return redirect(url_for("annotation.annotation_tasks"))
 
         if answer_text:
-            # Save the answer linked to this specific task assignment
-            answer = QuestionAnswer(
-                user_id=session["id"],
-                question_id=question.id,
-                answer=answer_text,
-                task_assignment_id=assignment.id
-            )
-            db.session.add(answer)
-
-            # Mark assignment as completed
-            assignment.is_completed = True
-            assignment.completed_date = db.func.current_timestamp()
-
-            # Update task completion status
-            task.current_answers += 1
-            if task.current_answers >= task.required_answers:
-                task.is_completed = True
-
+            _save_answer(assignment, answer_text)
             db.session.commit()
             flash("Answer submitted successfully!", "success")
             return _next_item(session["id"], project.id)
@@ -336,118 +330,45 @@ def annotation_task(assignment_id):
 @annotation.route("/annotate-image/<int:image_id>/<int:project_id>/<int:batch_index>", methods=["GET", "POST"])
 @user_required
 def annotate_image(image_id, project_id, batch_index=0):
-    """Complete questions for a specific image in batches"""
+    """Per-item projects: answer an item's questions on one page, a few at a time."""
     user_id = session["id"]
-
     image = db.get_or_404(ProjectImage, image_id)
     project = db.get_or_404(Project, project_id)
-
-    # Determine batch size (e.g., questions_per_image from project settings)
     batch_size = project.questions_per_image if project.questions_per_image > 0 else 5
 
-    # --- Synchronization Step: Mark assignments as completed if answers exist ---
-    # Get all assignments for this user, image, and project (completed or not)
-    all_assignments_for_image = TaskAssignment.query.join(AnnotationTask).filter(
-        TaskAssignment.user_id == user_id,
-        AnnotationTask.image_id == image_id,
-        AnnotationTask.project_id == project_id
-    ).all()
-
-    for assignment in all_assignments_for_image:
-        if not assignment.is_completed:
-            # Check if an answer exists for this assignment
-            existing_answer = QuestionAnswer.query.filter_by(
-                task_assignment_id=assignment.id,
-                user_id=user_id,
-                question_id=assignment.task.question_id
-            ).first()
-            if existing_answer:
-                assignment.is_completed = True
-                assignment.completed_date = db.func.current_timestamp()
-                # Also update the parent AnnotationTask's current_answers if not already updated
-                if assignment.task.current_answers < assignment.task.required_answers:
-                    assignment.task.current_answers += 1
-                    if assignment.task.current_answers >= assignment.task.required_answers:
-                        assignment.task.is_completed = True
-                db.session.add(assignment) # Mark for update
-                db.session.add(assignment.task) # Mark task for update
-    db.session.commit() # Commit these synchronization updates
-
-    # --- End Synchronization Step ---
-
-    # Get all UNCOMPLETED assignments for this user, image, and project AFTER synchronization
-    all_uncompleted_assignments = TaskAssignment.query.join(AnnotationTask).filter(
+    open_assignments = TaskAssignment.query.join(AnnotationTask).filter(
         TaskAssignment.user_id == user_id,
         AnnotationTask.image_id == image_id,
         AnnotationTask.project_id == project_id,
-        TaskAssignment.is_completed == False
+        TaskAssignment.is_completed == False,
     ).order_by(AnnotationTask.question_id).all()
+    total_uncompleted_questions = len(open_assignments)
+    current_batch_assignments = open_assignments[batch_index * batch_size:(batch_index + 1) * batch_size]
 
-    total_uncompleted_questions = len(all_uncompleted_assignments)
-
-    if not all_uncompleted_assignments and batch_index == 0:
-        flash("No new tasks found for this image!", "info")
-        return redirect(url_for("annotation.annotation_tasks"))
-    elif not all_uncompleted_assignments and batch_index > 0:
-        flash("All questions for this image have been answered!", "success")
-        return redirect(url_for("annotation.annotation_tasks"))
-
-    start_index = batch_index * batch_size
-    end_index = start_index + batch_size
-
-    current_batch_assignments = all_uncompleted_assignments[start_index:end_index]
-
-    if not current_batch_assignments and total_uncompleted_questions > 0:
-        flash("All questions for this image have been answered!", "success")
-        return redirect(url_for("annotation.annotation_tasks"))
-    elif not current_batch_assignments and total_uncompleted_questions == 0:
-        flash("No tasks found for this image!", "info")
+    if not current_batch_assignments:
+        if total_uncompleted_questions or batch_index > 0:
+            flash("All questions for this image have been answered!", "success")
+        else:
+            flash("No new tasks found for this image!", "info")
         return redirect(url_for("annotation.annotation_tasks"))
 
     if request.method == "POST":
-        answers_submitted_in_batch = 0
-        
+        answered = 0
         for assignment in current_batch_assignments:
-            answer_key = f"answer_{assignment.id}"
-            answer_text = request.form.get(answer_key)
-
-            if answer_text and answer_text.strip():
-                existing_answer = QuestionAnswer.query.filter_by(
-                    task_assignment_id=assignment.id,
-                    user_id=user_id,
-                    question_id=assignment.task.question_id
-                ).first()
-
-                if existing_answer:
-                    existing_answer.answer = answer_text.strip()
-                else:
-                    answer = QuestionAnswer(
-                        user_id=user_id,
-                        question_id=assignment.task.question_id,
-                        answer=answer_text.strip(),
-                        task_assignment_id=assignment.id
-                    )
-                    db.session.add(answer)
-
-                assignment.is_completed = True
-                assignment.completed_date = db.func.current_timestamp()
-
-                assignment.task.current_answers += 1
-                if assignment.task.current_answers >= assignment.task.required_answers:
-                    assignment.task.is_completed = True
-
-                answers_submitted_in_batch += 1
-        
+            text = (request.form.get(f"answer_{assignment.id}") or "").strip()
+            if text:
+                _save_answer(assignment, text)
+                answered += 1
         db.session.commit()
 
-        if answers_submitted_in_batch > 0:
-            flash(f"Successfully submitted {answers_submitted_in_batch} answers for this batch!", "success")
+        if answered:
+            flash(f"Successfully submitted {answered} answers for this batch!", "success")
         else:
             flash("No new answers were submitted in this batch.", "warning")
 
-        # Answered questions drop out of the "uncompleted" list, so the next
-        # batch always starts at the beginning of what is left.
-        if total_uncompleted_questions - answers_submitted_in_batch > 0:
+        # Answered questions drop out of the open list, so the next batch
+        # always starts at the beginning of what is left.
+        if total_uncompleted_questions - answered > 0:
             return redirect(url_for("annotation.annotate_image", image_id=image.id, project_id=project.id))
         return _next_item(user_id, project.id)
 

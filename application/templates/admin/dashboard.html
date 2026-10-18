@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "includes/tiles.html" import tile %}
 
 {% block title %}Dashboard – {{ app_name }}{% endblock %}
 
@@ -27,14 +28,12 @@
     </div>
   </div>
 
-  <div class="box">
-    <div class="box-body quick-actions">
-      <a href="{{ url_for('annotation_admin.create_annotation_project') }}" class="btn btn-primary">New project</a>
-      <a href="{{ url_for('admin.create_project') }}" class="btn btn-default">New survey</a>
-      <a href="{{ url_for('admin.create_user') }}" class="btn btn-default">Add users</a>
-      <a href="{{ url_for('groups.create_group') }}" class="btn btn-default">New group</a>
-      <a href="{{ url_for('manager.managers') }}" class="btn btn-default">Add a manager</a>
-    </div>
+  <div class="action-tiles">
+    {{ tile(url_for('annotation_admin.create_annotation_project'), "picture-o", "New project", "Images or audio, shared across a team", primary=True) }}
+    {{ tile(url_for('admin.create_project'), "list-ul", "New survey", "Everyone answers every question") }}
+    {{ tile(url_for('admin.create_user'), "user-plus", "Add users", "One person, or many from a CSV file") }}
+    {{ tile(url_for('groups.create_group'), "users", "New group", "A team that works on projects") }}
+    {{ tile(url_for('manager.managers'), "id-badge", "Managers", "Who runs each project") }}
   </div>
 
   <!-- Analytics Charts Row -->

@@ -166,3 +166,17 @@ def test_managers_only_see_their_own_projects_when_assigning(app, db, make_proje
     client = _manager_client(app, make_project_admin, photo_project)
     page = client.get("/admin/assign-project-to-group").data
     assert b"Photos (2 questions)" in page and b"Survey (2 questions)" not in page
+
+
+def test_manager_sees_and_assigns_only_their_own_projects(app, db, admin_client, make_project_admin,
+                                                         team, photo_project, survey):
+    group, _ = team
+    admin_client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": survey.id})
+    client = _manager_client(app, make_project_admin, photo_project)
+
+    page = client.get("/admin/assign-project-to-group").data
+    assert b"Photos" in page and b"<strong>Survey</strong>" not in page  # no progress of projects they don't run
+
+    resp = client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": survey.id})
+    assert resp.status_code == 403
+    assert GroupProject.query.filter_by(group_id=group.id).count() == 1  # only the admin's assignment

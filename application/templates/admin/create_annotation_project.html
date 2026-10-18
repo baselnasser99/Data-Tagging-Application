@@ -27,14 +27,14 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
             <div class="form-group">
-              <label for="project_name">Project Name</label>
+              <label for="project_name">Project name</label>
               <input type="text" class="form-control" id="project_name" name="project_name" 
                      placeholder="e.g., Medical Image Classification" required>
               <p class="help-block">Give your project a descriptive name.</p>
             </div>
             
             <div class="form-group">
-              <label for="project_desc">Project Description</label>
+              <label for="project_desc">Description</label>
               <textarea class="form-control" id="project_desc" name="project_desc" rows="4" 
                         placeholder="Describe what people will be labelling..." required></textarea>
               <p class="help-block">Explain the purpose and goals of this project.</p>
@@ -43,7 +43,7 @@
             <div class="row">
               <div class="col-md-6">
                 <div class="form-group">
-                  <label for="total_questions">Total Questions</label>
+                  <label for="total_questions">Number of questions</label>
                   <input type="number" class="form-control" id="total_questions"
                          name="total_questions" value="0" min="0" max="20">
                   <p class="help-block">Total number of questions you want to create for this project. Set to 0 for no initial questions.</p>
@@ -52,7 +52,7 @@
 
               <div class="col-md-6">
                 <div class="form-group">
-                  <label for="assigned_group_id">Assign to Group</label>
+                  <label for="assigned_group_id">Group</label>
                   <select class="form-control" id="assigned_group_id" name="assigned_group_id">
                     <option value="">Select a group (Optional)...</option>
                     {% for group in groups %}
@@ -85,7 +85,7 @@
 
               <div class="col-md-6">
                 <div class="form-group">
-                  <label for="answers_per_task">Answers per Task</label>
+                  <label for="answers_per_task">Answers per task</label>
                   <input type="number" class="form-control" id="answers_per_task"
                          name="answers_per_task" value="1" min="1" max="50" required>
                   <p class="help-block">How many different people should answer each item and question. Use 1 for simple labelling, or 3 or more if you want to measure agreement. It cannot be more than the number of people in the group.</p>

@@ -181,6 +181,22 @@ a:hover, a:focus { color: var(--ink-soft); }
 
 /* collapsed sidebar on desktop */
 .sidebar-mini.sidebar-collapse .main-header .logo .logo-lg { display: none; }
+
+/* Members: their three pages sit in a bar across the top; the page uses the full width */
+.layout-top-nav .main-header { display: flex; align-items: center; }
+.layout-top-nav .main-header .logo { float: none; width: auto; border-right: 0; padding-right: 24px; }
+.layout-top-nav .main-header .navbar { float: none; flex: 1; margin-left: 0; display: flex; align-items: center; justify-content: space-between; min-height: 55px; }
+.layout-top-nav .main-header .navbar-custom-menu { float: none; }
+.layout-top-nav .content-wrapper, .layout-top-nav .main-footer { margin-left: 0; }
+.top-nav-links { display: flex; gap: 4px; margin: 0; float: none; }
+.top-nav-links > li { float: none; }
+.main-header .navbar .top-nav-links > li > a { display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+  border-radius: var(--radius-sm); color: var(--muted); font-weight: 700; }
+.main-header .navbar .top-nav-links > li.active > a { background: var(--marker-soft); color: var(--ink); }
+@media (max-width: 767px) {
+  .layout-top-nav .main-header { flex-wrap: wrap; }
+  .top-nav-links > li > a > span { display: none; }  /* icons only on narrow screens */
+}
 .sidebar-mini.sidebar-collapse .main-header .logo .logo-mini { display: flex; align-items: center; justify-content: center; height: 55px; }
 .sidebar-mini.sidebar-collapse .main-header .logo { padding: 0; }
 .sidebar-mini.sidebar-collapse .sidebar-menu > li.header { display: none; }

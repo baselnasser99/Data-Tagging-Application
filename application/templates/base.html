@@ -28,7 +28,9 @@
   <link href="{{ url_for('static', filename='css/apple.css') }}" rel="stylesheet">
 </head>
 
-<body class="hold-transition sidebar-mini">
+{# Members have three pages, so they get a bar across the top instead of a side panel. #}
+{% set top_nav = current_user.is_authenticated and current_user.role == 'end-user' %}
+<body class="hold-transition {{ 'layout-top-nav' if top_nav else 'sidebar-mini' }}">
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="wrapper">
     {% if current_user.is_authenticated %}
@@ -38,10 +40,18 @@
         <span class="logo-lg">{{ mark(24) }} {{ app_name }}</span>
       </a>
 
-      <nav class="navbar navbar-static-top" aria-label="Account">
+      <nav class="navbar navbar-static-top" aria-label="{{ 'Main' if top_nav else 'Account' }}">
+        {% if top_nav %}
+        <ul class="nav navbar-nav top-nav-links">
+          {{ nav('annotation.dashboard', 'home', 'Overview') }}
+          {{ nav('annotation.annotation_tasks', 'picture-o', 'My tasks') }}
+          {{ nav('annotation.my_projects', 'folder-open-o', 'My projects') }}
+        </ul>
+        {% else %}
         <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
           <span class="sr-only">Show or hide the menu</span>
         </a>
+        {% endif %}
 
         <div class="navbar-custom-menu">
           <ul class="nav navbar-nav">
@@ -71,6 +81,7 @@
       </nav>
     </header>
 
+    {% if not top_nav %}
     <aside class="main-sidebar">
       <nav aria-label="Main">
       <ul class="sidebar-menu">
@@ -92,14 +103,11 @@
         {{ nav('annotation_admin.create_annotation_project', 'picture-o', 'New project') }}
         {{ nav('admin.create_project', 'list-ul', 'New survey') }}
         {{ nav('groups.assign_project_to_group', 'share', 'Assign to a group') }}
-        {% elif current_user.role == 'end-user' %}
-        {{ nav('annotation.dashboard', 'home', 'Overview') }}
-        {{ nav('annotation.annotation_tasks', 'picture-o', 'My tasks') }}
-        {{ nav('annotation.my_projects', 'folder-open-o', 'My projects') }}
         {% endif %}
       </ul>
       </nav>
     </aside>
+    {% endif %}
     {% endif %}
 
     <main class="content-wrapper" id="main" tabindex="-1">

@@ -123,3 +123,11 @@ def test_annotator_is_not_sent_to_an_admin_page_after_login(client, end_user):
     """A leftover ?next=/admin/... link must not end in 'Access denied'."""
     resp = client.post("/login?next=/admin/dashboard", data={"email": end_user.email, "password": "password123"})
     assert resp.headers["Location"].endswith("/user/dashboard")
+
+
+def test_members_get_a_top_bar_and_staff_the_side_panel(user_client, admin_client):
+    member_page = user_client.get("/user/dashboard").data
+    assert b"layout-top-nav" in member_page and b"top-nav-links" in member_page
+    assert b"main-sidebar" not in member_page
+    admin_page = admin_client.get("/admin/dashboard").data
+    assert b"main-sidebar" in admin_page and b"top-nav-links" not in admin_page

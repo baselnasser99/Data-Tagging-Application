@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Project Dashboard - {{ project.name }}{% endblock %}
+{% block title %}{{ project.name }}{% endblock %}
 
 {% block content %}
     <section class="content-header">
         <h1>{{ project.name }}</h1>
-        <p class="text-muted page-subtitle">{{ "Project" if project.is_annotation_project else "Survey" }} dashboard</p>
+        <p class="text-muted page-subtitle">{{ "Project" if project.is_annotation_project else "Survey" }} overview</p>
     </section>
 
     <section class="content">

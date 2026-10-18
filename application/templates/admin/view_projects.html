@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from "includes/project_status.html" import project_status %}
 
 {% block content %}
 <!-- Content Header (Page header) -->
@@ -26,46 +25,7 @@
 	{% if projects %}
 	<div class="row task-grid">
 		{% for project in projects %}
-		<div class="col-lg-4 col-md-6 col-xs-12">
-			<div class="box">
-				<div class="box-header with-border">
-					<h3 class="box-title">{{ project.name }}</h3>
-					<p class="text-muted" style="margin: 4px 0 0;">
-						{{ 'Project' if project.is_annotation_project else 'Survey' }}
-						· {{ plural(project.questions | length, "question") }}
-						{% if project.is_annotation_project %}· {{ plural(project.images | length, "item") }}{% endif %}
-					</p>
-				</div>
-				<div class="box-body">
-					{{ project_status(project, *progress[project.id]) }}
-					{% if project.desc %}
-					<p class="project-desc">{{ project.desc }}</p>
-					{% else %}
-					<p class="text-muted">No description.</p>
-					{% endif %}
-				</div>
-				<div class="box-footer project-actions">
-					<a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-primary btn-sm">Dashboard</a>
-					<a href="{{ url_for('admin.view_questions', project_id=project.id) }}" class="btn btn-default btn-sm">Questions</a>
-					{% if session.get('role') == 'admin' %}
-					<a href="{{ url_for('manager.project_admins', project_id=project.id) }}" class="btn btn-default btn-sm">Manager</a>
-					{% endif %}
-					<span class="project-actions-break" aria-hidden="true"></span>
-					{# Annotation answers only make sense next to their item, so those projects get the dataset export. #}
-					{% if project.is_annotation_project %}
-					<a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-default btn-sm"><i class="fa fa-download"></i> CSV</a>
-					<a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default btn-sm"><i class="fa fa-download"></i> JSON</a>
-					{% else %}
-					<a href="{{ url_for('admin.download_files', project_id=project.id) }}" class="btn btn-default btn-sm"><i class="fa fa-download"></i> Download</a>
-					{% endif %}
-					<form method="POST" action="{{ url_for('admin.delete_project', project_id=project.id) }}" class="project-delete"
-					      onsubmit="return confirm('Delete this project and all of its answers? This cannot be undone.')">
-						<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-						<button type="submit" class="btn btn-danger btn-sm">Delete</button>
-					</form>
-				</div>
-			</div>
-		</div>
+		{% include "includes/project_card.html" %}
 		{% endfor %}
 	</div>
 	{% else %}

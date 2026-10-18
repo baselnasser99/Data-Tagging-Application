@@ -47,22 +47,22 @@
                   {% set file_extension = question.file_path.split('.')[-1].lower() %}
                   <div class="mb-3">
                     {% if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'bmp'] %}
-                      <img src="{{ url_for('static', filename='uploads/' + question.file_path) }}" 
+                      <img src="{{ url_for('uploaded_file', name=question.file_path) }}" 
                            alt="Question Image" 
                            class="img-responsive" 
                            style="max-width: 500px; max-height: 400px;">
                     {% elif file_extension in ['mp4', 'avi', 'mov', 'wmv'] %}
                       <video controls style="max-width: 500px; max-height: 400px;">
-                        <source src="{{ url_for('static', filename='uploads/' + question.file_path) }}" type="video/{{ file_extension }}">
+                        <source src="{{ url_for('uploaded_file', name=question.file_path) }}" type="video/{{ file_extension }}">
                         Your browser does not support the video tag.
                       </video>
                     {% elif file_extension in ['mp3', 'wav', 'ogg'] %}
                       <audio controls>
-                        <source src="{{ url_for('static', filename='uploads/' + question.file_path) }}" type="audio/{{ file_extension }}">
+                        <source src="{{ url_for('uploaded_file', name=question.file_path) }}" type="audio/{{ file_extension }}">
                         Your browser does not support the audio element.
                       </audio>
                     {% else %}
-                      <a href="{{ url_for('static', filename='uploads/' + question.file_path) }}" 
+                      <a href="{{ url_for('uploaded_file', name=question.file_path) }}" 
                          target="_blank" 
                          class="btn btn-info">
                         <i class="fa fa-download"></i> Download File

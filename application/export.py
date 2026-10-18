@@ -181,6 +181,13 @@ CSV_COLUMNS = [
 ]
 
 
+def csv_cell(value):
+    """Stop spreadsheet apps running a cell as a formula (CSV injection): text starting with = + - @ gets a leading '."""
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
 def to_csv(data: dict) -> str:
     """One row per answer. Tasks without answers get one row with blank answer fields."""
     out = io.StringIO()
@@ -198,9 +205,8 @@ def to_csv(data: dict) -> str:
                 "task_majority_answer": q["summary"].get("majority_answer", ""),
                 "task_majority_share": q["summary"].get("majority_share", ""),
             }
-            if not q["answers"]:
-                writer.writerow({**base, "annotator": "", "annotator_name": "", "answer": "", "submitted_at": ""})
-            for a in q["answers"]:
-                writer.writerow({**base, "annotator": a["annotator"], "annotator_name": a["annotator_name"], "answer": a["answer"],
-                                 "submitted_at": a["submitted_at"] or ""})
+            rows = [{"annotator": a["annotator"], "annotator_name": a["annotator_name"], "answer": a["answer"],
+                     "submitted_at": a["submitted_at"] or ""} for a in q["answers"]]
+            for row in rows or [{"annotator": "", "annotator_name": "", "answer": "", "submitted_at": ""}]:
+                writer.writerow({k: csv_cell(v) for k, v in {**base, **row}.items()})
     return out.getvalue()

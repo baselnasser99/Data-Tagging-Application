@@ -1,6 +1,4 @@
-import csv
-import io
-from flask import send_file, make_response, Blueprint, request, redirect, url_for, flash, render_template, session, abort
+from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort
 from .models import Project, Question, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer
 from .extns import db
 import logging
@@ -124,66 +122,6 @@ def my_projects():
                                group_projects=group_projects)
     else:
         flash('User not found', 'danger')
-        return redirect(url_for('annotation.my_projects'))
-
-
-@annotation.route("/download-project/<int:project_id>", methods=['GET'])
-@user_required
-def csv_download(project_id):
-    project = db.session.get(Project, project_id)
-    if project:
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(['Project Name', project.name])
-        writer.writerow(['Project Description', project.desc])
-
-        writer.writerow(['Question', 'Answer', 'File Path'])
-
-        for question in project.questions:
-            question_answers = QuestionAnswer.query.filter_by(
-                question_id=question.id).first()
-            answer = question_answers.answer if question_answers else None
-            file_path = 'No File'
-            if question.file_path:
-                file_path = url_for('static', filename=f'uploads/{question.file_path}', _external=True)
-            writer.writerow([question.question, answer, file_path])
-
-        output.seek(0)
-
-        # Convert StringIO to BytesIO for send_file
-        mem = io.BytesIO()
-        mem.write(output.getvalue().encode())
-        mem.seek(0)
-
-        response = make_response(send_file(
-            mem, as_attachment=True, download_name='questions.txt', mimetype='text/plain'))
-        return response
-    else:
-        flash('Project not found', 'danger')
-        return redirect(url_for('admin.view_projects'))
-
-
-@annotation.route("/project/<int:project_id>", methods=['GET', 'POST'])
-@user_required
-def view_project(project_id):
-    project = db.session.get(Project, project_id)
-    if request.method == 'POST':
-        for key, value in request.form.items():
-            if key.startswith('answer_'):
-                _, question_id = key.split('_')
-                question = db.session.get(Question, question_id)
-                user = db.session.get(User, session['id'])
-                answer = value
-                qa = QuestionAnswer(user_id=user.id, question_id=question.id, answer=answer)
-
-                db.session.add(qa)
-                db.session.commit()
-        flash('Answers submitted successfully', 'success')
-        return redirect(url_for('annotation.my_projects'))
-    elif project:
-        return render_template('end-user/project.html', project=project)
-    else:
-        flash('Project not found', 'danger')
         return redirect(url_for('annotation.my_projects'))
 
 

@@ -36,7 +36,7 @@ def create_app(config_object=None):
     from .groups import groups
     from .manager import manager
     from .annotation_admin import annotation_admin
-    from .jinja_utils import getattr_safe, plural
+    from .jinja_utils import getattr_safe, plural, sidebar_summary
 
     app.register_blueprint(auth)
     app.register_blueprint(admin)
@@ -47,6 +47,7 @@ def create_app(config_object=None):
 
     app.jinja_env.globals["getattr_safe"] = getattr_safe
     app.jinja_env.globals["plural"] = plural
+    app.jinja_env.globals["sidebar_summary"] = sidebar_summary
     app.jinja_env.globals["app_name"] = app.config["APP_NAME"]
 
     _register_error_handlers(app)

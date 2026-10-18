@@ -35,6 +35,8 @@
 		{{ tile(url_for('groups.assign_project_to_group'), "share", "Assign to a group", "Give one of your projects to a group") }}
 	</div>
 
+	{% with empty_groups_text="No groups work on your projects yet." %}{% include "includes/activity_row.html" %}{% endwith %}
+
 	<h2 class="section-title">Your projects</h2>
 	{% if projects %}
 	<div class="row task-grid">

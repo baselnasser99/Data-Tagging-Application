@@ -190,3 +190,20 @@ def test_multiple_choice_options_from_separate_boxes(admin_client):
     })
     question = Project.query.filter_by(name="Boxes").one().questions[0]
     assert (question.number_of_options, question.option1, question.option2) == (2, "Cat", "Dog")
+
+
+def test_csv_export_neutralises_formulas(db, admin_client, answered_project):
+    answer = QuestionAnswer.query.first()
+    answer.answer = "=HYPERLINK(\"http://evil.example\")"
+    db.session.commit()
+    resp = admin_client.get(f"/admin/project/{answered_project.id}/export.csv")
+    answers = [r["answer"] for r in csv.DictReader(io.StringIO(resp.data.decode()))]
+    assert "'=HYPERLINK(\"http://evil.example\")" in answers
+    assert not any(a.startswith("=") for a in answers)
+
+
+def test_csv_cell_leaves_ordinary_values_alone():
+    from application.export import csv_cell
+    assert csv_cell("Bicycle") == "Bicycle"
+    assert csv_cell(3) == 3
+    assert csv_cell("@SUM(A1)") == "'@SUM(A1)"

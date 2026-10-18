@@ -32,6 +32,7 @@
 					<a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-primary btn-sm">Dashboard</a>
 					<a href="{{ url_for('admin.view_questions', project_id=project.id) }}" class="btn btn-default btn-sm">Questions</a>
 					<a href="{{ url_for('manager.project_groups', project_id=project.id) }}" class="btn btn-default btn-sm">Groups</a>
+					<span class="project-actions-break" aria-hidden="true"></span>
 					{% if project.is_annotation_project %}
 					<a href="{{ url_for('annotation_admin.view_annotation_project', project_id=project.id) }}" class="btn btn-default btn-sm">Progress and results</a>
 					{% endif %}

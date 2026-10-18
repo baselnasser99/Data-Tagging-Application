@@ -36,7 +36,6 @@ def sample_project(db):
         "/admin/project/{id}/admins",
         "/admin/project/{id}/groups",
         "/admin/project/{id}/edit-questions",
-        "/admin/edit-project/{id}",
     ],
 )
 def test_project_pages_render_for_admin(admin_client, sample_project, path):

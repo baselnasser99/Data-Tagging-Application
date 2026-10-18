@@ -13,20 +13,63 @@
   <div class="row">
     <div class="col-md-7 col-xs-12">
       <div class="box">
-        <div class="box-header with-border"><h3 class="box-title">Projects and their managers</h3></div>
+        <div class="box-header with-border"><h3 class="box-title">Managers</h3></div>
         <div class="box-body">
-          {% if projects %}
-          <ul class="assignment-list">
-            {% for project in projects %}
-            {% set pa = by_project.get(project.id) %}
-            <li class="assignment-row">
-              <span><strong>{{ project.name }}</strong><br>
-                {% if pa %}{{ pa.user.full_name }} <span class="text-muted">· {{ pa.user.email }}</span>
-                {% else %}<span class="text-muted">No manager</span>{% endif %}</span>
-              <a href="{{ url_for('manager.project_admins', project_id=project.id) }}" class="btn btn-default btn-sm">{{ 'Change' if pa else 'Open' }}</a>
+          {% if managers %}
+          <div class="people-search list-search">
+            <i class="fa fa-search" aria-hidden="true"></i>
+            <label class="sr-only" for="manager-search">Search managers</label>
+            <input type="search" id="manager-search" class="form-control" data-search-list="manager-list"
+                   placeholder="Search by name, email or project" autocomplete="off">
+          </div>
+          {% set tones = ['blue', 'green', 'amber', 'violet', 'teal'] %}
+          <ul class="people-list" id="manager-list">
+            {% for user, their_projects in managers %}
+            <li class="person person-short"
+                data-search="{{ (user.full_name ~ ' ' ~ user.email ~ ' ' ~ (their_projects | map(attribute='name') | join(' '))) | lower }}">
+              <span class="person-avatar tone-{{ tones[user.id % 5] }}" aria-hidden="true">{{ user.full_name[:1] | upper }}</span>
+              <div class="person-who">
+                <strong>{{ user.full_name }}</strong>
+                <span class="text-muted">{{ user.email }}</span>
+              </div>
+              <div class="person-groups">
+                {% for project in their_projects %}<span class="chip">{{ project.name }}</span>{% else %}<span class="chip chip-warn">No project</span>{% endfor %}
+              </div>
+              <div class="person-actions">
+                <a class="btn btn-default btn-sm" href="{{ url_for('admin.edit_user', user_id=user.id) }}" aria-label="Edit {{ user.full_name }}">Edit</a>
+              </div>
             </li>
             {% endfor %}
           </ul>
+          <p class="text-muted list-none" id="manager-list-none" hidden>Nobody matches.</p>
+          {% else %}
+          <p class="text-muted" style="margin: 0;">No managers yet. Create one on the right.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-header with-border"><h3 class="box-title">Projects and their managers</h3></div>
+        <div class="box-body">
+          {% if projects %}
+          <div class="people-search list-search">
+            <i class="fa fa-search" aria-hidden="true"></i>
+            <label class="sr-only" for="project-search">Search projects</label>
+            <input type="search" id="project-search" class="form-control" data-search-list="project-list"
+                   placeholder="Search by project or manager" autocomplete="off">
+          </div>
+          <ul class="assignment-list" id="project-list">
+            {% for project in projects %}
+            {% set pa = by_project.get(project.id) %}
+            <li class="assignment-row" data-search="{{ (project.name ~ ' ' ~ (pa.user.full_name ~ ' ' ~ pa.user.email if pa else 'no manager')) | lower }}">
+              <span><strong>{{ project.name }}</strong><br>
+                {% if pa %}{{ pa.user.full_name }} <span class="text-muted">· {{ pa.user.email }}</span>
+                {% else %}<span class="text-muted">No manager</span>{% endif %}</span>
+              <a href="{{ url_for('manager.project_admins', project_id=project.id) }}" class="btn btn-default btn-sm">{{ 'Change' if pa else 'Choose' }}</a>
+            </li>
+            {% endfor %}
+          </ul>
+          <p class="text-muted list-none" id="project-list-none" hidden>No project matches.</p>
           {% else %}
           <p class="text-muted" style="margin: 0;">No projects yet.</p>
           {% endif %}
@@ -57,19 +100,6 @@
           </form>
         </div>
       </div>
-      {% if without_project %}
-      <div class="box">
-        <div class="box-header with-border"><h3 class="box-title">Managers without a project</h3></div>
-        <div class="box-body">
-          <ul class="assignment-list">
-            {% for user in without_project %}
-            <li>{{ user.full_name }} <span class="text-muted">· {{ user.email }}</span></li>
-            {% endfor %}
-          </ul>
-          <p class="text-muted" style="margin: 10px 0 0;">Pick them in the form below to give them a project.</p>
-        </div>
-      </div>
-      {% endif %}
       <div class="box">
         <div class="box-header with-border"><h3 class="box-title">Make an existing person a manager</h3></div>
         <div class="box-body">

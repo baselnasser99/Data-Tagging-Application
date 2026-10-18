@@ -457,50 +457,6 @@ def delete_project(project_id):
     return redirect(url_for("admin.view_projects"))
 
 
-@admin.route("/edit-project/<int:project_id>", methods=['GET', 'POST'])
-@project_admin_required
-def edit_project(project_id):
-    project = db.get_or_404(Project, project_id)
-
-    if request.method == 'POST':
-        project_data = request.form.to_dict(flat=True)
-        project_name = project_data.get('project-name')
-        project_desc = project_data.get('project-description')
-        project.name = project_name
-        project.desc = project_desc
-
-        files = request.files.to_dict(flat=True)
-
-        for key, file in files.items():
-            if key.startswith('questionfile-'):
-                question_id = int(key.split('-')[1])
-                question = db.session.get(Question, question_id)
-                if question:
-                    file = request.files.get(key)
-                    filename = None
-                    if file:
-                        filename = str(uuid.uuid4()) + \
-                            secure_filename(file.filename)
-                        file_path = upload_path(filename)
-                        file.save(file_path)
-
-                    if file.filename:
-                        question.file_path = filename
-
-        # Update annotation project settings if applicable
-        if project.is_annotation_project:
-            project.max_questions_per_user = int(request.form.get('max_questions_per_user', project.max_questions_per_user))
-            project.answers_per_task = int(request.form.get('answers_per_task', project.answers_per_task))
-
-        db.session.commit()
-        flash('Project details updated successfully!', 'success')
-        if project.is_annotation_project:
-            flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))
-        return redirect(url_for("admin.view_projects"))
-
-    return render_template("admin/edit_project.html", project=project)
-
-
 @admin.route("/download-files/<int:project_id>")
 @project_admin_required
 def download_files(project_id):

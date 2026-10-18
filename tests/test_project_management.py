@@ -53,21 +53,29 @@ def annotation_project(db, make_user):
 
 # ---- editing ---------------------------------------------------------------
 
-def test_edit_project_details_and_question_file(admin_client, survey):
-    q = survey.questions[0]
-    resp = admin_client.post(
-        f"/admin/edit-project/{survey.id}",
-        data={
-            "project-name": "Renamed",
-            "project-description": "New description",
-            f"questionfile-{q.id}": (io.BytesIO(b"img"), "pic.png"),
-        },
-        content_type="multipart/form-data",
-        follow_redirects=True,
-    )
+def test_rename_project_and_attach_question_file(admin_client, survey):
+    url = f"/admin/project/{survey.id}/edit-questions"
+    resp = admin_client.post(url, data={"action": "update_project_settings", "project_name": "Renamed",
+                                        "project_desc": "New description"}, follow_redirects=True)
     assert b"updated successfully" in resp.data
     assert survey.name == "Renamed" and survey.desc == "New description"
+
+    q = survey.questions[0]
+    admin_client.post(url, data={"action": "update_questions", f"question-{q.id}": q.question,
+                                 f"questionfile-{q.id}": (io.BytesIO(b"img"), "pic.png")},
+                      content_type="multipart/form-data")
     assert q.file_path.endswith("pic.png")
+
+
+def test_project_multiple_choice_options_can_be_edited(admin_client, db, annotation_project):
+    """The answer-type box used to be disabled for projects, so option edits were silently dropped."""
+    project, _, _ = annotation_project
+    q = project.questions[0]
+    admin_client.post(f"/admin/project/{project.id}/edit-questions", data={
+        "action": "update_questions", f"question-{q.id}": q.question, f"dropdown-{q.id}": "mcq",
+        f"number_of_options-{q.id}": "2", f"mcq-option-1-{q.id}": "Cat", f"mcq-option-2-{q.id}": "Dog",
+    })
+    assert (q.answer_type.value, q.number_of_options, q.option1, q.option2) == ("mcq", 2, "Cat", "Dog")
 
 
 def test_update_question_text_and_switch_to_mcq(admin_client, survey):

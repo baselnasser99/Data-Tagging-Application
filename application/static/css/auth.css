@@ -147,11 +147,14 @@ a:hover { color: var(--ink-soft); }
   white-space: nowrap;
 }
 
-.specimen-caption {
-  margin: 28px 0 0;
-  font-size: 14px;
-  color: var(--muted);
+/* The picture reacts a little to the pointer: the image under the mouse lifts
+   slightly and comes forward. No movement for people who ask for reduced motion. */
+@media (hover: hover) {
+  .tile { transition: transform 180ms ease-out, box-shadow 180ms ease-out, opacity 180ms ease-out; }
+  .tile:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(28, 39, 51, 0.12); opacity: 1; }
 }
+@media (prefers-reduced-motion: reduce) { .tile, .tile:hover { transition: none; transform: none; } }
+
 
 /* ---- right: the form ---- */
 .auth-panel {

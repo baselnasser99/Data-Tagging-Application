@@ -139,3 +139,30 @@ def test_side_panel_shows_a_summary_and_the_account_for_each_role(app, user_clie
     client = app.test_client()
     login(client, make_project_admin(project).email)
     assert b"Your projects this week" in client.get("/admin/my-projects").data
+
+
+def test_five_wrong_passwords_pause_the_account_even_for_the_right_one(client, make_user, db):
+    from application.auth import MAX_FAILED_LOGINS
+    user = make_user(email="target@example.com")
+    for _ in range(MAX_FAILED_LOGINS):
+        login(client, user.email, password="wrong-guess")
+    db.session.refresh(user)
+    assert user.locked_until is not None
+    resp = login(client, user.email, follow=True)  # the right password, during the pause
+    assert b"Too many wrong passwords" in resp.data
+    assert client.get("/user/dashboard").status_code == 302  # still signed out
+
+    user.locked_until = None  # the pause is over
+    db.session.commit()
+    assert login(client, user.email).headers["Location"].endswith("/user/dashboard")
+    db.session.refresh(user)
+    assert user.failed_logins == 0
+
+
+def test_a_right_password_resets_the_count(client, make_user, db):
+    user = make_user(email="typo@example.com")
+    for _ in range(3):
+        login(client, user.email, password="typo")
+    login(client, user.email)
+    db.session.refresh(user)
+    assert user.failed_logins == 0 and user.locked_until is None

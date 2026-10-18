@@ -287,7 +287,7 @@ def _shortage_warning(project: Project, n_users: int) -> str:
         )
     return (
         f"Some tasks in '{project.name}' could not be given to anyone because every eligible "
-        "person has reached the 'Max tasks per user' limit. Raise the limit or add more people."
+        "person has reached the 'Max tasks per person' limit. Raise the limit or add more people."
     )
 
 

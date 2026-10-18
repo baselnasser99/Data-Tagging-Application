@@ -531,3 +531,30 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 @supports (field-sizing: content) {
   textarea, textarea.form-control { field-sizing: content; resize: none; min-height: 84px; }
 }
+
+/* Page subtitle under the h1, and label/value lists on settings cards */
+.content-header > .page-subtitle { margin: 4px 0 0; }
+.settings-list { display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; margin: 0; }
+.settings-list dt { color: var(--muted); font-weight: 600; }
+.settings-list dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .settings-list { grid-template-columns: 1fr; gap: 2px 0; } .settings-list dd { margin-bottom: 8px; } }
+
+/* Number columns stay narrow and line up on the right, so a short table never spreads out */
+.table th.num, .table td.num { width: 1%; white-space: nowrap; text-align: right; padding-left: 24px; }
+.question-list { margin: 0; padding-left: 20px; }
+.question-list > li { padding: 4px 0; overflow-wrap: anywhere; }
+/* A row of small item previews that wraps, instead of a full-width grid */
+.item-strip { display: flex; flex-wrap: wrap; gap: 12px; list-style: none; margin: 0; padding: 0; }
+.item-strip > li { width: 132px; display: flex; flex-direction: column; gap: 6px; }
+.item-strip > li > .media-audio-thumb { height: 96px; }
+.item-strip > li > span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Questions page: a numbered list, number in a small circle beside each question */
+.question-cards > li { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; }
+.question-cards > li:first-child { padding-top: 0; }
+.question-number { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--canvas);
+  display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+/* Task cards: long file names end with an ellipsis; the question reads as text, not as a control */
+.task-card-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 96px); }
+.task-questions { margin: 12px 0 0; }
+.task-questions > li { padding: 3px 0; font-weight: 600; overflow-wrap: anywhere; }
+.task-questions > li.text-muted { font-weight: 400; }

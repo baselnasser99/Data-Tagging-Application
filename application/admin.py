@@ -65,7 +65,7 @@ def dashboard():
         ).count()
 
         weeks_data.append({
-            'week': f"Week {12-i}",
+            'week': f"{week_start.day} {week_start:%b}",  # the week's first day, e.g. "3 Aug"
             'answers': answers_count
         })
 
@@ -127,6 +127,7 @@ def users():
         users_data.append({
             'user': user,
             'assigned_projects_count': len(assigned_projects),
+            'answer_count': QuestionAnswer.query.filter_by(user_id=user.id).count(),
             'assigned_groups': [m.group for m in user_group_memberships if m.group]
         })
     return render_template('admin/users.html', users_data=users_data)

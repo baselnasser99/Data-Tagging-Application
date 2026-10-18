@@ -4,227 +4,119 @@
 
 {% block content %}
     <section class="content-header">
-        <h1>
-            Project Dashboard
-            <small>{{ project.name }}</small>
-        </h1>
-        <ol class="breadcrumb">
-            <li><a href="{{ url_for('manager.my_projects') }}"><i class="fa fa-dashboard"></i> My Projects</a></li>
-            <li class="active">{{ project.name }}</li>
-        </ol>
+        <h1>{{ project.name }}</h1>
+        <p class="text-muted page-subtitle">{{ "Project" if project.is_annotation_project else "Survey" }} dashboard</p>
     </section>
 
     <section class="content">
-        <div class="row">
-            <div class="col-md-3 col-sm-6 col-xs-12">
-                <div class="info-box">
-                    <span class="info-box-icon bg-aqua"><i class="fa fa-question-circle"></i></span>
-                    <div class="info-box-content">
-                        <span class="info-box-text">Questions</span>
-                        <span class="info-box-number">{{ questions_count }}</span>
-                    </div>
-                </div>
+        <div class="figures">
+            <div class="figure">
+                <span class="figure-value">{{ questions_count }}</span>
+                <span class="figure-label">Questions</span>
             </div>
-
             {% if project.is_annotation_project %}
-            <div class="col-md-3 col-sm-6 col-xs-12">
-                <div class="info-box">
-                    <span class="info-box-icon bg-green"><i class="fa fa-image"></i></span>
-                    <div class="info-box-content">
-                        <span class="info-box-text">Images</span>
-                        <span class="info-box-number">{{ annotation_stats.images_count }}</span>
-                    </div>
-                </div>
+            <div class="figure">
+                <span class="figure-value">{{ annotation_stats.images_count }}</span>
+                <span class="figure-label">Items</span>
             </div>
-
-            <div class="col-md-3 col-sm-6 col-xs-12">
-                <div class="info-box">
-                    <span class="info-box-icon bg-yellow"><i class="fa fa-tasks"></i></span>
-                    <div class="info-box-content">
-                        <span class="info-box-text">Tasks</span>
-                        <span class="info-box-number">{{ annotation_stats.completed_tasks }}/{{ annotation_stats.tasks_count }}</span>
-                    </div>
-                </div>
+            <div class="figure">
+                <span class="figure-value">{{ annotation_stats.completed_tasks }} of {{ annotation_stats.tasks_count }}</span>
+                <span class="figure-label">Tasks done</span>
             </div>
-
-            <div class="col-md-3 col-sm-6 col-xs-12">
-                <div class="info-box">
-                    <span class="info-box-icon bg-red"><i class="fa fa-users"></i></span>
-                    <div class="info-box-content">
-                        <span class="info-box-text">User Assignments</span>
-                        <span class="info-box-number">{{ annotation_stats.completed_assignments }}/{{ annotation_stats.total_assignments }}</span>
-                    </div>
-                </div>
+            {% if project.answers_per_task > 1 %}
+            <div class="figure">
+                <span class="figure-value">{{ annotation_stats.completed_assignments }} of {{ annotation_stats.total_assignments }}</span>
+                <span class="figure-label">Answers given</span>
             </div>
             {% endif %}
+            {% endif %}
+            <div class="figure">
+                <span class="figure-value">{{ assigned_groups|length }}</span>
+                <span class="figure-label">{{ "Group" if assigned_groups|length == 1 else "Groups" }}</span>
+            </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-6">
-                <div class="box box-primary">
+        {% if project.is_annotation_project and annotation_stats.tasks_count %}
+        <div class="box">
+            <div class="box-body">
+                <div class="progress-label">
+                    <h4>Progress</h4>
+                    <span class="text-muted">{{ annotation_stats.completion_percentage }}% of tasks done</span>
+                </div>
+                <div class="progress" role="progressbar" aria-label="Tasks done"
+                     aria-valuenow="{{ annotation_stats.completion_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar" style="width: {{ annotation_stats.completion_percentage }}%;"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row task-grid">
+            <div class="col-md-6 col-xs-12">
+                <div class="box">
                     <div class="box-header with-border">
-                        <h3 class="box-title">Project Settings</h3>
+                        <h3 class="box-title">Settings</h3>
                     </div>
                     <div class="box-body">
-                        <dl class="dl-horizontal">
-                            <dt>Project Name:</dt>
-                            <dd>{{ project.name }}</dd>
-                            <dt>Description:</dt>
-                            <dd>{{ project.desc }}</dd>
+                        <dl class="settings-list">
+                            <dt>Description</dt>
+                            <dd class="project-desc">{{ project.desc or "None" }}</dd>
+                            <dt>Manager</dt>
+                            <dd>{{ project_admins[0].user.full_name if project_admins else "No manager" }}</dd>
+                            <dt>Groups</dt>
+                            <dd>{{ assigned_groups|map(attribute="name")|join(", ") or "None yet" }}</dd>
                             {% if project.is_annotation_project %}
-                            <dt>Questions per Image:</dt>
-                            <dd>{{ project.questions_per_image }}</dd>
-                            <dt>Max Questions per User:</dt>
+                            <dt>Max tasks per person</dt>
                             <dd>{{ project.max_questions_per_user }}</dd>
-                            <dt>Answers per Task:</dt>
+                            <dt>Answers per task</dt>
                             <dd>{{ project.answers_per_task }}</dd>
+                            <dt>Hand out work</dt>
+                            <dd>{{ "All of an item's questions to one person" if project.hand_out_per_item else "Each question on its own" }}</dd>
                             {% endif %}
                         </dl>
                     </div>
                     <div class="box-footer">
-                        <a href="{{ url_for('manager.edit_project_questions', project_id=project.id) }}" class="btn btn-primary">
-                            <i class="fa fa-edit"></i> Edit Questions & Settings
+                        <a href="{{ url_for('manager.edit_project_questions', project_id=project.id) }}" class="btn btn-default">
+                            <i class="fa fa-edit"></i> Edit questions and settings
                         </a>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-6">
-                <div class="box box-info">
+            <div class="col-md-6 col-xs-12">
+                <div class="box">
                     <div class="box-header with-border">
-                        <h3 class="box-title">Project Management</h3>
+                        <h3 class="box-title">What you can do</h3>
                     </div>
-                    <div class="box-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="small-box bg-aqua">
-                                    <div class="inner">
-                                        <h3>{{ project_admins|length }}</h3>
-                                        <p>Project Admins</p>
-                                    </div>
-                                    <div class="icon">
-                                        <i class="fa fa-users"></i>
-                                    </div>
-                                    <a href="{{ url_for('manager.project_admins', project_id=project.id) }}" class="small-box-footer">
-                                        Manage Admins <i class="fa fa-arrow-circle-right"></i>
-                                    </a>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="small-box bg-green">
-                                    <div class="inner">
-                                        <h3>{{ assigned_groups|length }}</h3>
-                                        <p>Assigned Groups</p>
-                                    </div>
-                                    <div class="icon">
-                                        <i class="fa fa-users"></i>
-                                    </div>
-                                    <a href="{{ url_for('manager.project_groups', project_id=project.id) }}" class="small-box-footer">
-                                        Manage Groups <i class="fa fa-arrow-circle-right"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
+                    <div class="box-body quick-actions">
                         {% if project.is_annotation_project %}
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="small-box bg-yellow">
-                                    <div class="inner">
-                                        <h3>Upload</h3>
-                                        <p>Images</p>
-                                    </div>
-                                    <div class="icon">
-                                        <i class="fa fa-upload"></i>
-                                    </div>
-                                    <a href="{{ url_for('annotation_admin.upload_images', project_id=project.id) }}" class="small-box-footer">
-                                        Upload Images or Audio <i class="fa fa-arrow-circle-right"></i>
-                                    </a>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="small-box bg-red">
-                                    <div class="inner">
-                                        <h3>Hand out</h3>
-                                        <p>Tasks</p>
-                                    </div>
-                                    <div class="icon">
-                                        <i class="fa fa-tasks"></i>
-                                    </div>
-                                    <a href="{{ url_for('annotation_admin.generate_annotation_tasks', project_id=project.id) }}" class="small-box-footer">
-                                        Hand out tasks <i class="fa fa-arrow-circle-right"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        <p>
-                            <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-success">
-                                <i class="fa fa-download"></i> Download results (CSV)
-                            </a>
-                            <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default">
-                                Download results (JSON)
-                            </a>
-                        </p>
+                        <a href="{{ url_for('annotation_admin.view_annotation_project', project_id=project.id) }}" class="btn btn-primary">
+                            <i class="fa fa-eye"></i> Progress and results
+                        </a>
+                        <a href="{{ url_for('annotation_admin.upload_images', project_id=project.id) }}" class="btn btn-default">
+                            <i class="fa fa-upload"></i> Upload items
+                        </a>
+                        <a href="{{ url_for('annotation_admin.generate_annotation_tasks', project_id=project.id) }}" class="btn btn-default">
+                            <i class="fa fa-tasks"></i> Hand out tasks
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('manager.project_groups', project_id=project.id) }}" class="btn btn-default">
+                            <i class="fa fa-users"></i> Groups
+                        </a>
+                        <a href="{{ url_for('manager.project_admins', project_id=project.id) }}" class="btn btn-default">
+                            <i class="fa fa-user"></i> Manager
+                        </a>
+                        {% if project.is_annotation_project %}
+                        <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-default">
+                            <i class="fa fa-download"></i> CSV
+                        </a>
+                        <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default">
+                            <i class="fa fa-download"></i> JSON
+                        </a>
                         {% endif %}
                     </div>
                 </div>
             </div>
         </div>
-
-        {% if project.is_annotation_project %}
-        <div class="row">
-            <div class="col-md-12">
-                <div class="box box-primary">
-                    <div class="box-header with-border">
-                        <h3 class="box-title"><i class="fa fa-chart-bar"></i> Completion Progress</h3>
-                    </div>
-                    <div class="box-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="progress-label">
-                                    <h4>Task Completion</h4>
-                                    <span class="text-muted">{{ annotation_stats.completed_tasks }} of {{ annotation_stats.tasks_count }} ({{ annotation_stats.completion_percentage }}%)</span>
-                                </div>
-                                <div class="progress" role="progressbar" aria-label="Task Completion"
-                                     aria-valuenow="{{ annotation_stats.completion_percentage }}" aria-valuemin="0" aria-valuemax="100">
-                                    <div class="progress-bar progress-bar-success" style="width: {{ annotation_stats.completion_percentage }}%;"></div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="progress-label">
-                                    <h4>User Assignment Completion</h4>
-                                    <span class="text-muted">{{ annotation_stats.completed_assignments }} of {{ annotation_stats.total_assignments }} ({{ annotation_stats.assignment_completion }}%)</span>
-                                </div>
-                                <div class="progress" role="progressbar" aria-label="User Assignment Completion"
-                                     aria-valuenow="{{ annotation_stats.assignment_completion }}" aria-valuemin="0" aria-valuemax="100">
-                                    <div class="progress-bar progress-bar-info" style="width: {{ annotation_stats.assignment_completion }}%;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-12">
-                <div class="box box-success">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Project Results</h3>
-                    </div>
-                    <div class="box-body">
-                        <a href="{{ url_for('manager.project_results', project_id=project.id) }}" class="btn btn-success">
-                            <i class="fa fa-bar-chart"></i> View Results
-                        </a>
-                        <a href="{{ url_for('annotation_admin.view_annotation_project', project_id=project.id) }}" class="btn btn-info">
-                            <i class="fa fa-eye"></i> Progress and results
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
     </section>
 {% endblock %}

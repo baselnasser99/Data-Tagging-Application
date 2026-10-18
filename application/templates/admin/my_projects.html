@@ -3,52 +3,48 @@
 {% block title %}My Projects{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">My Projects</h3>
-                </div>
-                <div class="card-body">
-                    {% if projects %}
-                    <table class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Project Name</th>
-                                <th>Project Description</th>
-                                <th>Total Questions</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for project in projects %}
-                            <tr>
-                                <td>{{ loop.index }}</td>
-                                <td>{{ project.name }}</td>
-                                <td>{{ project.desc[:200] | safe }}...</td>
-                                <td>{{ project.questions | length }}</td>
-                                <td>
-                                    <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-primary btn-sm">Dashboard</a>
-                                    <a href="{{ url_for('manager.edit_project_questions', project_id=project.id) }}" class="btn btn-info btn-sm">Questions</a>
-                                    <a href="{{ url_for('manager.project_groups', project_id=project.id) }}" class="btn btn-success btn-sm">Groups</a>
-                                    <a href="{{ url_for('manager.project_results', project_id=project.id) }}" class="btn btn-secondary btn-sm">Results</a>
-                                    {% if session.get('role') == 'admin' %}
-                                    {# System Admins can manage project admins from here as well #}
-                                    <a href="{{ url_for('manager.project_admins', project_id=project.id) }}" class="btn btn-warning btn-sm">Manage Admins</a>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% else %}
-                    <p>You are not assigned to any projects as an admin yet.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %} 
+<section class="content-header">
+	<h1>My projects</h1>
+</section>
+
+<section class="content">
+	{% if projects %}
+	<div class="row task-grid">
+		{% for project in projects %}
+		<div class="col-lg-4 col-md-6 col-xs-12">
+			<div class="box">
+				<div class="box-header with-border">
+					<h3 class="box-title">{{ project.name }}</h3>
+					<p class="text-muted" style="margin: 4px 0 0;">
+						{{ 'Project' if project.is_annotation_project else 'Survey' }}
+						· {{ plural(project.questions | length, "question") }}
+						{% if project.is_annotation_project %}· {{ plural(project.images | length, "item") }}{% endif %}
+					</p>
+				</div>
+				<div class="box-body">
+					{% if project.desc %}
+					<p class="project-desc">{{ project.desc }}</p>
+					{% else %}
+					<p class="text-muted">No description.</p>
+					{% endif %}
+				</div>
+				<div class="box-footer project-actions">
+					<a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-primary btn-sm">Dashboard</a>
+					<a href="{{ url_for('admin.view_questions', project_id=project.id) }}" class="btn btn-default btn-sm">Questions</a>
+					<a href="{{ url_for('manager.project_groups', project_id=project.id) }}" class="btn btn-default btn-sm">Groups</a>
+					{% if project.is_annotation_project %}
+					<a href="{{ url_for('annotation_admin.view_annotation_project', project_id=project.id) }}" class="btn btn-default btn-sm">Progress and results</a>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+		{% endfor %}
+	</div>
+	{% else %}
+	<div class="box"><div class="empty-state">
+		<strong>No projects yet</strong>
+		You don't manage a project yet. An admin can make you the manager of one.
+	</div></div>
+	{% endif %}
+</section>
+{% endblock %}

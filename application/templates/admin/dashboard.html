@@ -30,10 +30,10 @@
 
   <div class="action-tiles">
     {{ tile(url_for('annotation_admin.create_annotation_project'), "picture-o", "New project", "Images or audio, shared across a team", primary=True) }}
-    {{ tile(url_for('admin.create_project'), "list-ul", "New survey", "Everyone answers every question") }}
-    {{ tile(url_for('admin.create_user'), "user-plus", "Add users", "One person, or many from a CSV file") }}
-    {{ tile(url_for('groups.create_group'), "users", "New group", "A team that works on projects") }}
-    {{ tile(url_for('manager.managers'), "id-badge", "Managers", "Who runs each project") }}
+    {{ tile(url_for('admin.create_project'), "list-ul", "New survey", "Everyone answers every question", tone="violet") }}
+    {{ tile(url_for('admin.create_user'), "user-plus", "Add users", "One person, or many from a CSV file", tone="green") }}
+    {{ tile(url_for('groups.create_group'), "users", "New group", "A team that works on projects", tone="green") }}
+    {{ tile(url_for('manager.managers'), "id-badge", "Managers", "Who runs each project", tone="amber") }}
   </div>
 
   <!-- Analytics Charts Row -->

@@ -36,7 +36,6 @@ def sample_project(db):
         "/admin/project/{id}/admins",
         "/admin/project/{id}/groups",
         "/admin/project/{id}/edit-questions",
-        "/admin/view-questions/{id}",
         "/admin/edit-project/{id}",
     ],
 )

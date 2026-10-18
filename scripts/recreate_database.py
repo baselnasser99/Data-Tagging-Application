@@ -2,7 +2,7 @@ import os
 import sys
 
 # Add the application directory to the Python path
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # the repo root, where application/ lives
 
 from application import create_app
 from application.extns import db
@@ -62,7 +62,7 @@ def recreate_database():
                 else:
                     print("Admin user already exists.")
             else:
-                print("ADMIN_EMAIL / ADMIN_PASSWORD not set; no admin created. Run admin_manager.py to add one.")
+                print("ADMIN_EMAIL / ADMIN_PASSWORD not set; no admin created. Run python scripts/admin_manager.py to add one.")
 
             print("Database recreation completed successfully!")
         else:

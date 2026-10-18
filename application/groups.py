@@ -3,18 +3,16 @@
 Adding or removing a member hands out or releases work through
 application/distribution.py, so workloads stay balanced.
 """
-import logging
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort
 
 from . import distribution
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
-from .models import AnnotationTask, Project, Question, TaskAssignment, User, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, QuestionAnswer
+from .models import AnnotationTask, Project, ProjectAdmin, Question, TaskAssignment, User, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, QuestionAnswer
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
 
 groups = Blueprint("groups", __name__, url_prefix="/admin")
-log = logging.getLogger(__name__)
 
 
 @groups.route("/groups")
@@ -176,6 +174,18 @@ def group_progress(group, project_ids):
     return done, total
 
 
+def set_up_new_project(project, group_id):
+    """A manager who creates a project manages it; the group chosen on the form (if any) gets it.
+
+    Tasks are not handed out here: that happens once items are uploaded.
+    """
+    if session.get('role') == 'project-admin':
+        db.session.add(ProjectAdmin(user_id=session['id'], project_id=project.id, assigned_by=session['id']))
+    group = db.session.get(UserGroup, group_id) if group_id else None
+    if group and not GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first():
+        db.session.add(GroupProject(group_id=group.id, project_id=project.id))
+
+
 def project_progress(project):
     """(done, total) for a whole project: finished tasks, or answered survey questions."""
     if project.is_annotation_project:
@@ -234,21 +244,17 @@ def remove_pending_assignments_from_removed_group_member(user, group):
 @project_admin_access_required
 def assign_project_to_group():
     if request.method == 'POST':
-        log.debug(f"assign_project_to_group - POST request received.")
         group_id = request.form.get('group_id')
         project_id = request.form.get('project_id')
-        log.debug(f"assign_project_to_group - group_id: {group_id}, project_id: {project_id}")
         group = db.session.get(UserGroup, group_id)
         project = db.session.get(Project, project_id)
 
         if project and session.get('role') != 'admin' and not is_project_admin(project.id):
             abort(403)  # managers may only attach their own projects
         if group and project:
-            log.debug(f"assign_project_to_group - Group and Project found. Group: {group.name}, Project: {project.name}")
             # Check if project is already assigned to group
             existing = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
             if existing:
-                log.debug(f"assign_project_to_group - Existing assignment found.")
                 flash('This project is already assigned to this group', 'warning')
                 return redirect(url_for("groups.assign_project_to_group"))
 
@@ -256,7 +262,6 @@ def assign_project_to_group():
             group_project = GroupProject(group_id=group.id, project_id=project.id)
             db.session.add(group_project)
             db.session.commit()
-            log.debug(f"assign_project_to_group - GroupProject added and committed.")
             # Logic for distributing questions/tasks based on project type and content
             if project.is_annotation_project:
                 if project.images and project.questions:
@@ -283,18 +288,13 @@ def assign_project_to_group():
     
     current_user_id = session.get('id')
     current_user_role = session.get('role')
-    log.debug(f"assign_project_to_group (GET) - current_user_id: {current_user_id}, current_user_role: {current_user_role}")
     if current_user_role == 'admin':
         # System admins can assign any project
         projects = Project.query.all()
-        log.debug(f"assign_project_to_group (GET) - System Admin, total projects: {len(projects)}")
     else:
         # Project admins can only assign projects they manage
-        from .models import ProjectAdmin # Ensure ProjectAdmin is imported
         managed_project_ids = [pa.project_id for pa in ProjectAdmin.query.filter_by(user_id=current_user_id).all()]
-        log.debug(f"assign_project_to_group (GET) - Project Admin, managed_project_ids: {managed_project_ids}")
         projects = Project.query.filter(Project.id.in_(managed_project_ids)).all()
-        log.debug(f"assign_project_to_group (GET) - Project Admin, filtered projects: {len(projects)}")
     # only the projects this person may see; a manager must not see others' progress
     shown_ids = {project.id for project in projects}
     progress = {(gp.group_id, gp.project_id): group_progress(group, [gp.project_id])
@@ -308,7 +308,6 @@ def distribute_questions_to_group(group, project):
     questions = project.questions
 
     if not members or not questions:
-        log.debug(f"No members ({len(members)}) or questions ({len(questions)}) for distribution in project {project.name}.")
         return
 
     # Create a unique identifier for this group-project combination
@@ -337,7 +336,6 @@ def distribute_questions_to_group(group, project):
                         question_id=question.id,
                         group_project_id=group_project_id,
                     ))
-        log.debug(f"Assigned all {len(questions)} questions to each of {len(members)} members for survey project {project.name}.")
     # Mark questions as distributed (this flag might need review based on exact workflow, but keeping for now)
     group_project_link = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
     if group_project_link:

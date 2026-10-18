@@ -4,23 +4,21 @@ import io
 import os
 import uuid
 import secrets
-import logging
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session
 from sqlalchemy import delete
 from werkzeug.utils import secure_filename
 
 from .extns import db
-from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, AnnotationTask, TaskAssignment, ProjectAdmin, ExportLog
+from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, AnnotationTask, TaskAssignment, ExportLog
 from .auth import MIN_PASSWORD_LENGTH
 from .jinja_utils import plural
 from . import distribution
 from .feedback import flash_distribution, warn_idle_members
-from .groups import assign_questions_to_new_group_member, group_progress, project_progress
+from .groups import assign_questions_to_new_group_member, group_progress, project_progress, set_up_new_project
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
-log = logging.getLogger(__name__)
 
 def upload_dir(*parts):
     """Create (if needed) and return a folder inside the upload root.
@@ -361,28 +359,7 @@ def create_project():
         db.session.add(project)
         db.session.commit()
 
-        # If the current user is a project-admin, assign them as an admin for this new project
-        if session.get('role') == 'project-admin':
-            current_user_id = session.get('id')
-            if current_user_id:
-                from .models import ProjectAdmin # Import locally to avoid circular dependency
-                new_project_admin = ProjectAdmin(
-                    user_id=current_user_id,
-                    project_id=project.id,
-                    assigned_by=current_user_id # Self-assigned
-                )
-                db.session.add(new_project_admin)
-                # No commit here, will commit all at once later
-
-        # Assign project to selected group (optional at creation)
-        if assigned_group_id:
-            group = db.session.get(UserGroup, assigned_group_id)
-            if group:
-                existing_assignment = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
-                if not existing_assignment:
-                    group_project = GroupProject(group_id=group.id, project_id=project.id)
-                    db.session.add(group_project)
-                    # No task distribution here; tasks are generated after images are uploaded
+        set_up_new_project(project, assigned_group_id)
 
         # Save questions if any are provided
         total_questions_str = request.form.get("total_questions")
@@ -510,7 +487,6 @@ def edit_project(project_id):
         project_data = request.form.to_dict(flat=True)
         project_name = project_data.get('project-name')
         project_desc = project_data.get('project-description')
-        log.debug(f"Edit Project - Received project_name: {project_name}, project_desc: {project_desc}")
         project.name = project_name
         project.desc = project_desc
 

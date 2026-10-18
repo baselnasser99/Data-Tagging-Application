@@ -211,8 +211,16 @@ def _configure_logging(app):
 
 
 def _register_error_handlers(app):
+    from flask_login import current_user
+
+    audit = logging.getLogger("audit")
+
+    def _who():
+        return f"user_id={getattr(current_user, 'id', None)} ip={request.remote_addr} path={request.path}"
+
     @app.errorhandler(403)
     def forbidden(error):
+        audit.warning("ACCESS_DENIED %s", _who())
         return render_template("errors/403.html"), 403
 
     @app.errorhandler(404)
@@ -226,4 +234,5 @@ def _register_error_handlers(app):
 
     @app.errorhandler(CSRFError)
     def csrf_error(error):
+        audit.warning("CSRF_REJECTED %s", _who())
         return render_template("errors/400.html", reason=error.description), 400

@@ -134,3 +134,14 @@ def test_users_rows_link_the_answer_count_to_the_download(admin_client, make_use
     page = admin_client.get("/admin/users").data
     assert f'href="/admin/download-answers/{a.id}"'.encode() in page
     assert b"<strong>1</strong> answer <i" in page  # the count itself is the download link
+
+
+def test_refused_pages_and_account_changes_are_audited(caplog, admin_client, user_client):
+    import logging
+
+    caplog.set_level(logging.INFO, logger="audit")
+    assert user_client.get("/admin/users").status_code == 403
+    admin_client.post("/admin/create-user", data={"full_name": "Dee", "email": "dee@example.com", "password": "password123"})
+    events = [r.getMessage() for r in caplog.records if r.name == "audit"]
+    assert any(e.startswith("ACCESS_DENIED") and "path=/admin/users" in e for e in events)
+    assert any(e.startswith("USER_CREATED") for e in events)

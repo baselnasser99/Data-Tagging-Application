@@ -1,3 +1,5 @@
+import logging
+
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort
 from .models import Project, Question, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer
 from .extns import db
@@ -138,6 +140,7 @@ def change_password():
         # Update password
         user.password_hash = generate_password_hash(new_password)
         db.session.commit()
+        logging.getLogger("audit").info("PASSWORD_CHANGED user_id=%s", user.id)
         flash('Password changed successfully', 'success')
         return redirect(url_for('annotation.profile'))
 

@@ -10,7 +10,7 @@ from flask import Blueprint, request, redirect, url_for, flash, render_template,
 from . import distribution
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
-from .models import AnnotationTask, Project, TaskAssignment, User, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, QuestionAnswer
+from .models import AnnotationTask, Project, Question, TaskAssignment, User, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, QuestionAnswer
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
 
 groups = Blueprint("groups", __name__, url_prefix="/admin")
@@ -166,6 +166,17 @@ def group_progress(group, project_ids):
         1 for q in survey if QuestionAnswer.query.filter_by(
             user_id=q.user_id, question_id=q.question_id, task_assignment_id=None).first())
     return done, total
+
+
+def project_progress(project):
+    """(done, total) for a whole project: finished tasks, or answered survey questions."""
+    if project.is_annotation_project:
+        tasks = AnnotationTask.query.filter_by(project_id=project.id)
+        return tasks.filter_by(is_completed=True).count(), tasks.count()
+    assigned = UserQuestionAssignment.query.join(Question).filter(Question.project_id == project.id).all()
+    done = sum(1 for q in assigned if QuestionAnswer.query.filter_by(
+        user_id=q.user_id, question_id=q.question_id, task_assignment_id=None).first())
+    return done, len(assigned)
 
 
 def assign_questions_to_new_group_member(user, group):

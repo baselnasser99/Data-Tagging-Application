@@ -1,0 +1,32 @@
+{#
+  Status line and progress bar at the top of a project card.
+  done, total: from project_progress() in application/groups.py
+  (finished tasks for projects, answered questions for surveys).
+
+  Usage:
+    {% from "includes/project_status.html" import project_status %}
+    {{ project_status(project, *progress[project.id]) }}
+#}
+{% macro project_status(project, done, total) -%}
+  {%- if total and done == total -%}{% set state, label = "done", "Done" %}
+  {%- elif done -%}{% set state, label = "active", "In progress" %}
+  {%- elif total -%}{% set state, label = "waiting", "Not started" %}
+  {%- elif project.is_annotation_project and not project.images -%}{% set state, label = "setup", "Needs items" %}
+  {%- elif not project.questions -%}{% set state, label = "setup", "Needs questions" %}
+  {%- elif project.is_annotation_project -%}{% set state, label = "setup", "Ready to hand out" %}
+  {%- else -%}{% set state, label = "setup", "No group yet" %}
+  {%- endif %}
+  <div class="project-status state-{{ state }}">
+    <div class="progress-label">
+      <span class="badge{% if state == 'done' %} bg-green{% elif state == 'active' %} bg-yellow{% endif %}">{{ label }}</span>
+      {% if total %}<span class="text-muted">{{ done }} of {{ plural(total, "task") ~ " done" if project.is_annotation_project else plural(total, "question") ~ " answered" }}</span>{% endif %}
+    </div>
+    {% if total %}
+    {% set pct = (done / total * 100)|round(1) %}
+    <div class="progress" role="progressbar" aria-label="{{ project.name }} progress"
+         aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar" style="width: {{ pct }}%"></div>
+    </div>
+    {% endif %}
+  </div>
+{%- endmacro %}

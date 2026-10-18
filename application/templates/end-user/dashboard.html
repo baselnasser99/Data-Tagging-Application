@@ -50,5 +50,14 @@
       <span class="figure-label">Groups</span>
     </div>
   </div>
+
+  {% if group_projects %}
+  <h2 class="section-title">Your projects</h2>
+  <div class="row task-grid">
+    {% for gp in group_projects %}
+    {% include "includes/member_project_card.html" %}
+    {% endfor %}
+  </div>
+  {% endif %}
 </section>
 {% endblock %}

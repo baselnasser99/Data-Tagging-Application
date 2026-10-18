@@ -8,43 +8,7 @@
     {% if group_projects %}
     <div class="row task-grid">
       {% for gp in group_projects %}
-      <div class="col-lg-4 col-md-6 col-xs-12">
-        <div class="box">
-          <div class="box-header with-border">
-            <h3 class="box-title">{{ gp.project.name }}</h3>
-            <p class="text-muted" style="margin: 4px 0 0;">
-              {% if gp.project.is_annotation_project %}
-                {{ gp.task_total }} {{ 'task' if gp.task_total == 1 else 'tasks' }}, {{ gp.task_left }} left
-              {% else %}
-                Survey · {{ plural(gp.project.total_questions, "question") }}
-              {% endif %}
-              · {{ gp.group_name }}
-            </p>
-          </div>
-          <div class="box-body">
-            {% if gp.project.desc %}
-            <p class="project-desc">{{ gp.project.desc }}</p>
-            {% else %}
-            <p class="text-muted">No description.</p>
-            {% endif %}
-          </div>
-          <div class="box-footer">
-            {% if gp.project.is_annotation_project %}
-              {% if not gp.task_total %}
-              <span class="text-muted">No tasks for you in this project yet.</span>
-              {% else %}
-              <a href="{{ url_for('annotation.annotation_tasks', project_id=gp.project.id) }}" class="btn {{ 'btn-default' if gp.task_left == 0 else 'btn-primary' }} btn-sm">
-                {% if gp.task_left == 0 %}Review tasks{% elif gp.task_left < gp.task_total %}Continue tasks{% else %}Start tasks{% endif %}
-              </a>
-              {% endif %}
-            {% elif gp.project.answered %}
-              <span class="text-muted"><i class="fa fa-check text-green" aria-hidden="true"></i> Completed</span>
-            {% else %}
-              <a href="{{ url_for('annotation.view_group_project', group_project_id=gp.group_project_id) }}" class="btn btn-primary btn-sm">Answer the survey</a>
-            {% endif %}
-          </div>
-        </div>
-      </div>
+      {% include "includes/member_project_card.html" %}
       {% endfor %}
     </div>
     {% else %}

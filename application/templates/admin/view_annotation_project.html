@@ -91,7 +91,7 @@
             <td class="num">{{ row.completed }}</td>
             <td class="num">{{ row.open }}</td>
             <td>
-              <div class="progress" role="progressbar" aria-valuenow="{{ pct|round|int }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ row.user.full_name }} progress">
+              <div class="progress{% if row.total and row.completed == row.total %} is-done{% endif %}" role="progressbar" aria-valuenow="{{ pct|round|int }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ row.user.full_name }} progress">
                 <div class="progress-bar" style="width: {{ pct }}%"></div>
               </div>
             </td>

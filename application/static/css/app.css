@@ -30,6 +30,15 @@
   --warning: #8A5300;
   --warning-bg: #FDF3E1;
   --info-bg: #E8EEF6;
+  /* Accents: one calm blue for progress and charts, plus soft tints that tell the kinds of
+     action apart. Colour always sits next to a word, never carries meaning alone. */
+  --accent: #3366CC;
+  --accent-soft: #EBF1FB;
+  --tint-blue: #EBF1FB;   --tint-blue-ink: #3366CC;
+  --tint-green: #E7F4EC;  --tint-green-ink: #1F7A4D;
+  --tint-amber: #FDF3E1;  --tint-amber-ink: #8A5300;
+  --tint-violet: #F1ECFA; --tint-violet-ink: #6B47B8;
+  --tint-teal: #E4F3F3;   --tint-teal-ink: #1C6E73;
   --radius-sm: 4px;
   --radius: 6px;
 }
@@ -425,7 +434,9 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .badge.bg-blue, .badge.bg-aqua, .label-primary, .label-info { background: var(--info-bg) !important; color: var(--ink) !important; }
 
 .progress { background: var(--canvas); border-radius: 3px; box-shadow: none; height: 8px; }
-.progress-bar, .progress-bar[class*="bg-"], .progress-bar-success, .progress-bar-primary { background: var(--ink) !important; box-shadow: none; }
+.progress-bar, .progress-bar[class*="bg-"], .progress-bar-success, .progress-bar-primary { background: var(--accent) !important; box-shadow: none; }
+/* Finished work turns green: a whole project, a person's share, your own tasks */
+.state-done .progress-bar, .progress.is-done .progress-bar { background: var(--success) !important; }
 
 /* colored text helpers used for icons */
 .text-blue, .text-aqua, .text-light-blue { color: var(--ink) !important; }
@@ -545,7 +556,7 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 
 /* Action tiles: big, easy targets that fill the row instead of a strip of small buttons */
 .action-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-bottom: 20px; }
-.action-tile { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; background: var(--surface);
+.action-tile { text-decoration: none; display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; background: var(--surface);
   border-radius: var(--radius); box-shadow: var(--shadow-card, none); border: 1px solid var(--line); color: var(--ink); }
 .action-tile:hover, .action-tile:focus { color: var(--ink); text-decoration: none; border-color: var(--line-strong); }
 .action-tile:focus-visible { outline: 3px solid var(--marker); outline-offset: 2px; }
@@ -554,9 +565,14 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .action-tile-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .action-tile-text > strong { font-size: 15px; }
 .action-tile-text > span { color: var(--muted); font-size: 13px; line-height: 1.35; }
+.tone-blue .action-tile-icon { background: var(--tint-blue); color: var(--tint-blue-ink); }
+.tone-green .action-tile-icon { background: var(--tint-green); color: var(--tint-green-ink); }
+.tone-amber .action-tile-icon { background: var(--tint-amber); color: var(--tint-amber-ink); }
+.tone-violet .action-tile-icon { background: var(--tint-violet); color: var(--tint-violet-ink); }
+.tone-teal .action-tile-icon { background: var(--tint-teal); color: var(--tint-teal-ink); }
 .action-tile-primary { background: var(--ink); border-color: var(--ink); color: #fff; }
 .action-tile-primary:hover, .action-tile-primary:focus { color: #fff; border-color: var(--ink); }
-.action-tile-primary .action-tile-icon { background: rgba(255, 255, 255, 0.14); }
+.action-tile-primary .action-tile-icon { background: rgba(255, 255, 255, 0.14); color: #fff; }
 .action-tile-primary .action-tile-text > span { color: rgba(255, 255, 255, 0.75); }
 @media (hover: hover) and (pointer: fine) { .action-tile { transition: transform 160ms var(--ease-out), box-shadow 150ms ease; }
   .action-tile:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(28, 39, 51, 0.10); } }

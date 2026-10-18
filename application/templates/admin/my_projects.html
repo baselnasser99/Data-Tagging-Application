@@ -31,8 +31,8 @@
 
 	<div class="action-tiles">
 		{{ tile(url_for('annotation_admin.create_annotation_project'), "picture-o", "New project", "Images or audio, shared across a team", primary=True) }}
-		{{ tile(url_for('admin.create_project'), "list-ul", "New survey", "Everyone answers every question") }}
-		{{ tile(url_for('groups.assign_project_to_group'), "share", "Assign to a group", "Give one of your projects to a group") }}
+		{{ tile(url_for('admin.create_project'), "list-ul", "New survey", "Everyone answers every question", tone="violet") }}
+		{{ tile(url_for('groups.assign_project_to_group'), "share", "Assign to a group", "Give one of your projects to a group", tone="amber") }}
 	</div>
 
 	{% with empty_groups_text="No groups work on your projects yet." %}{% include "includes/activity_row.html" %}{% endwith %}

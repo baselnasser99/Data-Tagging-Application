@@ -1,0 +1,47 @@
+{#
+  One of a member's projects, with their own progress: the same card look as the
+  admin's project cards (status, bar, coloured edge). Needs `gp` from
+  _my_group_projects() in application/annotation.py.
+#}
+{% set p = gp.project %}
+{% if gp.total and gp.done == gp.total %}{% set state, label = "done", "Done" %}
+{% elif gp.done %}{% set state, label = "active", "In progress" %}
+{% elif gp.total %}{% set state, label = "waiting", "Not started" %}
+{% else %}{% set state, label = "setup", "No tasks yet" %}{% endif %}
+<div class="col-lg-4 col-md-6 col-xs-12">
+  <div class="box">
+    <div class="box-header with-border">
+      <h3 class="box-title">{{ p.name }}</h3>
+      <p class="text-muted" style="margin: 4px 0 0;">{{ "Project" if p.is_annotation_project else "Survey" }} · {{ gp.group_name }}</p>
+    </div>
+    <div class="box-body">
+      <div class="project-status state-{{ state }}">
+        <div class="progress-label">
+          <span class="badge{% if state == 'done' %} bg-green{% elif state == 'active' %} bg-yellow{% endif %}">{{ label }}</span>
+          {% if gp.total %}<span class="text-muted">{{ gp.done }} of {{ plural(gp.total, "task" if p.is_annotation_project else "question") }} done</span>{% endif %}
+        </div>
+        {% if gp.total %}
+        {% set pct = (gp.done / gp.total * 100)|round(1) %}
+        <div class="progress" role="progressbar" aria-label="{{ p.name }}: your progress"
+             aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar" style="width: {{ pct }}%"></div>
+        </div>
+        {% endif %}
+      </div>
+      {% if p.desc %}<p class="project-desc">{{ p.desc }}</p>{% endif %}
+    </div>
+    <div class="box-footer">
+      {% if not gp.total %}
+        <span class="text-muted">No tasks for you in this project yet.</span>
+      {% elif p.is_annotation_project %}
+        <a href="{{ url_for('annotation.annotation_tasks', project_id=p.id) }}" class="btn {{ 'btn-default' if gp.done == gp.total else 'btn-primary' }} btn-sm">
+          {% if gp.done == gp.total %}Review tasks{% elif gp.done %}Continue tasks{% else %}Start tasks{% endif %}
+        </a>
+      {% elif gp.done == gp.total %}
+        <span class="text-muted"><i class="fa fa-check text-green" aria-hidden="true"></i> Completed</span>
+      {% else %}
+        <a href="{{ url_for('annotation.view_group_project', group_project_id=gp.group_project_id) }}" class="btn btn-primary btn-sm">Answer the survey</a>
+      {% endif %}
+    </div>
+  </div>
+</div>

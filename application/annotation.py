@@ -46,6 +46,7 @@ def dashboard():
                 available_projects = group_projects_count
 
             return render_template('end-user/dashboard.html',
+                                   group_projects=_my_group_projects(user_id),
                                    assigned_projects=group_projects_count,
                                    group_memberships=group_memberships,
                                    solved_questions=total_solved,
@@ -65,62 +66,37 @@ def dashboard():
 @annotation.route("/my-projects")
 @user_required
 def my_projects():
-    user_id = session['id']
+    return render_template('end-user/my_projects.html', group_projects=_my_group_projects(session['id']))
+
+
+def _my_group_projects(user_id):
+    """The user's projects through their groups, each with their own progress (done, total)."""
     user = db.session.get(User, user_id)
-
-    if user:
-        # Get group-assigned projects (only assignment method now)
-        group_projects = []
-        for membership in user.group_memberships:
-            for group_project in membership.group.assigned_projects:
-                # Create a project-like object for group assignments
-                project_info = {
-                    'project': group_project.project,
-                    'group_name': membership.group.name,
-                    'is_group_project': True,
-                    'group_project_id': f"{membership.group.id}-{group_project.project.id}"
-                }
-                group_projects.append(project_info)
-
-        # Process group projects
-        for gp in group_projects:
-            # Get questions assigned to this user for this group project
-            assigned_questions = UserQuestionAssignment.query.filter_by(
-                user_id=user_id,
-                group_project_id=str(gp['group_project_id'])  # Ensure it's a string
-            ).all()
-
-            gp['project'].total_questions = len(assigned_questions)
-            gp['project'].is_group_project = True
-            gp['project'].group_name = gp['group_name']
-
-            # Check how many of assigned questions are answered
-            answered_count = 0
-            for assignment in assigned_questions:
-                fnd = QuestionAnswer.query.filter_by(
-                    user_id=user_id, question_id=assignment.question_id).first()
-                if fnd:
-                    answered_count += 1
-
-            if answered_count == len(assigned_questions) and len(assigned_questions) > 0:
-                gp['project'].answered = True
-            else:
-                gp['project'].answered = False
-
-            # For annotation projects, count this user's tasks and how many are left
-            if gp['project'].is_annotation_project:
+    group_projects = []
+    for membership in user.group_memberships:
+        for group_project in membership.group.assigned_projects:
+            project = group_project.project
+            gp = {
+                'project': project,
+                'group_name': membership.group.name,
+                'group_project_id': f"{membership.group.id}-{project.id}",
+            }
+            if project.is_annotation_project:
                 mine = TaskAssignment.query.join(AnnotationTask).filter(
-                    TaskAssignment.user_id == user_id,
-                    AnnotationTask.project_id == gp['project'].id,
-                )
-                gp['task_total'] = mine.count()
+                    TaskAssignment.user_id == user_id, AnnotationTask.project_id == project.id)
+                gp['task_total'] = gp['total'] = mine.count()
                 gp['task_left'] = mine.filter(TaskAssignment.is_completed == False).count()
-
-        return render_template('end-user/my_projects.html',
-                               group_projects=group_projects)
-    else:
-        flash('User not found', 'danger')
-        return redirect(url_for('annotation.my_projects'))
+                gp['done'] = gp['total'] - gp['task_left']
+            else:
+                assigned = UserQuestionAssignment.query.filter_by(
+                    user_id=user_id, group_project_id=gp['group_project_id']).all()
+                gp['total'] = len(assigned)
+                gp['done'] = sum(1 for a in assigned if QuestionAnswer.query.filter_by(
+                    user_id=user_id, question_id=a.question_id).first())
+                project.total_questions = gp['total']
+                project.answered = gp['total'] > 0 and gp['done'] == gp['total']
+            group_projects.append(gp)
+    return group_projects
 
 
 @annotation.route("/profile")

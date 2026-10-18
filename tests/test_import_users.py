@@ -60,3 +60,30 @@ def test_csv_import_rejects_non_csv(admin_client):
     data = {"csv_file": (io.BytesIO(b"x"), "users.txt")}
     resp = admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data", follow_redirects=True)
     assert b"Invalid file type" in resp.data
+
+
+def test_csv_import_into_a_group_hands_out_the_groups_work(admin_client, db):
+    from application.models import (AnnotationTask, GroupProject, Project, ProjectImage, Question,
+                                    TaskAssignment)
+
+    group = UserGroup(name="Class")
+    project = Project(name="Photos", desc="d", is_annotation_project=True, answers_per_task=1)
+    db.session.add_all([group, project])
+    db.session.flush()
+    question = Question(question="What?", project_id=project.id)
+    images = [ProjectImage(project_id=project.id, filename=f"{i}.png", original_filename=f"{i}.png",
+                           file_path=f"/x/{i}.png") for i in range(4)]
+    db.session.add_all([question, *images, GroupProject(group_id=group.id, project_id=project.id)])
+    db.session.flush()
+    db.session.add_all([AnnotationTask(project_id=project.id, image_id=img.id, question_id=question.id,
+                                       required_answers=1) for img in images])
+    db.session.commit()
+
+    data = {
+        "csv_file": _csv("full_name,email,password\nAda,ada@example.com,secret123\nAlan,alan@example.com,secret456\n"),
+        "user_group_id": str(group.id),
+    }
+    admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data")
+    for email in ("ada@example.com", "alan@example.com"):
+        user = User.query.filter_by(email=email).one()
+        assert TaskAssignment.query.filter_by(user_id=user.id).count() == 2  # 4 tasks shared by 2 people

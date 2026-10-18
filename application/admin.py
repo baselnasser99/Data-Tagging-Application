@@ -278,14 +278,18 @@ def _add_imported_to_group(users, group_id):
     if not group:
         flash("Selected user group not found for assignment.", 'warning')
         return
-    added = 0
+    added, work = 0, None
     for user in users:
         if not UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).first():
             db.session.add(UserGroupMembership(user_id=user.id, group_id=group.id))
+            db.session.commit()
+            # Same as adding someone on the group page: they get their share of the group's work.
+            result = assign_questions_to_new_group_member(user, group)
+            work = result if work is None else work.merge(result)
             added += 1
-    db.session.commit()
     if added:
         flash(f"{added} users assigned to group '{group.name}'.", 'success')
+        flash_distribution(work)
     else:
         flash(f"All users from CSV are already in group '{group.name}'.", 'info')
 

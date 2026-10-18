@@ -87,7 +87,7 @@ def manage_group(group_id):
 
     current_member_ids = [m.user_id for m in group.members]
     available_users = User.query.filter(
-        User.role == 'end-user',
+        User.role == 'end-user', User.active.is_(True),  # removed people can't be given work
         ~User.id.in_(current_member_ids)
     ).all()
 
@@ -147,7 +147,7 @@ def manage_group_for_project(project_id, group_id):
 
     current_member_ids = [m.user_id for m in group.members]
     available_users = User.query.filter(
-        User.role == 'end-user',
+        User.role == 'end-user', User.active.is_(True),  # removed people can't be given work
         ~User.id.in_(current_member_ids)
     ).all()
 

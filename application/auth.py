@@ -51,7 +51,7 @@ def login():
         password = request.form.get("password") or ""
         user = User.query.filter_by(email=email).first()
 
-        if not user or not user.check_password(password):
+        if not user or not user.active or not user.check_password(password):
             audit.info("LOGIN_FAILED email=%s ip=%s", email, request.remote_addr)
             flash("Email address or password is incorrect!", "danger")
             return redirect(url_for("auth.login"))

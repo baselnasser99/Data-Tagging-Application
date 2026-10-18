@@ -105,3 +105,11 @@ def test_custom_403_page(user_client):
 def test_flash_messages_are_shown_once(admin_client):
     resp = admin_client.post("/admin/create-group", data={"group_name": "Once"}, follow_redirects=True)
     assert resp.data.count(b"Group created successfully") == 1
+
+
+def test_every_page_sends_security_headers(client):
+    resp = client.get("/login")
+    assert resp.headers["X-Content-Type-Options"] == "nosniff"
+    assert resp.headers["X-Frame-Options"] == "DENY"
+    assert resp.headers["Referrer-Policy"] == "same-origin"
+    assert "frame-ancestors 'none'" in resp.headers["Content-Security-Policy"]

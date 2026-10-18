@@ -122,7 +122,7 @@ def _ensure_admin(app):
     elif not app.testing:
         app.logger.warning(
             "No administrator account exists. Set ADMIN_EMAIL and ADMIN_PASSWORD "
-            "and restart, or run: python admin_manager.py"
+            "and restart, or run: python scripts/admin_manager.py"
         )
 
 

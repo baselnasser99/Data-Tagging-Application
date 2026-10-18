@@ -123,3 +123,19 @@ def test_annotator_is_not_sent_to_an_admin_page_after_login(client, end_user):
     """A leftover ?next=/admin/... link must not end in 'Access denied'."""
     resp = client.post("/login?next=/admin/dashboard", data={"email": end_user.email, "password": "password123"})
     assert resp.headers["Location"].endswith("/user/dashboard")
+
+
+def test_side_panel_shows_a_summary_and_the_account_for_each_role(app, user_client, admin_client, make_project_admin, db):
+    from application.models import Project
+
+    member = user_client.get("/user/dashboard").data
+    assert b"Your progress" in member and b"Sign out" in member and b"Member" in member
+    admin = admin_client.get("/admin/dashboard").data
+    assert b"This week" in admin and b"Answers in 7 days" in admin
+
+    project = Project(name="P", desc="d")
+    db.session.add(project)
+    db.session.commit()
+    client = app.test_client()
+    login(client, make_project_admin(project).email)
+    assert b"Your projects this week" in client.get("/admin/my-projects").data

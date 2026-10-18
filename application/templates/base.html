@@ -99,6 +99,39 @@
         {% endif %}
       </ul>
       </nav>
+
+      {# The space under the menu: a few numbers about your work, and your account. #}
+      {% set summary = sidebar_summary(current_user) %}
+      <div class="sidebar-foot">
+        <section class="sidebar-card" aria-label="{{ summary.title }}">
+          <h2>{{ summary.title }}</h2>
+          <dl>
+            {% for label, value in summary.lines %}
+            <div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>
+            {% endfor %}
+          </dl>
+          {% if summary.total %}
+          {% set pct = (summary.done / summary.total * 100)|round(1) %}
+          <div class="progress{% if summary.done == summary.total %} is-done{% endif %}" role="progressbar" aria-label="Your tasks done"
+               aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" style="width: {{ pct }}%"></div>
+          </div>
+          {% if summary.done < summary.total %}
+          <a class="btn btn-primary btn-sm btn-block" href="{{ url_for('annotation.annotation_tasks') }}" style="margin-top: 12px;">Continue labelling</a>
+          {% endif %}
+          {% endif %}
+        </section>
+        <div class="sidebar-account">
+          <span class="avatar" aria-hidden="true">{{ current_user.full_name[:1] | upper }}</span>
+          <span class="sidebar-account-who">
+            <strong>{{ current_user.full_name }}</strong>
+            <span>{{ {"admin": "Admin", "project-admin": "Manager"}.get(current_user.role, "Member") }}</span>
+          </span>
+          <a href="{{ url_for('annotation.profile') if current_user.role == 'end-user' else url_for('admin.admin_profile') }}"
+             class="sidebar-icon-link" title="Profile settings" aria-label="Profile settings"><i class="fa fa-cog" aria-hidden="true"></i></a>
+          <a href="{{ url_for('auth.logout') }}" class="sidebar-icon-link" title="Sign out" aria-label="Sign out"><i class="fa fa-sign-out" aria-hidden="true"></i></a>
+        </div>
+      </div>
     </aside>
     {% endif %}
 

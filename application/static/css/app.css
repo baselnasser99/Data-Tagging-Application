@@ -169,6 +169,26 @@ a:hover, a:focus { color: var(--ink-soft); }
 .sidebar-menu > li > a > span { flex: 1; text-align: left; }
 .sidebar-menu > li > a:hover { background: var(--canvas); color: var(--ink); }
 
+/* The panel runs the full height of the window, so its bottom can hold a summary and your account */
+.main-sidebar { position: fixed; top: 0; bottom: 0; display: flex; flex-direction: column; overflow-y: auto; }
+.main-sidebar > nav { flex: none; }
+.sidebar-foot { margin-top: auto; padding: 16px 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+.sidebar-card { background: var(--canvas); border-radius: var(--radius); padding: 14px; }
+.sidebar-card > h2 { font-size: 13px; font-weight: 700; color: var(--muted); margin: 0 0 8px; }
+.sidebar-card dl { margin: 0; display: grid; gap: 4px; }
+.sidebar-card dl > div { display: flex; justify-content: space-between; gap: 8px; }
+.sidebar-card dt { font-weight: 400; color: var(--muted); }
+.sidebar-card dd { margin: 0; font-weight: 700; }
+.sidebar-card .progress { margin: 10px 0 0; background: var(--surface); }
+.sidebar-account { display: flex; align-items: center; gap: 10px; padding: 10px 4px 0; border-top: 1px solid var(--line); }
+.sidebar-account-who { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.sidebar-account-who > strong, .sidebar-account-who > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-account-who > span { color: var(--muted); font-size: 13px; }
+.sidebar-icon-link { width: 32px; height: 32px; border-radius: var(--radius-sm); display: inline-flex; align-items: center;
+  justify-content: center; color: var(--muted); text-decoration: none; }
+.sidebar-icon-link:hover, .sidebar-icon-link:focus { background: var(--canvas); color: var(--ink); }
+.sidebar-collapse .sidebar-foot { display: none; }  /* the narrow, icons-only panel has no room for it */
+
 /* Current page: highlighted like a marked passage. */
 .sidebar-menu > li.active > a,
 .sidebar-menu > li.active > a:hover {

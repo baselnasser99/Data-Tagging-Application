@@ -113,6 +113,7 @@ rebalance(project):
 
 - Passwords are hashed (Werkzeug scrypt). There are no default accounts: the first admin comes from `.env`, and every secret lives there.
 - Sessions use Flask-Login with HTTP-only, SameSite cookies and an idle timeout.
+- After 5 wrong passwords in a row, an account pauses for 15 minutes, and even the right password is refused during the pause. The count lives on the user row, so it holds across Gunicorn workers and restarts.
 - Every form carries a CSRF token (Flask-WTF). Pages are sent with `Cache-Control: no-store`.
 - Every route checks the role from the database. Managers reach only their own projects, and only groups no other manager shares. Members reach only their own assignments.
 - All user-written text is escaped, including text placed inside confirm dialogs.

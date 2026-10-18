@@ -16,7 +16,7 @@ from .auth import MIN_PASSWORD_LENGTH
 from .jinja_utils import plural
 from . import distribution
 from .feedback import flash_distribution, warn_idle_members
-from .groups import assign_questions_to_new_group_member, group_progress
+from .groups import assign_questions_to_new_group_member, group_progress, project_progress
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
@@ -432,8 +432,8 @@ def create_project():
 @admin_required
 def view_projects():
     projects = Project.query.all()
-
-    return render_template("admin/view_projects.html", projects=projects)
+    progress = {p.id: project_progress(p) for p in projects}
+    return render_template("admin/view_projects.html", projects=projects, progress=progress)
 
 
 @admin.route("/delete-project/<int:project_id>", methods=["POST"])

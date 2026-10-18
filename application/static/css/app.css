@@ -558,3 +558,11 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .task-questions { margin: 12px 0 0; }
 .task-questions > li { padding: 3px 0; font-weight: 600; overflow-wrap: anywhere; }
 .task-questions > li.text-muted { font-weight: 400; }
+
+/* Project cards: status line and progress bar on top, and a coloured edge so the
+   state shows at a glance (the label says it in words too, never colour alone) */
+.project-status { margin-bottom: 12px; }
+.project-status .progress { margin: 6px 0 0; }
+.task-grid .box:has(.project-status) { border-left: 4px solid var(--line-strong); }
+.task-grid .box:has(.project-status.state-active) { border-left-color: var(--marker); }
+.task-grid .box:has(.project-status.state-done) { border-left-color: var(--success); }

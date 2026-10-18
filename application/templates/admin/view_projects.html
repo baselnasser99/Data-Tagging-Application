@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "includes/project_status.html" import project_status %}
 
 {% block content %}
 <!-- Content Header (Page header) -->
@@ -36,6 +37,7 @@
 					</p>
 				</div>
 				<div class="box-body">
+					{{ project_status(project, *progress[project.id]) }}
 					{% if project.desc %}
 					<p class="project-desc">{{ project.desc }}</p>
 					{% else %}

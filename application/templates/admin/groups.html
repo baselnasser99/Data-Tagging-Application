@@ -1,38 +1,60 @@
 {% extends 'base.html' %}
 
+{% block title %}Groups – {{ app_name }}{% endblock %}
+
 {% block content %}
   <section class="content-header">
     <h1>Groups</h1>
   </section>
 
   <section class="content">
-    <p><a href="{{ url_for('groups.create_group') }}" class="btn btn-primary"><i class="fa fa-plus"></i> New group</a></p>
+    <div class="people-toolbar">
+      {% if groups %}
+      <div class="people-search">
+        <i class="fa fa-search" aria-hidden="true"></i>
+        <label class="sr-only" for="group-search">Search groups</label>
+        <input type="search" id="group-search" class="form-control" data-search-list="group-list"
+               placeholder="Search by group, member or project" autocomplete="off">
+      </div>
+      {% endif %}
+      <a href="{{ url_for('groups.create_group') }}" class="btn btn-primary"><i class="fa fa-plus" aria-hidden="true"></i> New group</a>
+    </div>
 
     {% if groups %}
-    <div class="row task-grid">
+    {% set tones = ['blue', 'green', 'amber', 'violet', 'teal'] %}
+    <div class="row task-grid" id="group-list">
       {% for group in groups %}
-      <div class="col-lg-4 col-md-6 col-xs-12">
-        <div class="box">
-          <div class="box-header with-border">
-            <h3 class="box-title">{{ group.name }}</h3>
-            <p class="text-muted" style="margin: 4px 0 0;">
-              {{ plural(group.members | length, "member") }} · {{ plural(group.assigned_projects | length, "project") }}
-            </p>
+      {% set members = group.members | map(attribute='user') | select | list %}
+      {% set projects = group.assigned_projects | map(attribute='project') | select | list %}
+      <div class="col-lg-4 col-md-6 col-xs-12"
+           data-search="{{ (group.name ~ ' ' ~ (members | map(attribute='full_name') | join(' ')) ~ ' ' ~ (members | map(attribute='email') | join(' ')) ~ ' ' ~ (projects | map(attribute='name') | join(' '))) | lower }}">
+        <div class="box group-card tone-{{ tones[group.id % 5] }}">
+          <div class="box-header with-border group-card-head">
+            <span class="group-badge" aria-hidden="true">{{ group.name[:1] | upper }}</span>
+            <div>
+              <h3 class="box-title">{{ group.name }}</h3>
+              <p class="text-muted">{{ plural(members | length, "member") }} · {{ plural(projects | length, "project") }}</p>
+            </div>
           </div>
           <div class="box-body">
-            {% if group.description %}
-            <p class="project-desc">{{ group.description }}</p>
-            {% else %}
-            <p class="text-muted">No description.</p>
-            {% endif %}
-            {% if group.assigned_projects %}
-            <p class="text-muted" style="margin: 8px 0 0;">Works on: {{ group.assigned_projects | map(attribute="project.name") | join(", ") }}</p>
-            {% endif %}
+            {% if group.description %}<p class="project-desc">{{ group.description }}</p>{% endif %}
+            <div class="group-members" aria-label="Members">
+              {% for user in members[:6] %}
+              <span class="avatar" title="{{ user.full_name }}">{{ user.full_name[:1] | upper }}</span>
+              {% else %}
+              <span class="chip chip-warn">No members yet</span>
+              {% endfor %}
+              {% if members | length > 6 %}<span class="text-muted">+{{ members | length - 6 }}</span>{% endif %}
+            </div>
+            <div class="person-groups" aria-label="Projects">
+              {% for project in projects %}<span class="chip">{{ project.name }}</span>{% else %}<span class="chip chip-muted">No projects</span>{% endfor %}
+            </div>
           </div>
           <div class="box-footer project-actions">
             <a href="{{ url_for('groups.manage_group', group_id=group.id) }}" class="btn btn-primary btn-sm">Manage group</a>
             <form method="POST" action="{{ url_for('groups.delete_group', group_id=group.id) }}" class="project-delete"
-                  onsubmit="return confirm('Delete this group? Its unfinished tasks go back to other people; finished answers are kept.')">
+                  data-confirm="Delete {{ group.name }}? Its unfinished tasks go back to other people; finished answers are kept."
+                  onsubmit="return confirm(this.dataset.confirm)">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
@@ -41,6 +63,7 @@
       </div>
       {% endfor %}
     </div>
+    <p class="text-muted list-none" id="group-list-none" hidden>No group matches.</p>
     {% else %}
     <div class="box"><div class="empty-state">
       <strong>No groups yet</strong>

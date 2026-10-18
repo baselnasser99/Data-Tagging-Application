@@ -198,3 +198,20 @@ def test_manager_cannot_change_members_of_a_group_shared_with_other_projects(
     assert client.post(url, data={"action": "add_user", "user_id": newcomer.id}).status_code == 403
     assert client.post(url, data={"action": "remove_user", "user_id": members[0].id}).status_code == 403
     assert UserGroupMembership.query.filter_by(group_id=group.id).count() == 2  # unchanged
+
+
+def test_groups_page_has_search_and_shows_members_and_projects(admin_client, db, make_user):
+    from application.models import GroupProject, Project, UserGroup, UserGroupMembership
+    group, empty = UserGroup(name="Radiology"), UserGroup(name="Night shift")
+    project = Project(name="Chest scans", desc="d")
+    db.session.add_all([group, empty, project])
+    db.session.flush()
+    member = make_user(name="Zara Quinn")
+    db.session.add_all([UserGroupMembership(user_id=member.id, group_id=group.id),
+                        GroupProject(group_id=group.id, project_id=project.id)])
+    db.session.commit()
+    page = admin_client.get("/admin/groups").data
+    assert b'data-search-list="group-list"' in page
+    assert b'data-search="radiology zara quinn' in page and b"chest scans" in page  # searchable by member and project
+    assert b'title="Zara Quinn"' in page and b"No members yet" in page
+    assert b"confirm('" not in page  # the group name goes through a data attribute

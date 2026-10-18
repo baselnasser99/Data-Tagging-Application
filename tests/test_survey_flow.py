@@ -73,6 +73,9 @@ def test_assign_survey_to_group_and_answer(app, db, admin_client, end_user):
     client.post(f"/user/group-project/{gp_id}", data={f"answer_{q1.id}": "Rain"})
     assert QuestionAnswer.query.filter_by(user_id=end_user.id, question_id=q1.id).one().answer == "Rain"
 
+    # A tampered field name is ignored instead of crashing the page.
+    assert client.post(f"/user/group-project/{gp_id}", data={"answer_x_1": "Hack"}).status_code < 500
+
     resp = admin_client.get(f"/admin/download-files/{project.id}")
     assert b"Rain" in resp.data and b"Blue" in resp.data
     assert b"localhost:5000" not in resp.data

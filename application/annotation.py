@@ -164,7 +164,9 @@ def view_group_project(group_project_id):
     if request.method == 'POST':
         for key, value in request.form.items():
             if key.startswith('answer_'):
-                _, question_id = key.split('_')
+                question_id = key.removeprefix('answer_')
+                if not question_id.isdigit():
+                    continue  # a tampered field name; ignore it instead of crashing
                 question_id = int(question_id)
 
                 # Verify this question is assigned to the user

@@ -518,8 +518,6 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 /* Project cards: full description, buttons wrap, Delete set apart */
 .project-desc { white-space: pre-line; overflow-wrap: anywhere; margin: 0; }
 .project-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-/* Ends the first row of card buttons, so every card puts the same buttons on the same row */
-.project-actions-break { flex-basis: 100%; height: 0; }
 .project-actions .project-delete { margin: 0 0 0 auto; }
 
 /* Progress: numbers sit beside the label, never inside the bar */
@@ -558,11 +556,6 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .item-strip > li { width: 132px; display: flex; flex-direction: column; gap: 6px; }
 .item-strip > li > .media-audio-thumb { height: 96px; }
 .item-strip > li > span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Questions page: a numbered list, number in a small circle beside each question */
-.question-cards > li { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; }
-.question-cards > li:first-child { padding-top: 0; }
-.question-number { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--canvas);
-  display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
 /* Task cards: long file names end with an ellipsis; the question reads as text, not as a control */
 .task-card-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 96px); }
 .task-questions { margin: 12px 0 0; }

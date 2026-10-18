@@ -546,17 +546,6 @@ def edit_project(project_id):
     return render_template("admin/edit_project.html", project=project)
 
 
-@admin.route("/view-questions/<int:project_id>")
-@project_admin_required
-def view_questions(project_id):
-    project = db.get_or_404(Project, project_id)
-    # This route is now for both System Admins and Project Admins to view questions
-    return render_template("admin/view_questions.html", project=project)
-
-
-# Individual project assignment removed - only group assignments supported
-
-
 @admin.route("/download-files/<int:project_id>")
 @project_admin_required
 def download_files(project_id):

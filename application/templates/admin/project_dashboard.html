@@ -57,47 +57,68 @@
             {{ tile(url_for('annotation_admin.view_annotation_project', project_id=project.id), "line-chart", "Progress and results",
                     "Who did what, and the answers so far", primary=True) }}
             {{ tile(url_for('annotation_admin.upload_images', project_id=project.id), "upload", "Upload items",
-                    "Images, audio clips or ZIP files") }}
+                    "Images, audio clips or ZIP files", tone="teal") }}
             {{ tile(url_for('annotation_admin.generate_annotation_tasks', project_id=project.id), "tasks", "Hand out tasks",
-                    "Share the work across a group") }}
+                    "Share the work across a group", tone="amber") }}
             {% endif %}
             {{ tile(url_for('manager.edit_project_questions', project_id=project.id), "pencil", "Questions and settings",
-                    "Edit questions, rename the project", primary=not project.is_annotation_project) }}
+                    "Edit questions, rename the project", primary=not project.is_annotation_project, tone="violet") }}
             {{ tile(url_for('manager.project_groups', project_id=project.id), "users", "Groups",
-                    plural(assigned_groups|length, "group") ~ " working on it") }}
+                    plural(assigned_groups|length, "group") ~ " working on it", tone="green") }}
             {{ tile(url_for('manager.project_admins', project_id=project.id), "user", "Manager",
-                    project_admins[0].user.full_name if project_admins else "No manager yet") }}
+                    project_admins[0].user.full_name if project_admins else "No manager yet", tone="amber") }}
             {% if project.is_annotation_project %}
             {{ tile(url_for('annotation_admin.export_project', project_id=project.id, file_format='csv'), "download", "Download CSV",
-                    "Every answer, for a spreadsheet") }}
+                    "Every answer, for a spreadsheet", tone="teal") }}
             {{ tile(url_for('annotation_admin.export_project', project_id=project.id, file_format='json'), "download", "Download JSON",
-                    "Every answer, for code") }}
+                    "Every answer, for code", tone="teal") }}
             {% else %}
-            {{ tile(url_for('admin.download_files', project_id=project.id), "download", "Download answers", "Every answer as a file") }}
+            {{ tile(url_for('admin.download_files', project_id=project.id), "download", "Download answers", "Every answer as a file", tone="teal") }}
             {% endif %}
         </div>
 
-        <div class="box">
-            <div class="box-header with-border">
-                <h3 class="box-title">Settings</h3>
+        <div class="row task-grid">
+            <div class="col-md-6 col-xs-12">
+                <div class="box">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Settings</h3>
+                    </div>
+                    <div class="box-body">
+                        <dl class="settings-list">
+                            <dt>Description</dt>
+                            <dd class="project-desc">{{ project.desc or "None" }}</dd>
+                            <dt>Manager</dt>
+                            <dd>{{ project_admins[0].user.full_name if project_admins else "No manager" }}</dd>
+                            <dt>Groups</dt>
+                            <dd>{{ assigned_groups|map(attribute="name")|join(", ") or "None yet" }}</dd>
+                            {% if project.is_annotation_project %}
+                            <dt>Max tasks per person</dt>
+                            <dd>{{ project.max_questions_per_user }}</dd>
+                            <dt>Answers per task</dt>
+                            <dd>{{ project.answers_per_task }}</dd>
+                            <dt>Hand out work</dt>
+                            <dd>{{ "All of an item's questions to one person" if project.hand_out_per_item else "Each question on its own" }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
             </div>
-            <div class="box-body">
-                <dl class="settings-list settings-list-wide">
-                    <dt>Description</dt>
-                    <dd class="project-desc">{{ project.desc or "None" }}</dd>
-                    <dt>Manager</dt>
-                    <dd>{{ project_admins[0].user.full_name if project_admins else "No manager" }}</dd>
-                    <dt>Groups</dt>
-                    <dd>{{ assigned_groups|map(attribute="name")|join(", ") or "None yet" }}</dd>
-                    {% if project.is_annotation_project %}
-                    <dt>Max tasks per person</dt>
-                    <dd>{{ project.max_questions_per_user }}</dd>
-                    <dt>Answers per task</dt>
-                    <dd>{{ project.answers_per_task }}</dd>
-                    <dt>Hand out work</dt>
-                    <dd>{{ "All of an item's questions to one person" if project.hand_out_per_item else "Each question on its own" }}</dd>
-                    {% endif %}
-                </dl>
+            <div class="col-md-6 col-xs-12">
+                <div class="box">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Questions</h3>
+                        <p class="text-muted" style="margin: 4px 0 0;">{{ plural(project.questions|length, "question") }}{% if project.is_annotation_project %}, asked about every item{% endif %}</p>
+                    </div>
+                    <div class="box-body">
+                        <ol class="question-list">
+                            {% for question in project.questions %}
+                            <li>{{ question.question }} <span class="text-muted">· {{ "Multiple choice" if question.answer_type.value == "mcq" else "Free text" }}</span></li>
+                            {% else %}
+                            <li class="text-muted">No questions yet.</li>
+                            {% endfor %}
+                        </ol>
+                    </div>
+                </div>
             </div>
         </div>
     </section>

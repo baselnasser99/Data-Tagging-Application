@@ -53,11 +53,18 @@ def create_app(config_object=None):
     _register_error_handlers(app)
 
     @app.after_request
-    def _no_store(response):
+    def _security_headers(response):
         # Pages show private data: don't let the browser keep a copy that the
         # Back button could show after sign-out. Static files may be cached.
         if request.endpoint != "static":
             response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "same-origin"
+        # shortcut: no script-src/style-src rules because templates use inline <script> blocks; move those to static files to tighten it.
+        response.headers["Content-Security-Policy"] = (
+            "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+        )
         return response
 
     with app.app_context():

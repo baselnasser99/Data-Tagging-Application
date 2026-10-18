@@ -223,3 +223,26 @@ def test_create_a_manager_without_a_project(admin_client):
     assert b"Managers without a project" in resp.data and b"Mia Manager" in resp.data  # lands on Managers
     assert b"Create a new manager" in resp.data  # the form lives on the Managers page
     assert b'value="manager" checked' in admin_client.get("/admin/create-user?role=manager").data
+
+
+def test_manager_home_has_the_answers_chart_for_their_projects_only(app, db, make_user, make_project_admin):
+    from application.admin import weekly_answers
+    from application.models import Project, Question, QuestionAnswer
+
+    mine, other = Project(name="Mine", desc="d"), Project(name="Other", desc="d")
+    db.session.add_all([mine, other])
+    db.session.flush()
+    q_mine, q_other = Question(question="A?", project_id=mine.id), Question(question="B?", project_id=other.id)
+    db.session.add_all([q_mine, q_other])
+    db.session.flush()
+    person = make_user()
+    db.session.add_all([QuestionAnswer(user_id=person.id, question_id=q.id, answer="x") for q in (q_mine, q_other, q_other)])
+    db.session.commit()
+
+    assert sum(w["answers"] for w in weekly_answers([mine.id])) == 1
+    assert sum(w["answers"] for w in weekly_answers()) == 3
+
+    client = app.test_client()
+    login(client, make_project_admin(mine).email)
+    page = client.get("/admin/my-projects").data
+    assert b'id="weeklyChart"' in page and b"Group progress" in page

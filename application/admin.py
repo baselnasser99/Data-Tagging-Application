@@ -578,7 +578,7 @@ def download_answers(user_id):
 
 
 @admin.route("/profile", methods=['GET', 'POST'])
-@admin_required
+@project_admin_access_required  # admins and managers; each edits only their own account
 def admin_profile():
     admin_user = db.session.get(User, session['id'])
 

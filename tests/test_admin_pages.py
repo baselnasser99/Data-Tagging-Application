@@ -132,3 +132,16 @@ def test_manager_without_a_project_reaches_their_home_page(app, make_user):
     page = client.get("/admin/my-projects")
     assert page.status_code == 200 and b"No projects yet" in page.data
     assert client.get("/admin/create-annotation-project").status_code == 200  # can start their first project
+
+
+def test_manager_can_change_their_own_password(app, make_project_admin, sample_project):
+    from tests.conftest import login
+
+    manager = make_project_admin(sample_project)
+    client = app.test_client()
+    login(client, manager.email)
+    assert b"Profile settings" in client.get("/admin/my-projects").data
+    resp = client.post("/admin/profile", data={"action": "update_password", "current_password": "password123",
+                                                 "new_password": "newpass456", "confirm_password": "newpass456"},
+                       follow_redirects=True)
+    assert resp.status_code == 200 and manager.check_password("newpass456")

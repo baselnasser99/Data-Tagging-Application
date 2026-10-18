@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta
 from flask import send_file, make_response
 import csv
+import logging
 import io
 import os
 import uuid
 import secrets
 
 from flask import Blueprint, abort, request, redirect, url_for, flash, render_template, session
+from flask_login import current_user
 from sqlalchemy import delete
 from werkzeug.utils import secure_filename
 
@@ -20,6 +22,9 @@ from .feedback import flash_distribution, warn_idle_members
 from .groups import (assign_questions_to_new_group_member, group_progress, project_progress,
                      remove_pending_assignments_from_removed_group_member, set_up_new_project)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
+
+audit = logging.getLogger("audit")
+log = logging.getLogger(__name__)
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -174,6 +179,7 @@ def edit_user(user_id):
             user.set_password(password)
             user.failed_logins, user.locked_until = 0, None  # a new password from the admin also lifts a lock
         db.session.commit()
+        audit.info("USER_UPDATED user_id=%s by=%s password_changed=%s", user.id, current_user.id, bool(password))
         flash(f'{full_name} was updated.' + (' Share the new password with them.' if password else ''), 'success')
         return redirect(back)
     return render_template('admin/edit_user.html', user=user, form={}, back=back)
@@ -197,11 +203,13 @@ def remove_user(user_id):
     if _has_finished_work(user):
         user.active = False
         db.session.commit()
+        audit.info("USER_DEACTIVATED user_id=%s by=%s", user.id, current_user.id)
         flash(f'{name} was removed and can no longer sign in. Their answers are kept; '
               'their unfinished tasks went to the rest of their groups.', 'success')
     else:
         for model in (TaskAssignment, UserQuestionAssignment, ExportLog):
             model.query.filter_by(user_id=user.id).delete()
+        audit.info("USER_DELETED user_id=%s by=%s", user.id, current_user.id)
         db.session.delete(user)
         db.session.commit()
         flash(f'{name} was deleted. They had no answers yet.', 'success')
@@ -214,6 +222,7 @@ def restore_user(user_id):
     user = _member_or_404(user_id)
     user.active = True
     db.session.commit()
+    audit.info("USER_RESTORED user_id=%s by=%s", user.id, current_user.id)
     flash(f'{user.full_name} can sign in again. Add them to a group to give them work.', 'success')
     return redirect(url_for('admin.users'))
 
@@ -245,6 +254,7 @@ def create_user():
         if as_manager:
             user.role = 'project-admin'  # no project yet; one can be given on the Managers page
         db.session.commit()
+        audit.info("USER_CREATED user_id=%s role=%s by=%s", user.id, user.role, current_user.id)
         if temporary:
             flash(f'{email} was given the temporary password {password}. '
                   'Share it with them and ask them to change it after signing in.', 'warning')
@@ -294,6 +304,7 @@ def import_users():
         return redirect(url_for('admin.create_user', tab='csv'))
 
     users, created, duplicates, invalid, messages = _create_users_from_rows(header, rows[1:])
+    audit.info("USERS_IMPORTED created=%s by=%s", created, current_user.id)
     if request.form.get('user_group_id'):
         _add_imported_to_group(users, request.form['user_group_id'])
     if request.form.get('project_id'):
@@ -352,10 +363,11 @@ def _create_users_from_rows(header, rows):
         except IndexError:
             invalid += 1
             messages.append(f"Row {line}: Malformed row. Skipped.")
-        except Exception as e:
+        except Exception:
             db.session.rollback()
+            log.exception("CSV import failed on row %s", line)
             invalid += 1
-            messages.append(f"Row {line}: Error processing row: {str(e)}. Skipped.")
+            messages.append(f"Row {line}: could not be added (the error was logged). Skipped.")
     db.session.commit()
     return users, created, duplicates, invalid, messages
 
@@ -542,10 +554,12 @@ def delete_project(project_id):
         db.session.delete(project)
         db.session.commit()
 
+        audit.info("PROJECT_DELETED project_id=%s by=%s", project_id, current_user.id)
         flash("Project Deleted Successfully!", "success")
-    except Exception as e:
+    except Exception:
         db.session.rollback()
-        flash(f"Error deleting project: {str(e)}", "error")
+        log.exception("Deleting project %s failed", project_id)
+        flash("The project could not be deleted. The error was logged.", "error")
 
     return redirect(url_for("admin.view_projects"))
 
@@ -709,6 +723,7 @@ def admin_profile():
 
             admin_user.set_password(new_password)
             db.session.commit()
+            audit.info("PASSWORD_CHANGED user_id=%s", admin_user.id)
             flash('Password updated successfully', 'success')
 
         return redirect(url_for('admin.admin_profile'))

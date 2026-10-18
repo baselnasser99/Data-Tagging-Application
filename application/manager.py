@@ -9,7 +9,7 @@ from . import distribution
 from .admin import upload_path
 from .extns import db
 from .feedback import flash_distribution
-from .groups import distribute_questions_to_group
+from .groups import distribute_questions_to_group, project_progress
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
                      QuestionAnswer, TaskAssignment, User, UserQuestionAssignment)
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
@@ -25,7 +25,8 @@ def my_projects():
     project_admin_entries = ProjectAdmin.query.filter_by(user_id=user_id).all()
     # Extract the Project objects from these entries
     projects = [entry.project for entry in project_admin_entries if entry.project]
-    return render_template("admin/my_projects.html", projects=projects)
+    progress = {p.id: project_progress(p) for p in projects}
+    return render_template("admin/my_projects.html", projects=projects, progress=progress)
 
 @manager.route("/project/<int:project_id>/dashboard")
 @project_admin_required

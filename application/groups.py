@@ -5,13 +5,13 @@ application/distribution.py, so workloads stay balanced.
 """
 import logging
 
-from flask import Blueprint, request, redirect, url_for, flash, render_template, session
+from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort
 
 from . import distribution
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
 from .models import AnnotationTask, Project, TaskAssignment, User, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, QuestionAnswer
-from .permissions import admin_required, project_admin_access_required, project_admin_required
+from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
 
 groups = Blueprint("groups", __name__, url_prefix="/admin")
 log = logging.getLogger(__name__)
@@ -222,6 +222,8 @@ def assign_project_to_group():
         group = db.session.get(UserGroup, group_id)
         project = db.session.get(Project, project_id)
 
+        if project and session.get('role') != 'admin' and not is_project_admin(project.id):
+            abort(403)  # managers may only attach their own projects
         if group and project:
             log.debug(f"assign_project_to_group - Group and Project found. Group: {group.name}, Project: {project.name}")
             # Check if project is already assigned to group
@@ -274,8 +276,10 @@ def assign_project_to_group():
         log.debug(f"assign_project_to_group (GET) - Project Admin, managed_project_ids: {managed_project_ids}")
         projects = Project.query.filter(Project.id.in_(managed_project_ids)).all()
         log.debug(f"assign_project_to_group (GET) - Project Admin, filtered projects: {len(projects)}")
+    # only the projects this person may see; a manager must not see others' progress
+    shown_ids = {project.id for project in projects}
     progress = {(gp.group_id, gp.project_id): group_progress(group, [gp.project_id])
-                for group in groups for gp in group.assigned_projects}
+                for group in groups for gp in group.assigned_projects if gp.project_id in shown_ids}
     return render_template("admin/assign_project_to_group.html", groups=groups, projects=projects, progress=progress)
 
 

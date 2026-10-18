@@ -81,9 +81,8 @@
             </p>
           </div>
           <div class="box-body">
-            {% if group.assigned_projects %}
             <ul class="assignment-list">
-              {% for group_project in group.assigned_projects %}
+              {% for group_project in group.assigned_projects if (group.id, group_project.project_id) in progress %}
               {% set done, total = progress[(group.id, group_project.project_id)] %}
               <li>
                 <div class="assignment-row">
@@ -98,11 +97,10 @@
                 </div>
                 {% endif %}
               </li>
+              {% else %}
+              <li class="text-muted">No projects assigned yet.</li>
               {% endfor %}
             </ul>
-            {% else %}
-            <p class="text-muted" style="margin: 0;">No projects assigned yet.</p>
-            {% endif %}
           </div>
         </div>
       </div>

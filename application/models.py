@@ -202,6 +202,15 @@ IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
 AUDIO_EXTENSIONS = ('.mp3', '.wav', '.ogg', '.m4a', '.flac')
 
 
+VIDEO_EXTENSIONS = ('.mp4', '.webm', '.mov', '.avi', '.wmv')
+
+
+def is_attachment(filename):
+    """Survey question files are served from the app's own address, so only pictures, audio and video:
+    an uploaded HTML or SVG file could run scripts as whoever opens it."""
+    return filename.lower().endswith(IMAGE_EXTENSIONS + AUDIO_EXTENSIONS + VIDEO_EXTENSIONS)
+
+
 def media_type_for(filename):
     """Return 'image', 'audio' or None (not accepted) for a file name."""
     name = filename.lower()

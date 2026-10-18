@@ -190,6 +190,7 @@ def test_manager_cannot_change_members_of_a_group_shared_with_other_projects(
     client = _manager_client(app, make_project_admin, photo_project)
     url = f"/admin/project/{photo_project.id}/manage-group/{group.id}"
 
+    assert url.encode() in client.get(f"/admin/project/{photo_project.id}/groups").data  # the button leads here
     page = client.get(url).data
     assert b"also works on Survey" in page and b"Add to group" not in page
 

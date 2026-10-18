@@ -239,13 +239,6 @@ def project_groups(project_id):
     assigned_groups = [gp.group for gp in project.assigned_groups]
     return render_template("admin/project_groups.html", project=project, assigned_groups=assigned_groups)
 
-@manager.route("/project/<int:project_id>/results")
-@project_admin_required
-def project_results(project_id):
-    project = db.get_or_404(Project, project_id)
-    # In a real implementation, you'd fetch and process results for this project
-    return render_template("admin/project_results.html", project=project)
-
 # New route for Project Admins to edit questions
 @manager.route("/project/<int:project_id>/edit-questions", methods=['GET', 'POST'])
 @project_admin_required

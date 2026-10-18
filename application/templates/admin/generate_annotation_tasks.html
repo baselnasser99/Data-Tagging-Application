@@ -30,7 +30,7 @@
               <h4><i class="fa fa-check-circle"></i> Ready to hand out tasks</h4>
               <p>
                 <strong>{{ plural(images|length, "item") }}</strong> × <strong>{{ plural(questions|length, "question") }}</strong> =
-                <strong>{{ plural(images|length * questions|length, "annotation task") }}</strong>
+                <strong>{{ plural(images|length * questions|length, "task") }}</strong>
               </p>
               <p>Each task will be answered by <strong>{{ project.answers_per_task }}</strong> {{ "person" if project.answers_per_task == 1 else "different people" }}.</p>
             </div>
@@ -104,7 +104,7 @@
               <td><span class="badge bg-yellow">{{ images|length * questions|length }}</span></td>
             </tr>
             <tr>
-              <th>Max Tasks/User:</th>
+              <th>Max tasks per person:</th>
               <td><span class="badge bg-purple">{{ project.max_questions_per_user }}</span></td>
             </tr>
             <tr>

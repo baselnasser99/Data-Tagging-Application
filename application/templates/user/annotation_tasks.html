@@ -21,9 +21,8 @@
     <div class="col-md-4 col-sm-6 col-xs-12">
       <div class="box">
         <div class="box-header with-border">
-          <h2 class="box-title" title="{{ image.original_filename }}">
-            {{ image.original_filename[:28] }}{% if image.original_filename|length > 28 %}…{% endif %}
-          </h2>
+          <h2 class="box-title task-card-title" title="{{ image.original_filename }}">{{ image.original_filename }}</h2>
+          <p class="text-muted" style="margin: 2px 0 0;">{{ project.name }}</p>
           <div class="box-tools pull-right">
             {% if pending %}
             <span class="badge bg-yellow">{{ pending|length }} to answer</span>
@@ -39,11 +38,10 @@
           {{ media_item(project, image,
                         img_style="display: block; width: 100%; height: 170px; object-fit: cover; border-radius: 4px;") }}
           {% endif %}
-          <p class="text-muted" style="margin: 10px 0 6px;">{{ project.name }}</p>
-          <ul class="list-unstyled" style="margin: 0;">
+          <ul class="list-unstyled task-questions">
             {% for a in items %}
-            <li style="padding: 3px 0;">
-              <i class="fa {{ 'fa-check text-green' if a.is_completed else 'fa-circle-o text-muted' }}" aria-hidden="true"></i>
+            <li{% if a.is_completed %} class="text-muted"{% endif %}>
+              {% if a.is_completed %}<i class="fa fa-check text-green" aria-hidden="true"></i>{% endif %}
               <span class="sr-only">{{ 'Answered:' if a.is_completed else 'To answer:' }}</span>
               {{ a.task.question.question }}
             </li>

@@ -76,7 +76,7 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .btn:active, .btn.active { transform: scale(0.97); box-shadow: none; }  /* press wins over hover */
 
 /* A row of shortcut buttons wraps neatly with even gaps */
-.quick-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; align-content: flex-start; }  /* buttons keep their height inside equal-height cards */
 .quick-actions .btn { margin: 0; }
 .manager-form .btn { margin-top: 4px; }
 

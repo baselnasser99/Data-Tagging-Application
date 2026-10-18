@@ -4,118 +4,59 @@
 
 {% block content %}
 <section class="content-header">
-  <h1>Upload Images or Audio</h1>
-  <ol class="breadcrumb">
-    <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-    <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
-    <li class="active">Upload Items</li>
-  </ol>
+  <h1>{{ project.name }}</h1>
+  <p class="text-muted page-subtitle">Upload items</p>
 </section>
 
 <section class="content">
-  <div class="row">
-    <div class="col-md-8">
-      <div class="box box-primary">
-        <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-upload"></i> Batch upload for "{{ project.name }}"
-          </h3>
-        </div>
-        
+  <div class="row task-grid">
+    <div class="col-md-8 col-xs-12">
+      <div class="box">
         <form method="POST" enctype="multipart/form-data">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
             <div class="form-group">
-              <label for="image_zip">Select images, audio clips or ZIP files (you can pick several)</label>
+              <label for="image_zip">Images, audio clips or ZIP files (you can pick several)</label>
               <input type="file" class="form-control" id="image_zip" name="image_zip" multiple required
                      accept=".zip,.png,.jpg,.jpeg,.gif,.bmp,.webp,.mp3,.wav,.ogg,.m4a,.flac">
-              <p class="help-block">
-                Images: PNG, JPG, JPEG, GIF, BMP, WEBP. Audio: MP3, WAV, OGG, M4A, FLAC.
-              </p>
+              <p class="help-block">Images: PNG, JPG, JPEG, GIF, BMP, WEBP. Audio: MP3, WAV, OGG, M4A, FLAC.</p>
             </div>
-            
-            <div class="alert alert-info">
-              <h4><i class="fa fa-info-circle"></i> Upload Instructions:</h4>
+            <details class="how-it-works">
+              <summary>What happens to the files</summary>
               <ul>
-                <li>Pick the files themselves, or ZIP files containing them, or both</li>
-                <li>Files can be in folders within a ZIP (folder structure will be flattened)</li>
-                <li>Other file types are ignored, and files whose names already exist in this project are skipped</li>
-                <li>Each item is combined with all {{ project.questions|length }} questions to create tasks</li>
-                <li>People see images as pictures and hear audio clips in a built-in player</li>
+                <li>Pick the files themselves, ZIP files containing them, or both. Folders inside a ZIP are fine.</li>
+                <li>Other file types are ignored, and files whose names already exist in this project are skipped.</li>
+                <li>Each item is combined with all {{ plural(project.questions|length, "question") }} to make its tasks.</li>
+                <li>People see images as pictures and hear audio clips in a built-in player.</li>
               </ul>
-            </div>
+            </details>
           </div>
-          
-          <div class="box-footer">
-            <button type="submit" class="btn btn-primary">
-              <i class="fa fa-upload"></i> Upload
-            </button>
-            <a href="{{ url_for('admin.view_projects') }}" class="btn btn-default">
-              <i class="fa fa-arrow-left"></i> Back to Projects
-            </a>
+          <div class="box-footer quick-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa fa-upload"></i> Upload</button>
+            <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-default"><i class="fa fa-arrow-left"></i> Back to project</a>
           </div>
         </form>
       </div>
     </div>
-    
-    <div class="col-md-4">
-      <div class="box box-info">
-        <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-cog"></i> Project Settings
-          </h3>
-        </div>
+
+    <div class="col-md-4 col-xs-12">
+      <div class="box">
+        <div class="box-header with-border"><h3 class="box-title">Questions asked about each item</h3></div>
         <div class="box-body">
-          <table class="table table-bordered">
-            <tr>
-              <th>Project Name:</th>
-              <td>{{ project.name }}</td>
-            </tr>
-            <tr>
-              <th>Max tasks per person:</th>
-              <td>{{ project.max_questions_per_user }}</td>
-            </tr>
-            <tr>
-              <th>Answers per task:</th>
-              <td>{{ project.answers_per_task }}</td>
-            </tr>
-            <tr>
-              <th>Questions Created:</th>
-              <td>{{ project.questions|length }}</td>
-            </tr>
-          </table>
-        </div>
-      </div>
-      
-      <div class="box box-success">
-        <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-question-circle"></i> Questions for Each Item
-          </h3>
-        </div>
-        <div class="box-body">
-          {% for question in project.questions %}
-          <p><i class="fa fa-check text-green"></i> {{ question.question }}</p>
-          {% endfor %}
-        </div>
-      </div>
-      
-      <div class="box box-warning">
-        <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-calculator"></i> Task Calculation
-          </h3>
-        </div>
-        <div class="box-body">
-          <p><strong>Formula:</strong></p>
-          <p>Total Tasks = Items × Questions</p>
-          <p><strong>Example:</strong></p>
-          <p>1000 items × 5 questions = 5000 tasks</p>
-          <p class="text-muted">Each task will be assigned to {{ project.answers_per_task }} different users.</p>
+          <ol class="question-list">
+            {% for question in project.questions %}
+            <li>{{ question.question }}</li>
+            {% else %}
+            <li class="text-muted">No questions yet.</li>
+            {% endfor %}
+          </ol>
+          <p class="text-muted" style="margin: 12px 0 0;">
+            Tasks = items × questions. With {{ plural(project.questions|length, "question") }}, 100 items make
+            {{ plural(100 * project.questions|length, "task") }}.
+          </p>
         </div>
       </div>
     </div>
   </div>
 </section>
-
 {% endblock %}

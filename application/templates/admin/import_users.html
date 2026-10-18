@@ -1,59 +1,48 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Content Header (Page header) -->
 <section class="content-header">
-  <h1>
-    Import Users
-    <small>Upload CSV to add multiple users</small>
-  </h1>
-  <ol class="breadcrumb">
-    <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Home</a></li>
-    <li><a href="{{ url_for('admin.users') }}">Users</a></li>
-    <li class="active">Import Users</li>
-  </ol>
+  <h1>Import users</h1>
+  <p class="text-muted page-subtitle">Add many members at once from a CSV file.</p>
 </section>
 
-<section class="content">
-
-  <div class="box box-primary">
-    <div class="box-header with-border">
-      <h3 class="box-title">Upload User CSV</h3>
-    </div>
-    <form role="form" method="POST" enctype="multipart/form-data" action="{{ url_for('admin.import_users') }}">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<section class="content form-page">
+  <div class="box">
+    <form method="POST" enctype="multipart/form-data" action="{{ url_for('admin.import_users') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="box-body">
         <div class="form-group">
-          <label for="csv_file">CSV File</label>
-          <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
-          <p class="help-block">Upload a CSV file with columns: <code>full_name</code>, <code>email</code>, <code>password</code>.</p>
-          <p class="help-block">If password is empty, a random temporary password will be generated.</p>
+          <label for="csv_file">CSV file</label>
+          <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+          <p class="help-block">Columns: <code>full_name</code>, <code>email</code>, <code>password</code>. A missing or too-short
+            password is replaced by a temporary one, shown to you after the import.</p>
         </div>
-
-        <div class="form-group">
-          <label for="user_group">Assign to User Group (Optional)</label>
-          <select class="form-control" id="user_group" name="user_group_id">
-            <option value="">-- Select a Group --</option>
-            {% for group in groups %}
-            <option value="{{ group.id }}">{{ group.name }}</option>
-            {% endfor %}
-          </select>
-          <p class="help-block">Newly imported users will be added to this group.</p>
-        </div>
-
-        <div class="form-group">
-          <label for="project">Assign to Project (Optional)</label>
-          <select class="form-control" id="project" name="project_id">
-            <option value="">-- Select a Project --</option>
-            {% for project in projects %}
-            <option value="{{ project.id }}">{{ project.name }} {% if project.is_annotation_project %}(project){% endif %}</option>
-            {% endfor %}
-          </select>
-          <p class="help-block">Surveys: every question is assigned. Projects: tasks are shared out fairly.</p>
+        <div class="row">
+          <div class="col-sm-6 form-group">
+            <label for="user_group">Add them to a group (optional)</label>
+            <select class="form-control" id="user_group" name="user_group_id">
+              <option value="">No group</option>
+              {% for group in groups %}
+              <option value="{{ group.id }}">{{ group.name }}</option>
+              {% endfor %}
+            </select>
+            <p class="help-block">They get their share of the group's work straight away.</p>
+          </div>
+          <div class="col-sm-6 form-group">
+            <label for="project">Give them a project (optional)</label>
+            <select class="form-control" id="project" name="project_id">
+              <option value="">No project</option>
+              {% for project in projects %}
+              <option value="{{ project.id }}">{{ project.name }} ({{ "project" if project.is_annotation_project else "survey" }})</option>
+              {% endfor %}
+            </select>
+            <p class="help-block">Surveys: every question. Projects: a fair share of open tasks.</p>
+          </div>
         </div>
       </div>
-      <div class="box-footer">
-        <button type="submit" class="btn btn-primary">Import Users</button>
+      <div class="box-footer quick-actions">
+        <button type="submit" class="btn btn-primary"><i class="fa fa-upload"></i> Import</button>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-default">Cancel</a>
       </div>
     </form>
   </div>

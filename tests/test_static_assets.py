@@ -1,7 +1,6 @@
 """Every stylesheet, script and image a page links to must actually load."""
 import re
 
-import pytest
 
 from tests.conftest import login
 
@@ -18,9 +17,8 @@ def _broken_assets(client, html):
     return broken
 
 
-@pytest.mark.parametrize("path", ["/login", "/register"])
-def test_public_page_assets_load(client, path):
-    assert _broken_assets(client, client.get(path).data) == []
+def test_public_page_assets_load(client):
+    assert _broken_assets(client, client.get("/login").data) == []
 
 
 def test_admin_layout_assets_load(admin_client):

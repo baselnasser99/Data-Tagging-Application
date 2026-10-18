@@ -104,7 +104,14 @@ def manage_group_for_project(project_id, group_id):
         flash('This group is not associated with your project, or you do not have permission to manage it.', 'danger')
         return redirect(url_for('manager.project_groups', project_id=project_id))
 
+    # Membership is group-wide, so it changes the work of every project the group is on.
+    # A manager may only change it when all of those projects are theirs.
+    other_projects = [gp.project for gp in group.assigned_projects
+                      if session.get('role') != 'admin' and not is_project_admin(gp.project_id)]
+
     if request.method == 'POST':
+        if other_projects:
+            abort(403)
         action = request.form.get('action')
 
         if action == 'add_user':
@@ -144,7 +151,8 @@ def manage_group_for_project(project_id, group_id):
         ~User.id.in_(current_member_ids)
     ).all()
 
-    return render_template("admin/manage_group.html", group=group, available_users=available_users)
+    return render_template("admin/manage_group.html", group=group, available_users=available_users,
+                           project_id=project_id, other_projects=other_projects)
 
 
 def group_progress(group, project_ids):

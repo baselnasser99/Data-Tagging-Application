@@ -513,6 +513,13 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .task-grid .box { display: flex; flex-direction: column; width: 100%; }
 .task-grid .box-body { flex: 1; }
 
+/* Two or three choices for one task, shown as tabs (e.g. Add users: one person / from a CSV file) */
+.segmented { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 16px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius); }
+.segmented > a { padding: 8px 16px; border-radius: var(--radius-sm); color: var(--muted); font-weight: 700; }
+.segmented > a:hover { color: var(--ink); background: var(--canvas); text-decoration: none; }
+.segmented > a[aria-current="page"] { background: var(--ink); color: #fff; }
+
 /* Section heading between boxes on a page */
 .section-title { font-size: 18px; font-weight: 700; margin: 8px 0 14px; color: var(--ink); }
 

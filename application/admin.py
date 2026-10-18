@@ -141,13 +141,13 @@ def create_user():
         password = request.form.get('password') or ''
         if not full_name or not email:
             flash('Please enter a name and an email address.', 'danger')
-            return render_template('admin/create_user.html', groups=groups, form=request.form)
+            return render_template('admin/create_user.html', groups=groups, form=request.form, tab='one')
         if User.query.filter_by(email=email).first():
             flash(f'A user with the email {email} already exists.', 'danger')
-            return render_template('admin/create_user.html', groups=groups, form=request.form)
+            return render_template('admin/create_user.html', groups=groups, form=request.form, tab='one')
         if password and len(password) < MIN_PASSWORD_LENGTH:
             flash(f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.', 'danger')
-            return render_template('admin/create_user.html', groups=groups, form=request.form)
+            return render_template('admin/create_user.html', groups=groups, form=request.form, tab='one')
 
         temporary = not password
         if temporary:
@@ -178,8 +178,8 @@ def create_user():
             flash(f'{full_name} was created.', 'success')
         return redirect(url_for('admin.users'))
 
-    return render_template('admin/create_user.html', groups=groups,
-                           form={'role': request.args.get('role', 'annotator')})
+    return render_template('admin/create_user.html', groups=groups, projects=Project.query.all(),
+                           form={'role': request.args.get('role', 'annotator')}, tab=request.args.get('tab'))
 
 
 @admin.route("/import-users", methods=['GET', 'POST'])
@@ -187,24 +187,24 @@ def create_user():
 def import_users():
     """Create people from a CSV file, then optionally add them to a group and/or a project."""
     if request.method == 'GET':
-        return render_template('admin/import_users.html', groups=UserGroup.query.all(), projects=Project.query.all())
+        return redirect(url_for('admin.create_user', tab='csv'))  # the form lives on the Add users page
 
     csv_file = request.files.get('csv_file')
     if csv_file is None:
         flash('No file part', 'danger')
-        return redirect(request.url)
+        return redirect(url_for('admin.create_user', tab='csv'))
     if csv_file.filename == '':
         flash('No selected file', 'danger')
-        return redirect(request.url)
+        return redirect(url_for('admin.create_user', tab='csv'))
     if not csv_file.filename.lower().endswith('.csv'):
         flash('Invalid file type. Please upload a CSV file.', 'danger')
-        return redirect(request.url)
+        return redirect(url_for('admin.create_user', tab='csv'))
 
     rows = list(csv.reader(io.StringIO(csv_file.stream.read().decode("UTF8"))))
     header = rows[0] if rows else None
     if not header or not all(col in header for col in ['full_name', 'email', 'password']):
         flash('CSV must contain "full_name", "email", and "password" columns.', 'danger')
-        return redirect(request.url)
+        return redirect(url_for('admin.create_user', tab='csv'))
 
     users, created, duplicates, invalid, messages = _create_users_from_rows(header, rows[1:])
     if request.form.get('user_group_id'):

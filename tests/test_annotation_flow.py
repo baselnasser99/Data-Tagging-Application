@@ -2,6 +2,7 @@
 import csv
 import io
 import os
+import zipfile
 
 import pytest
 
@@ -311,3 +312,20 @@ def test_members_see_the_project_and_question_not_file_names(app, admin_client, 
         page = client.get(path).data
         assert b"Street scenes" in page
         assert b">IMG_20240101_123456.png" not in page and b"Image:</strong>" not in page  # alt text may keep it
+
+
+def test_zip_that_unpacks_too_large_is_skipped(app, admin_client):
+    project = _create_project(admin_client)
+    app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("big.png", b"\0" * (3 * 1024 * 1024))  # compresses to a few KB
+    buf.seek(0)
+    resp = admin_client.post(
+        f"/admin/upload-images/{project.id}",
+        data={"image_zip": (buf, "bomb.zip")},
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert b"unpacks to more than 2 MB" in resp.data
+    assert ProjectImage.query.filter_by(project_id=project.id).count() == 0

@@ -5,7 +5,7 @@ import os
 import uuid
 import zipfile
 
-from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort, send_file
+from flask import Blueprint, current_app, request, redirect, url_for, flash, render_template, session, abort, send_file
 from werkzeug.utils import secure_filename
 
 from . import distribution
@@ -143,6 +143,11 @@ def upload_images(project_id):
             if upload.filename.lower().endswith('.zip'):
                 try:
                     with zipfile.ZipFile(upload, 'r') as zip_ref:
+                        # A small ZIP can unpack to gigabytes ("ZIP bomb"); zipfile never reads past file_size.
+                        limit = current_app.config.get('MAX_CONTENT_LENGTH')
+                        if limit and sum(i.file_size for i in zip_ref.infolist()) > 2 * limit:
+                            flash(f"{upload.filename} unpacks to more than {2 * limit // (1024 * 1024)} MB, so it was skipped.", "error")
+                            continue
                         for file_info in zip_ref.infolist():
                             original_filename = os.path.basename(file_info.filename)
                             # Nested folders are flattened; junk and unsupported files are ignored.
@@ -310,7 +315,6 @@ def view_annotation_project(project_id):
 def export_project(project_id, file_format):
     """Download every answer of an annotation project as CSV or JSON."""
     import json
-    from flask import current_app
     from flask_login import current_user
 
     project = db.get_or_404(Project, project_id)

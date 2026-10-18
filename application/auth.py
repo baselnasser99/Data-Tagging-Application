@@ -92,35 +92,6 @@ def login():
     return render_template("login.html")
 
 
-@auth.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        fullname = (request.form.get("fullname") or "").strip()
-        email = (request.form.get("email") or "").strip()
-        password = request.form.get("password") or ""
-
-        if not fullname or not email:
-            flash("Full name and email are required.", "danger")
-            return redirect(url_for("auth.register"))
-
-        if len(password) < MIN_PASSWORD_LENGTH:
-            flash(f"Password must be at least {MIN_PASSWORD_LENGTH} characters long.", "danger")
-            return redirect(url_for("auth.register"))
-
-        if User.query.filter(User.email == email).first():
-            flash("Email Address already exist!", "danger")
-            return redirect(url_for("auth.register"))
-
-        user = User()
-        user.register_end_user(fullname, email, password)
-        audit.info("REGISTER user_id=%s email=%s", user.id, email)
-
-        flash("Account Created Successfully!", "success")
-        return redirect(url_for("auth.login"))
-
-    return render_template("register.html")
-
-
 @auth.route("/logout")
 def logout():
     if current_user.is_authenticated:

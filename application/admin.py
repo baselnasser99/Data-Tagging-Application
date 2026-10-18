@@ -15,6 +15,7 @@ from .models import is_attachment, Project, Question, User, AnswerType, Question
 from .auth import MIN_PASSWORD_LENGTH
 from .jinja_utils import plural
 from . import distribution
+from .export import csv_cell
 from .feedback import flash_distribution, warn_idle_members
 from .groups import (assign_questions_to_new_group_member, group_progress, project_progress,
                      remove_pending_assignments_from_removed_group_member, set_up_new_project)
@@ -641,7 +642,7 @@ def download_answers(user_id):
             answer_type = question.answer_type.name if question and question.answer_type else 'N/A'
             submitted_date = answer_obj.submitted_date.strftime('%Y-%m-%d %H:%M:%S') if answer_obj.submitted_date else 'N/A'
 
-            writer.writerow([
+            writer.writerow([csv_cell(v) for v in [
                 user.email,
                 user.full_name,
                 project_name,
@@ -652,7 +653,7 @@ def download_answers(user_id):
                 image_filename,
                 submitted_date,
                 'Yes' if is_completed_assignment else 'No'
-            ])
+            ]])
     else:
         writer.writerow([user.email, user.full_name, '', '', 'No answers found for this user', '', '', '', '', ''])
 

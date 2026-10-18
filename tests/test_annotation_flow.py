@@ -251,7 +251,7 @@ def test_annotator_gets_one_card_per_task_and_moves_to_the_next(app, admin_clien
     mine = TaskAssignment.query.filter_by(user_id=annotator.id).all()
     total = len(mine)
     page = client.get("/user/my-projects").data
-    assert f"{total} tasks, {total} left".encode() in page
+    assert f"0 of {total} tasks done".encode() in page and b"Not started" in page
     assert f"/user/annotation-tasks?project_id={project.id}".encode() in page
     assert b"Start tasks" in page
 
@@ -267,9 +267,11 @@ def test_annotator_gets_one_card_per_task_and_moves_to_the_next(app, admin_clien
         if i + 1 < len(order):  # straight on to the next task, not back to the list
             assert resp.headers["Location"].endswith(f"/user/annotation-task/{order[i + 1].id}")
         if i == 0:
-            assert f"{total} tasks, {total - 1} left".encode() in client.get("/user/my-projects").data
+            assert f"1 of {total} tasks done".encode() in client.get("/user/my-projects").data
     assert resp.headers["Location"].endswith(f"/user/annotation-tasks?project_id={project.id}")
-    assert b"Review tasks" in client.get("/user/my-projects").data
+    final = client.get("/user/my-projects").data
+    assert b"Review tasks" in final and b"Done" in final
+    assert f"{total} of {total} tasks done".encode() in client.get("/user/dashboard").data  # the overview shows the card too
 
 
 def test_task_list_can_show_one_project_only(app, admin_client, group_with_members):

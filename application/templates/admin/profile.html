@@ -38,12 +38,12 @@
         <div class="row">
           <div class="col-sm-6 form-group">
             <label for="new_password">New password</label>
-            <input type="password" class="form-control" id="new_password" name="new_password" required minlength="6" autocomplete="new-password">
-            <p class="help-block">At least 6 characters. A longer one is safer.</p>
+            <input type="password" class="form-control" id="new_password" name="new_password" required minlength="{{ min_password_length }}" autocomplete="new-password">
+            <p class="help-block">At least {{ min_password_length }} characters. A longer one is safer.</p>
           </div>
           <div class="col-sm-6 form-group">
             <label for="confirm_password">New password again</label>
-            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6" autocomplete="new-password">
+            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="{{ min_password_length }}" autocomplete="new-password">
           </div>
         </div>
       </div>

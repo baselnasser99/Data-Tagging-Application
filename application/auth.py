@@ -11,7 +11,7 @@ from .models import User
 auth = Blueprint("auth", __name__)
 audit = logging.getLogger("audit")
 
-MIN_PASSWORD_LENGTH = 6
+MIN_PASSWORD_LENGTH = 8
 MAX_FAILED_LOGINS = 5  # wrong passwords in a row before the account pauses
 LOCK_MINUTES = 15
 

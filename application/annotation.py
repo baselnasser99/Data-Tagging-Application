@@ -3,6 +3,7 @@ from .models import Project, Question, User, UserQuestionAssignment, TaskAssignm
 from .extns import db
 
 from .permissions import user_required
+from .auth import MIN_PASSWORD_LENGTH
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Annotators' pages (on screen: members). The URLs keep their original /user prefix.
@@ -130,8 +131,8 @@ def change_password():
             flash('New passwords do not match', 'danger')
             return redirect(url_for('annotation.change_password'))
 
-        if len(new_password) < 6:
-            flash('Password must be at least 6 characters long', 'danger')
+        if len(new_password) < MIN_PASSWORD_LENGTH:
+            flash(f'Password must be at least {MIN_PASSWORD_LENGTH} characters long', 'danger')
             return redirect(url_for('annotation.change_password'))
 
         # Update password

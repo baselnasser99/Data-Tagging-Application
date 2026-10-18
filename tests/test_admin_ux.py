@@ -31,7 +31,7 @@ def test_create_user_by_hand(app, admin_client):
     short = admin_client.post("/admin/create-user", data={
         "full_name": "Bob", "email": "bob@example.com", "password": "123",
     })
-    assert b"at least 6 characters" in short.data
+    assert b"at least 8 characters" in short.data
     assert User.query.filter_by(email="bob@example.com").first() is None
 
 

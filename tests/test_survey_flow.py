@@ -103,6 +103,14 @@ def test_end_user_dashboard_and_profile(user_client):
 def test_end_user_change_password(user_client, end_user):
     resp = user_client.post(
         "/user/change-password",
+        data={"current_password": "password123", "new_password": "seven77", "confirm_password": "seven77"},
+        follow_redirects=True,
+    )
+    assert b"at least 8 characters" in resp.data
+    assert end_user.check_password("password123")
+
+    resp = user_client.post(
+        "/user/change-password",
         data={"current_password": "password123", "new_password": "brandnew1", "confirm_password": "brandnew1"},
         follow_redirects=True,
     )

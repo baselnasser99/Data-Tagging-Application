@@ -109,12 +109,12 @@ def test_project_cards_show_status_and_progress(admin_client, db, sample_project
     photos = Project(name="Photos", desc="d", is_annotation_project=True)
     db.session.add(photos)
     db.session.flush()
-    question = Question(question="What?", project_id=photos.id)
+    questions = [Question(question="What?", project_id=photos.id), Question(question="Where?", project_id=photos.id)]
     image = ProjectImage(project_id=photos.id, filename="a.png", original_filename="a.png", file_path="/x/a.png")
-    db.session.add_all([question, image])
+    db.session.add_all([*questions, image])
     db.session.flush()
-    db.session.add_all([AnnotationTask(project_id=photos.id, image_id=image.id, question_id=question.id,
-                                       required_answers=1, is_completed=done) for done in (True, False)])
+    db.session.add_all([AnnotationTask(project_id=photos.id, image_id=image.id, question_id=q.id,
+                                       required_answers=1, is_completed=done) for q, done in zip(questions, (True, False))])
     db.session.commit()
 
     page = admin_client.get("/admin/view-projects").data

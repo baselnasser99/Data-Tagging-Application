@@ -264,15 +264,12 @@ def test_manager_can_create_projects_they_then_manage(app, survey, make_project_
     assert manager.is_project_admin(mine.id)
 
 
-# ---- end-user survey view (non-group) --------------------------------------
+# ---- old survey pages outside a group are gone ----------------------------
 
-def test_end_user_answers_project_directly_and_downloads(user_client, survey, end_user):
-    q = survey.questions[0]
-    assert user_client.get(f"/user/project/{survey.id}").status_code == 200
-    user_client.post(f"/user/project/{survey.id}", data={f"answer_{q.id}": "Direct answer"})
-    assert QuestionAnswer.query.filter_by(user_id=end_user.id).one().answer == "Direct answer"
-    resp = user_client.get(f"/user/download-project/{survey.id}")
-    assert b"Direct answer" in resp.data
+def test_old_survey_pages_outside_a_group_are_gone(user_client, survey):
+    """They let any member read and answer any survey, and download other people's answers."""
+    assert user_client.get(f"/user/project/{survey.id}").status_code == 404
+    assert user_client.get(f"/user/download-project/{survey.id}").status_code == 404
 
 
 def test_projects_list_download_gives_annotation_projects_the_csv(admin_client, survey, annotation_project):

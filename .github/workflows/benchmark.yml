@@ -1,0 +1,44 @@
+name: Benchmark
+
+# Measurements for the evaluation chapter (scripts/benchmark.py) on MySQL 8,
+# like the real deployment. Start it from the Actions tab ("Run workflow");
+# it also runs when the script changes. The results table appears on the run's
+# summary page.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/benchmark.py
+      - .github/workflows/benchmark.yml
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: bench
+          MYSQL_DATABASE: bench
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pbench"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run the measurements
+        env:
+          BENCH_DATABASE_URL: mysql+pymysql://root:bench@127.0.0.1:3306/bench
+        run: python scripts/benchmark.py --load

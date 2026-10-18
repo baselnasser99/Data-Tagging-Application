@@ -45,6 +45,18 @@ def upload_path(filename):
     return os.path.join(upload_dir(), filename)
 
 
+def save_attachment(upload):
+    """Store a survey question's picture, audio or video and return its stored name (None if nothing was saved)."""
+    if not upload or not upload.filename:
+        return None
+    if not is_attachment(upload.filename):
+        flash(f'"{upload.filename}" was not attached: question files must be a picture, audio or video.', 'warning')
+        return None
+    filename = f"{uuid.uuid4()}{secure_filename(upload.filename)[-64:]}"  # Question.file_path holds 100 characters
+    upload.save(upload_path(filename))
+    return filename
+
+
 def public_file_url(filename):
     return url_for("uploaded_file", name=filename, _external=True)
 
@@ -450,15 +462,7 @@ def create_project():
             for i in range(1, total_questions + 1):
                 file_key = f'question-{i}-file'
                 question_text = request.form.get(f"question-{i}")
-                file_path = request.files.get(f"question-{i}-file")
-                filename = None
-                if file_path and file_path.filename and not is_attachment(file_path.filename):
-                    flash(f'"{file_path.filename}" was not attached: question files must be a picture, audio or video.', 'warning')
-                elif file_path and file_path.filename:
-                    filename = str(uuid.uuid4()) + \
-                        secure_filename(file_path.filename)
-
-                    file_path.save(upload_path(filename))
+                filename = save_attachment(request.files.get(f"question-{i}-file"))
 
                 answer_type_value = request.form.get(f"dropdown-{i}")
                 answer_type = AnswerType.TEXT if answer_type_value == 'text' else AnswerType.MCQ

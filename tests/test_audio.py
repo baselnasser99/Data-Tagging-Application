@@ -110,7 +110,7 @@ def test_admin_pages_show_audio_items(admin_client):
 
     generate = admin_client.get(f"/admin/generate-annotation-tasks/{project.id}")
     assert generate.status_code == 200
-    assert b"media-audio-thumb" in generate.data
+    assert b"2 items" in generate.data  # the image and the audio clip both count (no preview strip here any more)
 
     upload_page = admin_client.get(f"/admin/upload-images/{project.id}")
     assert b"MP3, WAV, OGG, M4A, FLAC" in upload_page.data

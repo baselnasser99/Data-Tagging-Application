@@ -41,7 +41,7 @@ def upload_path(filename):
 
 
 def public_file_url(filename):
-    return url_for("static", filename=f"uploads/{filename}", _external=True)
+    return url_for("uploaded_file", name=filename, _external=True)
 
 
 @admin.route("/dashboard")

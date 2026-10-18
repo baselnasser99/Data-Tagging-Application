@@ -471,8 +471,10 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
   .figure:first-child { border-top: 0; }
 }
 
+/* Reduced motion: each moving element turns its own movement off (apple.css, the tiles,
+   the sign-in picture) and keeps its colour and opacity fades, which don't move anything. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition: none !important; animation: none !important; }
+  html { scroll-behavior: auto; }
 }
 
 /* ---------- audio items in annotation projects ---------- */
@@ -535,10 +537,12 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .action-tile-primary:hover, .action-tile-primary:focus { color: #fff; border-color: var(--ink); }
 .action-tile-primary .action-tile-icon { background: rgba(255, 255, 255, 0.14); }
 .action-tile-primary .action-tile-text > span { color: rgba(255, 255, 255, 0.75); }
-@media (hover: hover) { .action-tile { transition: transform 100ms ease-out, box-shadow 150ms; }
+@media (hover: hover) and (pointer: fine) { .action-tile { transition: transform 160ms var(--ease-out), box-shadow 150ms ease; }
   .action-tile:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(28, 39, 51, 0.10); } }
 .action-tile:active { transform: scale(0.98); }
-@media (prefers-reduced-motion: reduce) { .action-tile, .action-tile:hover, .action-tile:active { transition: none; transform: none; } }
+.action-tile { transition: transform 160ms var(--ease-out), box-shadow 150ms ease; }  /* the press works on touch screens too */
+@media (prefers-reduced-motion: reduce) { .action-tile { transition: box-shadow 150ms ease; }
+  .action-tile:hover, .action-tile:active { transform: none; } }
 /* Settings lists on a full-width card: two label/value columns side by side */
 @media (min-width: 900px) { .settings-list-wide { grid-template-columns: max-content 1fr max-content 1fr; } }
 

@@ -14,7 +14,9 @@
   --shadow-small: 0 1px 2px rgba(28, 39, 51, 0.06), 0 1px 1px rgba(28, 39, 51, 0.04);
   --shadow-card: 0 1px 2px rgba(28, 39, 51, 0.05), 0 6px 20px rgba(28, 39, 51, 0.06);
   --glass: rgba(255, 255, 255, 0.72);
-  --press: transform 100ms ease-out;
+  /* Motion: strong custom curves (the built-in ones are too weak), short durations */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);  /* things appearing and responding to a press */
+  --press: transform 160ms var(--ease-out);
 }
 
 /* ---------- typography: system font, tracking by size ---------- */
@@ -52,7 +54,7 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .table { border-radius: var(--radius-sm); }
 .form-control { border-radius: var(--radius-sm); box-shadow: var(--shadow-small) inset; }
 .progress { border-radius: 99px; height: 6px; overflow: hidden; }
-.progress-bar { border-radius: 99px; transition: width 400ms cubic-bezier(0.25, 1, 0.5, 1); }
+.progress-bar { border-radius: 99px; }  /* widths are set when the page is drawn; nothing to animate */
 .sidebar-menu > li > a { border-radius: var(--radius-sm); }
 .dropdown-menu, .navbar-nav > .user-menu > .dropdown-menu.account-menu {
   border: 0; border-radius: var(--radius); box-shadow: 0 12px 32px rgba(28, 39, 51, 0.16);
@@ -60,14 +62,15 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 }
 
 /* ---------- response: feedback the instant you press ---------- */
-.btn { border-radius: var(--radius-sm); transition: var(--press), background-color 150ms, box-shadow 150ms; }
+.btn { border-radius: var(--radius-sm); transition: var(--press), background-color 150ms ease, box-shadow 150ms ease; }
 .btn:active, .btn.active { transform: scale(0.97); box-shadow: none; }
-.sidebar-menu > li > a { transition: var(--press), background-color 150ms; }
+.sidebar-menu > li > a { transition: var(--press), background-color 150ms ease; }
 .sidebar-menu > li > a:active { transform: scale(0.98); }
 
-/* Hover: visible on dark buttons too (lighter fill, slight lift), only for real pointers */
-@media (hover: hover) {
-  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(28, 39, 51, 0.12); }
+/* Hover: a change of colour only, for real mouse pointers. Buttons are hovered dozens of
+   times a day, so they don't move on hover; the press (scale 0.97) is the feedback. */
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover { box-shadow: 0 2px 8px rgba(28, 39, 51, 0.10); }
   .btn-primary:hover, .btn-primary:focus, .btn-info:hover, .btn-info:focus { background: #3B4A5C; border-color: #3B4A5C; }
   .btn-success:hover { background: #238A57; border-color: #238A57; }
   .btn-danger:hover { box-shadow: 0 4px 12px rgba(180, 35, 24, 0.18); }
@@ -81,11 +84,11 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .manager-form .btn { margin-top: 4px; }
 
 /* Whole cards that are a single link (task cards) press like buttons */
-.task-grid .box:has(.box-footer .btn-block) { transition: var(--press), box-shadow 200ms; }
+.task-grid .box:has(.box-footer .btn-block) { transition: var(--press), box-shadow 200ms ease; }
 .task-grid .box:has(.box-footer .btn-block:active) { transform: scale(0.99); }
 
 /* ---------- motion: messages materialise (scale + blur + opacity together) ---------- */
-.flash-area .alert { animation: materialise 260ms cubic-bezier(0.25, 1, 0.5, 1) both; border-radius: var(--radius-sm); }
+.flash-area .alert { animation: materialise 240ms var(--ease-out) both; border-radius: var(--radius-sm); }
 @keyframes materialise {
   from { opacity: 0; transform: scale(0.98); filter: blur(4px); }
   to   { opacity: 1; transform: none; filter: none; }
@@ -93,7 +96,10 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 
 /* ---------- accessibility ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .btn, .sidebar-menu > li > a, .task-grid .box, .progress-bar { transition: none; }
+  /* Less motion, not none: colours and opacity still fade, nothing moves or scales */
+  .btn { transition: background-color 150ms ease, box-shadow 150ms ease; }
+  .sidebar-menu > li > a { transition: background-color 150ms ease; }
+  .task-grid .box { transition: box-shadow 200ms ease; }
   .btn:active, .btn:hover, .sidebar-menu > li > a:active, .task-grid .box:has(.box-footer .btn-block:active) { transform: none; }
   .flash-area .alert { animation: fade 150ms ease both; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }

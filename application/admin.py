@@ -171,6 +171,7 @@ def edit_user(user_id):
         user.full_name, user.email = full_name, email
         if password:
             user.set_password(password)
+            user.failed_logins, user.locked_until = 0, None  # a new password from the admin also lifts a lock
         db.session.commit()
         flash(f'{full_name} was updated.' + (' Share the new password with them.' if password else ''), 'success')
         return redirect(back)

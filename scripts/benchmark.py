@@ -126,6 +126,7 @@ def run_scenario(tasks, rng):
 
     finish_half(project, rng)
     done_before = TaskAssignment.query.filter_by(is_completed=True).count()
+    open_before_leave, _ = loads(project)  # people finish at different speeds, so this is already uneven
 
     leavers = rng.sample(users, max(1, people // 10))  # 10% leave
     start = time.perf_counter()
@@ -151,6 +152,7 @@ def run_scenario(tasks, rng):
 
     return {
         "tasks": tasks, "people": people, "handout_s": handout, "gap_total": gap(total),
+        "gap_open_start": gap(open_before_leave),
         "leavers": len(leavers), "leave_s": leave, "gap_open_leave": gap(open_after_leave),
         "joiners": len(joiners), "join_s": join, "gap_open_join": gap(open_after_join),
         "owned": owned_after_handout and every_task_owned(project), "kept": kept,
@@ -217,15 +219,16 @@ def load_test(app, people=20, items=50, questions=2):
 
 def report(rows, load, database):
     lines = [f"## Hand-out speed and fairness ({database})", "",
-             "| Tasks | People | Hand out | Gap after hand-out | 10% leave | Open gap after | 5% join | Open gap after | Every task owned | Finished work kept |",
-             "|---:|---:|---:|---:|---:|---:|---:|---:|:-:|:-:|"]
+             "| Tasks | People | Hand out | Gap after hand-out | Open gap, half answered | 10% leave | Open gap after | 5% join | Open gap after | Every task owned | Finished work kept |",
+             "|---:|---:|---:|---:|---:|---:|---:|---:|---:|:-:|:-:|"]
     for r in rows:
-        lines.append(f"| {r['tasks']:,} | {r['people']} | {r['handout_s']:.2f} s | {r['gap_total']} "
+        lines.append(f"| {r['tasks']:,} | {r['people']} | {r['handout_s']:.2f} s | {r['gap_total']} | {r['gap_open_start']} "
                      f"| {r['leavers']} in {r['leave_s']:.2f} s | {r['gap_open_leave']} "
                      f"| {r['joiners']} in {r['join_s']:.2f} s | {r['gap_open_join']} "
                      f"| {'yes' if r['owned'] else 'NO'} | {'yes' if r['kept'] else 'NO'} |")
-    lines += ["", "Gap = most tasks held by one person minus fewest. 'Open' counts unfinished tasks only, "
-                  "after half the work was marked as answered."]
+    lines += ["", "Gap = most tasks held by one person minus fewest. 'Open' counts unfinished tasks only: "
+                  "half the work is marked as answered at random, as if people worked at different speeds, "
+                  "so the open gap is uneven before anyone leaves."]
     if load:
         lines += ["", f"## Load test ({database})", "",
                   "| People at once | Requests | Errors | Time | Requests/s | Median | 95th percentile | Slowest | Tasks answered |",

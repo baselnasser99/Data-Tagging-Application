@@ -13,7 +13,7 @@
     {% for i in range(1, 7) %}
     <div class="form-group option-group" data-option="{{ i }}">
       <label for="{{ prefix }}{{ i }}{{ suffix }}">Option {{ i }}</label>
-      <input type="text" class="form-control" id="{{ prefix }}{{ i }}{{ suffix }}" name="{{ prefix }}{{ i }}{{ suffix }}"
+      <input type="text" class="form-control" maxlength="50" id="{{ prefix }}{{ i }}{{ suffix }}" name="{{ prefix }}{{ i }}{{ suffix }}"
              value="{{ (question['option' ~ i] if question else '') or '' }}">
     </div>
     {% endfor %}

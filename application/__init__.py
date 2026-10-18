@@ -88,8 +88,13 @@ _ADDED_COLUMNS = [
 ]
 
 
+# Columns made longer after the first release: (column of the user table, characters).
+_WIDENED_COLUMNS = [("email", 255), ("full_name", 100)]
+
+
 def _upgrade_schema(app):
-    """Add columns that older databases are missing. Safe to run every start."""
+    """Bring older databases up to date: missing columns, longer name and email
+    columns, and the one-task-per-item-and-question rule. Safe to run every start."""
     from sqlalchemy import inspect, text
 
     inspector = inspect(db.engine)
@@ -103,6 +108,30 @@ def _upgrade_schema(app):
         with db.engine.begin() as conn:
             conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
         app.logger.info("Database upgraded: added %s.%s", table, column)
+
+    if "user" in tables and db.engine.dialect.name == "mysql":  # SQLite doesn't enforce lengths
+        for column, length in _WIDENED_COLUMNS:
+            current = next(c for c in inspector.get_columns("user") if c["name"] == column)
+            if getattr(current["type"], "length", length) < length:
+                with db.engine.begin() as conn:
+                    conn.execute(text(f"ALTER TABLE `user` MODIFY `{column}` VARCHAR({length}) NOT NULL"))
+                app.logger.info("Database upgraded: user.%s holds %d characters", column, length)
+
+    if "annotation_task" in tables:
+        rule = "unique_task_item_question"
+        names = {c["name"] for c in inspector.get_unique_constraints("annotation_task")}
+        names |= {i["name"] for i in inspector.get_indexes("annotation_task")}
+        if rule not in names:
+            with db.engine.begin() as conn:
+                duplicate = conn.execute(text(
+                    "SELECT 1 FROM annotation_task GROUP BY project_id, image_id, question_id "
+                    "HAVING COUNT(*) > 1 LIMIT 1")).first()
+                if duplicate:  # never delete data to make the rule fit; say so instead
+                    app.logger.warning("Duplicate tasks found; the one-task-per-item-and-question rule was not added")
+                else:
+                    conn.execute(text(f"CREATE UNIQUE INDEX {rule} ON annotation_task "
+                                      "(project_id, image_id, question_id)"))
+                    app.logger.info("Database upgraded: one task per item and question")
 
 
 def _ensure_admin(app):

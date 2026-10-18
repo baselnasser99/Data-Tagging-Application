@@ -26,7 +26,7 @@
           </div>
           <div class="form-group">
             <label for="password">New password</label>
-            <input type="password" class="form-control" id="password" name="password" minlength="6" autocomplete="new-password">
+            <input type="password" class="form-control" id="password" name="password" minlength="{{ min_password_length }}" autocomplete="new-password">
             <p class="help-block">Leave it empty to keep their current password. If they forgot it, set a new one and share it with them.</p>
           </div>
         </div>

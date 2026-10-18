@@ -545,6 +545,22 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 /* Section heading between boxes on a page */
 .section-title { font-size: 18px; font-weight: 700; margin: 8px 0 14px; color: var(--ink); }
 
+/* Question cards (new project, questions and settings): each question is its own bordered card
+   with a tinted, numbered header, so neighbouring questions never run together */
+.question-card { border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); margin-bottom: 14px; overflow: hidden; }
+.question-card-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+.question-card-head > label { margin: 0; }
+.question-card-head > .question-kind { font-size: 13px; }
+.question-card-head > .btn { margin-left: auto; }
+.question-card-body { padding: 14px; }
+.question-card-body > .row:last-child, .question-card-body > .form-group:last-child { margin-bottom: 0; }
+.question-number { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+.option-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; max-width: 420px; }
+
+/* A form with a side panel (New project): the pair stays a comfortable width */
+.content.form-wide { max-width: 1120px; margin-left: 0; margin-right: 0; }
+
 /* Group cards: one line per project, with its progress */
 .assignment-list { list-style: none; margin: 0; padding: 0; }
 .assignment-list > li { padding: 10px 0; border-top: 1px solid var(--line); }

@@ -653,6 +653,22 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .person.person-short { grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr) auto; padding: 10px 0; }
 .list-search { margin-bottom: 8px; }
 .list-none { margin: 10px 0 0; }
+
+/* Groups: each card has its own colour (top edge + initial) so groups are told apart at a glance. */
+.box.group-card { border-top: 4px solid var(--group-ink, var(--line)); }  /* .box: beats apple.css, which removes box borders */
+.group-card.tone-blue { --group-bg: var(--tint-blue); --group-ink: var(--tint-blue-ink); }
+.group-card.tone-green { --group-bg: var(--tint-green); --group-ink: var(--tint-green-ink); }
+.group-card.tone-amber { --group-bg: var(--tint-amber); --group-ink: var(--tint-amber-ink); }
+.group-card.tone-violet { --group-bg: var(--tint-violet); --group-ink: var(--tint-violet-ink); }
+.group-card.tone-teal { --group-bg: var(--tint-teal); --group-ink: var(--tint-teal-ink); }
+.group-card-head { display: flex; align-items: center; gap: 12px; }
+.group-card-head p { margin: 2px 0 0; }
+.group-badge { flex: none; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+  font-weight: 700; font-size: 18px; background: var(--group-bg); color: var(--group-ink); }
+.group-members { display: flex; align-items: center; margin-bottom: 12px; min-height: 28px; }
+.group-members .avatar { background: var(--group-bg); color: var(--group-ink); border: 2px solid var(--surface); margin-left: -6px; }
+.group-members .avatar:first-child { margin-left: 0; }
+.group-members > .text-muted { margin-left: 8px; }
 @media (max-width: 900px) {
   .person { grid-template-columns: 40px 1fr auto; }
   .person-groups, .person-figures, .person-actions { grid-column: 2 / -1; justify-content: flex-start; }

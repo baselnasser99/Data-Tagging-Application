@@ -26,9 +26,6 @@
         <div class="box-body text-center">
           {{ media_item(project, image, img_class="img-responsive center-block",
                         img_style="max-height: 500px; border: 2px solid #ddd; border-radius: 5px;") }}
-          <p class="text-muted" style="margin-top: 10px;">
-            <strong>{{ 'Audio' if image.is_audio else 'Image' }}:</strong> {{ image.original_filename }}
-          </p>
         </div>
       </div>
     </div>
@@ -96,7 +93,7 @@
             </tr>
             <tr>
               <th>Question Type:</th>
-              <td><span class="badge bg-blue">{{ question.answer_type.value.title() }}</span></td>
+              <td><span class="badge bg-blue">{{ 'Multiple choice' if question.answer_type.name == 'MCQ' else 'Free text' }}</span></td>
             </tr>
             <tr>
               <th>Task Progress:</th>

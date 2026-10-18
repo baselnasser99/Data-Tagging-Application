@@ -20,15 +20,12 @@
       <div class="box box-primary">
         <div class="box-header with-border">
           <h3 class="box-title">
-            <i class="fa {{ 'fa-music' if image.is_audio else 'fa-image' }}"></i> {{ image.original_filename }}
+            <i class="fa {{ 'fa-music' if image.is_audio else 'fa-image' }}"></i> {{ project.name }}
           </h3>
         </div>
         <div class="box-body text-center">
           {{ media_item(project, image, img_class="img-responsive center-block",
                         img_style="max-height: 400px; border: 2px solid #ddd; border-radius: 5px;") }}
-          <p class="text-muted" style="margin-top: 10px;">
-            <strong>Project:</strong> {{ project.name }}
-          </p>
         </div>
       </div>
     </div>
@@ -127,8 +124,8 @@
               <div class="info-box">
                 <span class="info-box-icon bg-blue"><i class="fa fa-image"></i></span>
                 <div class="info-box-content">
-                  <span class="info-box-text">Current Image</span>
-                  <span class="info-box-number">{{ image.original_filename[:20] }}{% if image.original_filename|length > 20 %}...{% endif %}</span>
+                  <span class="info-box-text">Current item</span>
+                  <span class="info-box-number">{{ 'Audio clip' if image.is_audio else 'Picture' }}</span>
                 </div>
               </div>
             </div>

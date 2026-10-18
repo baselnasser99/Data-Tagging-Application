@@ -59,7 +59,7 @@
                 <li>
                   {% if current_user.role == 'end-user' %}
                   <a href="{{ url_for('annotation.profile') }}">Profile settings</a>
-                  {% elif current_user.role == 'admin' %}
+                  {% else %}
                   <a href="{{ url_for('admin.admin_profile') }}">Profile settings</a>
                   {% endif %}
                 </li>

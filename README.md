@@ -80,7 +80,7 @@ The code is in [`application/distribution.py`](application/distribution.py), and
 
 ```
 application/
-├── auth.py              sign-in, sign-up, sessions
+├── auth.py              sign-in, sign-out, sessions
 ├── admin.py             dashboard, people, CSV import, surveys, downloads
 ├── groups.py            groups and their members
 ├── manager.py           managers and their pages

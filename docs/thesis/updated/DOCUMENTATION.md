@@ -24,7 +24,7 @@ People are added by the admin one at a time (with a role, optionally straight in
 
   | Blueprint | Handles |
   |---|---|
-  | `auth` | Sign-in, sign-up, sign-out |
+  | `auth` | Sign-in and sign-out (no public sign-up: the admin adds people) |
   | `admin` | Dashboard, people, CSV import, surveys, downloads, profile |
   | `groups` | Groups and their members |
   | `manager` | Managers and their pages |

@@ -5,6 +5,7 @@
 {% block content %}
 <section class="content-header">
   <h1>New project</h1>
+  <p class="text-muted page-subtitle">Images or audio clips, each answered by your team.</p>
   <ol class="breadcrumb">
     <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
     <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
@@ -12,15 +13,13 @@
   </ol>
 </section>
 
-<section class="content">
+<section class="content form-wide">
 
   <div class="row">
     <div class="col-md-8">
       <div class="box box-primary">
         <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-image"></i> New project (images or audio)
-          </h3>
+          <h3 class="box-title">Details</h3>
         </div>
         
         <form method="POST">
@@ -28,20 +27,17 @@
           <div class="box-body">
             <div class="form-group">
               <label for="project_name">Project name</label>
-              <input type="text" class="form-control" id="project_name" name="project_name" 
-                     placeholder="e.g., Medical Image Classification" required>
-              <p class="help-block">Give your project a descriptive name.</p>
+              <input type="text" class="form-control" id="project_name" name="project_name"
+                     placeholder="For example: Street photos" required>
             </div>
-            
+
             <div class="form-group">
               <label for="project_desc">Description</label>
-              <textarea class="form-control" id="project_desc" name="project_desc" rows="4" 
-                        placeholder="Describe what people will be labelling..." required></textarea>
-              <p class="help-block">Explain the purpose and goals of this project.</p>
+              <textarea class="form-control" id="project_desc" name="project_desc" rows="2"
+                        placeholder="What people will be labelling, and why" required></textarea>
             </div>
             
             <div class="row">
-
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="assigned_group_id">Group (optional)</label>
@@ -101,32 +97,32 @@
             </template>
 
             <div class="row">
-              <div class="col-md-6">
+              <div class="col-sm-4">
                 <div class="form-group">
                   <label for="max_questions_per_user">Max tasks per person</label>
                   <input type="number" class="form-control" id="max_questions_per_user"
                          name="max_questions_per_user" value="100" min="1" max="1000" required>
-                  <p class="help-block">Maximum tasks each person can be given.</p>
+                  <p class="help-block">Nobody is given more tasks than this.</p>
                 </div>
               </div>
 
-              <div class="col-md-6">
+              <div class="col-sm-4">
                 <div class="form-group">
                   <label for="answers_per_task">Answers per task</label>
                   <input type="number" class="form-control" id="answers_per_task"
                          name="answers_per_task" value="1" min="1" max="50" required>
-                  <p class="help-block">How many different people should answer each item and question. Use 1 for simple labelling, or 3 or more if you want to measure agreement. It cannot be more than the number of people in the group.</p>
+                  <p class="help-block">1 for simple labelling; 3 or more to measure agreement.</p>
                 </div>
               </div>
 
-              <div class="col-md-6">
+              <div class="col-sm-4">
                 <div class="form-group">
                   <label for="hand_out">Hand out work</label>
                   <select class="form-control" id="hand_out" name="hand_out">
                     <option value="question" selected>Each question on its own (default)</option>
                     <option value="item">All of an item's questions to one person</option>
                   </select>
-                  <p class="help-block">"Each question on its own" spreads work most evenly: two people may get different questions about the same item. "All of an item's questions" lets one person answer everything about an item in one go, useful for long audio clips.</p>
+                  <p class="help-block">One item's questions to one person suits long audio clips.</p>
                 </div>
               </div>
             </div>
@@ -134,7 +130,7 @@
           
           <div class="box-footer">
             <button type="submit" class="btn btn-primary">
-              <i class="fa fa-plus"></i> Create Project & Add Questions
+              Create project
             </button>
             <a href="{{ url_for('admin.view_projects') }}" class="btn btn-default">
               <i class="fa fa-arrow-left"></i> Cancel

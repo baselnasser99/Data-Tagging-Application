@@ -113,6 +113,20 @@ a:hover, a:focus { color: var(--ink-soft); }
 .main-header .logo .brand-mark { flex: none; color: var(--ink); }
 
 .main-header .sidebar-toggle { color: var(--ink); }
+
+/* Decorative mark centred in the top bar: the selection brackets close in on the
+   yellow square and let go, slowly, like an item being tagged. */
+.main-header .navbar { position: relative; }
+.header-mark { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: flex; color: var(--ink); opacity: .85; pointer-events: none; }
+.header-mark .brand-mark path { transform-box: view-box; transform-origin: 50% 50%;
+  animation: mark-select 7s cubic-bezier(.65, 0, .35, 1) infinite; }
+.header-mark .brand-mark rect { transform-box: view-box; transform-origin: 50% 50%;
+  animation: mark-tag 7s cubic-bezier(.65, 0, .35, 1) infinite; }
+@keyframes mark-select { 0%, 55%, 100% { transform: scale(1); } 70%, 80% { transform: scale(.82); } }
+@keyframes mark-tag { 0%, 62%, 100% { transform: scale(1); } 74% { transform: scale(1.12); } 82% { transform: scale(1); } }
+@media (max-width: 767px) { .header-mark { display: none; } }  /* no room beside the menu button and name */
+@media (prefers-reduced-motion: reduce) { .header-mark .brand-mark path, .header-mark .brand-mark rect { animation: none; } }
 .main-header .sidebar-toggle:hover { background: var(--canvas); color: var(--ink); }
 
 .main-header .navbar .nav > li > a { color: var(--ink); }

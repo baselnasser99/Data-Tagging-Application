@@ -3,14 +3,12 @@ import io
 from flask import send_file, make_response, Blueprint, request, redirect, url_for, flash, render_template, session, abort
 from .models import Project, Question, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer
 from .extns import db
-import logging
 
 from .permissions import user_required
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Annotators' pages (on screen: members). The URLs keep their original /user prefix.
 annotation = Blueprint('annotation', __name__, url_prefix='/user')
-log = logging.getLogger(__name__)
 
 @annotation.route("/dashboard")
 @user_required
@@ -449,9 +447,6 @@ def annotate_image(image_id, project_id, batch_index=0):
 
     total_uncompleted_questions = len(all_uncompleted_assignments)
 
-    log.debug(f"Total uncompleted questions: {total_uncompleted_questions}")
-    log.debug(f"Batch size: {batch_size}")
-    log.debug(f"Current batch index: {batch_index}")
     if not all_uncompleted_assignments and batch_index == 0:
         flash("No new tasks found for this image!", "info")
         return redirect(url_for("annotation.annotation_tasks"))
@@ -462,10 +457,8 @@ def annotate_image(image_id, project_id, batch_index=0):
     start_index = batch_index * batch_size
     end_index = start_index + batch_size
 
-    log.debug(f"Start index: {start_index}, End index: {end_index}")
     current_batch_assignments = all_uncompleted_assignments[start_index:end_index]
 
-    log.debug(f"Assignments in current batch: {len(current_batch_assignments)}")
     if not current_batch_assignments and total_uncompleted_questions > 0:
         flash("All questions for this image have been answered!", "success")
         return redirect(url_for("annotation.annotation_tasks"))

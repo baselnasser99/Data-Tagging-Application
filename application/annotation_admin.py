@@ -14,8 +14,9 @@ from .admin import upload_dir
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
 from .jinja_utils import plural
-from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, ProjectAdmin, ProjectImage,
+from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, ProjectImage,
                      Question, TaskAssignment, UserGroup, media_type_for)
+from .groups import set_up_new_project
 from .permissions import project_admin_access_required, project_admin_required
 
 annotation_admin = Blueprint("annotation_admin", __name__, url_prefix="/admin")
@@ -47,28 +48,7 @@ def create_annotation_project():
         db.session.add(project)
         db.session.flush() # Get the project ID
 
-        # If the current user is a project-admin, assign them as an admin for this new project
-        if session.get('role') == 'project-admin':
-            current_user_id = session.get('id')
-            if current_user_id:
-                from .models import ProjectAdmin # Import locally to avoid circular dependency
-                new_project_admin = ProjectAdmin(
-                    user_id=current_user_id,
-                    project_id=project.id,
-                    assigned_by=current_user_id # Self-assigned
-                )
-                db.session.add(new_project_admin)
-                # No commit here, will commit all at once later
-
-        # Assign project to selected group (optional at creation)
-        if assigned_group_id:
-            group = db.session.get(UserGroup, assigned_group_id)
-            if group:
-                existing_assignment = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
-                if not existing_assignment:
-                    group_project = GroupProject(group_id=group.id, project_id=project.id)
-                    db.session.add(group_project)
-                    # No task distribution here; tasks are generated after images are uploaded
+        set_up_new_project(project, assigned_group_id)
 
         # Create the questions. Each can be free text or multiple choice
         # (multiple choice makes answers comparable, see the agreement score).
@@ -268,14 +248,7 @@ def view_annotation_project(project_id):
     unique_users = {a.user_id for a in assignments}
     total_tasks = len(tasks)
     
-    # Count truly completed tasks (those that have received required answers)
-    completed_tasks = 0
-    for task in tasks:
-        # A task is complete once it has received the required number of answers
-        task.is_completed = task.current_answers >= task.required_answers
-        if task.is_completed:
-            completed_tasks += 1
-    db.session.commit()
+    completed_tasks = sum(1 for task in tasks if task.is_completed)
 
     # Per-item completion statistics
     image_completion = {}

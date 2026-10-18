@@ -219,12 +219,16 @@ def generate_annotation_tasks(project_id):
         return redirect(url_for("annotation_admin.view_annotation_project", project_id=project.id))
 
     assigned_group_ids = {gp.group_id for gp in GroupProject.query.filter_by(project_id=project.id)}
+    # Pre-select the biggest group already on the project (one option only, or the browser picks the last).
+    on_project = [g for g in groups if g.id in assigned_group_ids]
+    default_group_id = max(on_project, key=lambda g: len(g.members)).id if on_project else None
     return render_template("admin/generate_annotation_tasks.html",
                          project=project,
                          images=images,
                          questions=questions,
                          groups=groups,
-                         assigned_group_ids=assigned_group_ids)
+                         assigned_group_ids=assigned_group_ids,
+                         default_group_id=default_group_id)
 
 
 @annotation_admin.route("/view-annotation-project/<int:project_id>")

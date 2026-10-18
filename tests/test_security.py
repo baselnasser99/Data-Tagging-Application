@@ -113,3 +113,26 @@ def test_every_page_sends_security_headers(client):
     assert resp.headers["X-Frame-Options"] == "DENY"
     assert resp.headers["Referrer-Policy"] == "same-origin"
     assert "frame-ancestors 'none'" in resp.headers["Content-Security-Policy"]
+
+
+def test_uploaded_files_need_sign_in(app, client, user_client):
+    import os
+
+    from application.admin import upload_dir
+
+    with open(os.path.join(upload_dir("images", "1"), "photo.png"), "wb") as f:
+        f.write(b"png-bytes")
+    assert client.get("/files/images/1/photo.png").status_code == 302  # to the sign-in page
+    assert user_client.get("/files/images/1/photo.png").data == b"png-bytes"
+    assert user_client.get("/files/../config.py").status_code == 404
+
+    # The old public address under /static/uploads/ no longer works.
+    static_copy = os.path.join(app.static_folder, "uploads", "photo-test.png")
+    os.makedirs(os.path.dirname(static_copy), exist_ok=True)
+    with open(static_copy, "wb") as f:
+        f.write(b"png-bytes")
+    try:
+        assert client.get("/static/uploads/photo-test.png").status_code == 404
+        assert client.get("/static/css/app.css").status_code == 200
+    finally:
+        os.remove(static_copy)

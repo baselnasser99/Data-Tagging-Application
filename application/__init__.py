@@ -3,7 +3,8 @@ import os
 from logging.handlers import RotatingFileHandler
 
 import pymysql
-from flask import Flask, render_template, request
+from flask import Flask, abort, render_template, request, send_from_directory
+from flask_login import login_required
 from flask_wtf.csrf import CSRFError
 
 pymysql.install_as_MySQLdb()
@@ -30,7 +31,7 @@ def create_app(config_object=None):
     login_manager.init_app(app)
     csrf.init_app(app)
 
-    from .admin import admin
+    from .admin import admin, upload_dir
     from .auth import MIN_PASSWORD_LENGTH, auth
     from .annotation import annotation
     from .groups import groups
@@ -53,11 +54,23 @@ def create_app(config_object=None):
 
     _register_error_handlers(app)
 
+    @app.before_request
+    def _hide_uploads_from_static():
+        # Uploads live under static/ but are served only to signed-in people, below.
+        if request.endpoint == "static" and (request.view_args or {}).get("filename", "").startswith("uploads/"):
+            abort(404)
+
+    # shortcut: any signed-in person may open a file whose (random, unguessable) name they know; check project membership if links are ever shared outside the team.
+    @app.route("/files/<path:name>")
+    @login_required
+    def uploaded_file(name):
+        return send_from_directory(upload_dir(), name)
+
     @app.after_request
     def _security_headers(response):
         # Pages show private data: don't let the browser keep a copy that the
         # Back button could show after sign-out. Static files may be cached.
-        if request.endpoint != "static":
+        if request.endpoint not in ("static", "uploaded_file"):
             response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"

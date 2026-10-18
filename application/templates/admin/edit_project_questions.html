@@ -154,7 +154,7 @@
             <div class="col-sm-6 form-group">
               <label for="questionfile-{{ qid }}">Attach a file (optional)</label>
               <input type="file" class="form-control" id="questionfile-{{ qid }}" name="questionfile-{{ qid }}">
-              {% if question.file_path %}<p class="help-block"><a href="{{ url_for('static', filename='uploads/' ~ question.file_path) }}" target="_blank" rel="noopener">Current file</a></p>{% endif %}
+              {% if question.file_path %}<p class="help-block"><a href="{{ url_for('uploaded_file', name=question.file_path) }}" target="_blank" rel="noopener">Current file</a></p>{% endif %}
             </div>
           </div>
           {% endif %}

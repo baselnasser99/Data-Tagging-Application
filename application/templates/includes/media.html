@@ -12,7 +12,7 @@
   for galleries where a row of players would be cluttered.
 #}
 {% macro media_url(project, item) -%}
-  {{ url_for('static', filename='uploads/images/' ~ project.id ~ '/' ~ item.filename) }}
+  {{ url_for('uploaded_file', name='images/' ~ project.id ~ '/' ~ item.filename) }}
 {%- endmacro %}
 
 {% macro media_item(project, item, img_class="", img_style="", thumbnail=False) -%}

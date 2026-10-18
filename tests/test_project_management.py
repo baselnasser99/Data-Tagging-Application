@@ -285,3 +285,19 @@ def test_projects_list_download_gives_annotation_projects_the_csv(admin_client, 
     page = admin_client.get("/admin/view-projects").data
     assert f"/admin/project/{project.id}/export.csv".encode() in page
     assert f"/admin/download-files/{survey.id}".encode() in page
+
+
+def test_question_files_must_be_pictures_audio_or_video(admin_client, survey):
+    """Attachments are served from the app's own address: an HTML or SVG file could run scripts as the admin."""
+    q = survey.questions[0]
+    resp = admin_client.post(f"/admin/project/{survey.id}/edit-questions", follow_redirects=True,
+                             data={"action": "update_questions", f"question-{q.id}": q.question,
+                                   f"questionfile-{q.id}": (io.BytesIO(b"<script>alert(1)</script>"), "evil.html")},
+                             content_type="multipart/form-data")
+    assert b"was not attached" in resp.data and not (q.file_path or "").endswith("evil.html")
+
+    resp = admin_client.post("/admin/create-project", follow_redirects=True, content_type="multipart/form-data", data={
+        "project_name": "Svg test", "project_desc": "d", "total_questions": "1", "question-1": "Q", "dropdown-1": "text",
+        "question-1-file": (io.BytesIO(b"<svg onload=alert(1)>"), "x.svg")})
+    assert b"was not attached" in resp.data
+    assert Project.query.filter_by(name="Svg test").one().questions[0].file_path is None

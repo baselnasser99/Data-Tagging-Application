@@ -66,6 +66,12 @@ def test_rename_project_and_attach_question_file(admin_client, survey):
                       content_type="multipart/form-data")
     assert q.file_path.endswith("pic.png")
 
+    # Long names are shortened to fit the 100-character column, keeping the extension.
+    admin_client.post(url, data={"action": "update_questions", f"question-{q.id}": q.question,
+                                 f"questionfile-{q.id}": (io.BytesIO(b"img"), "a" * 120 + ".png")},
+                      content_type="multipart/form-data")
+    assert len(q.file_path) <= 100 and q.file_path.endswith("aaa.png")
+
 
 def test_project_multiple_choice_options_can_be_edited(admin_client, db, annotation_project):
     """The answer-type box used to be disabled for projects, so option edits were silently dropped."""

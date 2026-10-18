@@ -655,7 +655,7 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .list-none { margin: 10px 0 0; }
 
 /* Groups: each card has its own colour (top edge + initial) so groups are told apart at a glance. */
-.group-card { border-top: 4px solid var(--group-ink, var(--line)); }
+.box.group-card { border-top: 4px solid var(--group-ink, var(--line)); }  /* .box: beats apple.css, which removes box borders */
 .group-card.tone-blue { --group-bg: var(--tint-blue); --group-ink: var(--tint-blue-ink); }
 .group-card.tone-green { --group-bg: var(--tint-green); --group-ink: var(--tint-green-ink); }
 .group-card.tone-amber { --group-bg: var(--tint-amber); --group-ink: var(--tint-amber-ink); }

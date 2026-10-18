@@ -54,13 +54,15 @@
           </div>
           <div class="person-figures">
             <span><strong>{{ d.assigned_projects_count }}</strong> {{ "project" if d.assigned_projects_count == 1 else "projects" }}</span>
-            <span><strong>{{ d.answer_count }}</strong> {{ "answer" if d.answer_count == 1 else "answers" }}</span>
+            {% if d.answer_count %}
+            <a href="{{ url_for('admin.download_answers', user_id=u.id) }}" title="Download as CSV"
+               aria-label="Download {{ u.full_name }}'s {{ d.answer_count }} answers as CSV">
+              <strong>{{ d.answer_count }}</strong> {{ "answer" if d.answer_count == 1 else "answers" }} <i class="fa fa-download" aria-hidden="true"></i></a>
+            {% else %}
+            <span><strong>0</strong> answers</span>
+            {% endif %}
           </div>
           <div class="person-actions">
-            {% if d.answer_count %}
-            <a class="btn btn-default btn-sm" href="{{ url_for('admin.download_answers', user_id=u.id) }}"
-               title="Download answers" aria-label="Download {{ u.full_name }}'s answers as CSV"><i class="fa fa-download" aria-hidden="true"></i></a>
-            {% endif %}
             {% if u.active %}
             <a class="btn btn-default btn-sm" href="{{ url_for('admin.edit_user', user_id=u.id) }}" aria-label="Edit {{ u.full_name }}">Edit</a>
             <form method="POST" action="{{ url_for('admin.remove_user', user_id=u.id) }}"

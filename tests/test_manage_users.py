@@ -90,10 +90,10 @@ def test_a_removed_person_who_is_signed_in_is_signed_out(app, admin_client, make
     assert member.get("/user/dashboard").status_code == 302
 
 
-def test_only_members_can_be_edited_or_removed_and_only_by_admins(admin_client, app, make_user, db):
+def test_only_members_can_be_removed_and_only_by_admins(admin_client, admin_user, app, make_user, db):
     manager = make_user(role="project-admin")
     assert admin_client.post(f"/admin/users/{manager.id}/remove").status_code == 404
-    assert admin_client.get(f"/admin/users/{manager.id}/edit").status_code == 404
+    assert admin_client.get(f"/admin/users/{admin_user.id}/edit").status_code == 404  # admins use their profile page
     member = make_user()
     other = app.test_client()
     login(other, manager.email)
@@ -105,3 +105,32 @@ def test_names_in_confirm_dialogs_cannot_break_out_into_javascript(admin_client,
     make_user(name="O'Brien'); alert(1); ('")
     page = admin_client.get("/admin/users").data
     assert b"confirm('" not in page and b"O&#39;Brien" in page
+
+
+def test_managers_page_lists_managers_with_their_projects_search_and_edit(admin_client, make_user, db):
+    from application.models import ProjectAdmin
+    admin = User.query.filter_by(role="admin").first()
+    busy, idle = make_user(role="project-admin", name="Busy Manager"), make_user(role="project-admin", name="Idle Manager")
+    project = Project(name="Scans", desc="d")
+    db.session.add(project)
+    db.session.flush()
+    db.session.add(ProjectAdmin(user_id=busy.id, project_id=project.id, assigned_by=admin.id))
+    db.session.commit()
+    page = admin_client.get("/admin/managers").data
+    assert b'data-search-list="manager-list"' in page and b'data-search-list="project-list"' in page
+    assert b"Busy Manager" in page and b"No project" in page
+    assert f"/admin/users/{idle.id}/edit".encode() in page
+
+    resp = admin_client.post(f"/admin/users/{busy.id}/edit", follow_redirects=True,
+                             data={"full_name": "Renamed Manager", "email": busy.email, "password": ""})
+    assert b"Renamed Manager was updated" in resp.data and b"Projects and their managers" in resp.data
+
+
+def test_users_rows_link_the_answer_count_to_the_download(admin_client, make_user, db):
+    from application.models import QuestionAnswer
+    project, _, (a, b) = _team(db, make_user)
+    db.session.add(QuestionAnswer(user_id=a.id, question_id=project.questions[0].id, answer="cat"))
+    db.session.commit()
+    page = admin_client.get("/admin/users").data
+    assert f'href="/admin/download-answers/{a.id}"'.encode() in page
+    assert b"<strong>1</strong> answer <i" in page  # the count itself is the download link

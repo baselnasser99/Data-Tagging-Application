@@ -11,7 +11,7 @@ from sqlalchemy import delete
 from werkzeug.utils import secure_filename
 
 from .extns import db
-from .models import Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, AnnotationTask, TaskAssignment, ExportLog
+from .models import is_attachment, Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, AnnotationTask, TaskAssignment, ExportLog
 from .auth import MIN_PASSWORD_LENGTH
 from .jinja_utils import plural
 from . import distribution
@@ -438,7 +438,9 @@ def create_project():
                 question_text = request.form.get(f"question-{i}")
                 file_path = request.files.get(f"question-{i}-file")
                 filename = None
-                if file_path and file_path.filename:
+                if file_path and file_path.filename and not is_attachment(file_path.filename):
+                    flash(f'"{file_path.filename}" was not attached: question files must be a picture, audio or video.', 'warning')
+                elif file_path and file_path.filename:
                     filename = str(uuid.uuid4()) + \
                         secure_filename(file_path.filename)
 

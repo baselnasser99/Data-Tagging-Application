@@ -11,7 +11,7 @@ from .admin import group_stats_for, upload_path, weekly_answers
 from .extns import db
 from .feedback import flash_distribution
 from .groups import distribute_questions_to_group, project_progress
-from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
+from .models import (is_attachment, AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
                      QuestionAnswer, TaskAssignment, User, UserQuestionAssignment)
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
 
@@ -317,7 +317,9 @@ def _update_question(question, text, form, files):
             question.answer = form.get(f'mcq-correct-answer-{qid}')
 
     upload = files.get(f'questionfile-{qid}')
-    if upload and upload.filename != '':
+    if upload and upload.filename and not is_attachment(upload.filename):
+        flash(f'"{upload.filename}" was not attached: question files must be a picture, audio or video.', 'warning')
+    elif upload and upload.filename != '':
         filename = str(uuid.uuid4()) + secure_filename(upload.filename)
         upload.save(upload_path(filename))
         question.file_path = filename

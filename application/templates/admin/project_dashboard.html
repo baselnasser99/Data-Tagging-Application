@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "includes/tiles.html" import tile %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -51,71 +52,52 @@
         </div>
         {% endif %}
 
-        <div class="row task-grid">
-            <div class="col-md-6 col-xs-12">
-                <div class="box">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Settings</h3>
-                    </div>
-                    <div class="box-body">
-                        <dl class="settings-list">
-                            <dt>Description</dt>
-                            <dd class="project-desc">{{ project.desc or "None" }}</dd>
-                            <dt>Manager</dt>
-                            <dd>{{ project_admins[0].user.full_name if project_admins else "No manager" }}</dd>
-                            <dt>Groups</dt>
-                            <dd>{{ assigned_groups|map(attribute="name")|join(", ") or "None yet" }}</dd>
-                            {% if project.is_annotation_project %}
-                            <dt>Max tasks per person</dt>
-                            <dd>{{ project.max_questions_per_user }}</dd>
-                            <dt>Answers per task</dt>
-                            <dd>{{ project.answers_per_task }}</dd>
-                            <dt>Hand out work</dt>
-                            <dd>{{ "All of an item's questions to one person" if project.hand_out_per_item else "Each question on its own" }}</dd>
-                            {% endif %}
-                        </dl>
-                    </div>
-                    <div class="box-footer">
-                        <a href="{{ url_for('manager.edit_project_questions', project_id=project.id) }}" class="btn btn-default">
-                            <i class="fa fa-edit"></i> Edit questions and settings
-                        </a>
-                    </div>
-                </div>
-            </div>
+        <div class="action-tiles">
+            {% if project.is_annotation_project %}
+            {{ tile(url_for('annotation_admin.view_annotation_project', project_id=project.id), "line-chart", "Progress and results",
+                    "Who did what, and the answers so far", primary=True) }}
+            {{ tile(url_for('annotation_admin.upload_images', project_id=project.id), "upload", "Upload items",
+                    "Images, audio clips or ZIP files") }}
+            {{ tile(url_for('annotation_admin.generate_annotation_tasks', project_id=project.id), "tasks", "Hand out tasks",
+                    "Share the work across a group") }}
+            {% endif %}
+            {{ tile(url_for('manager.edit_project_questions', project_id=project.id), "pencil", "Questions and settings",
+                    "Edit questions, rename the project", primary=not project.is_annotation_project) }}
+            {{ tile(url_for('manager.project_groups', project_id=project.id), "users", "Groups",
+                    plural(assigned_groups|length, "group") ~ " working on it") }}
+            {{ tile(url_for('manager.project_admins', project_id=project.id), "user", "Manager",
+                    project_admins[0].user.full_name if project_admins else "No manager yet") }}
+            {% if project.is_annotation_project %}
+            {{ tile(url_for('annotation_admin.export_project', project_id=project.id, file_format='csv'), "download", "Download CSV",
+                    "Every answer, for a spreadsheet") }}
+            {{ tile(url_for('annotation_admin.export_project', project_id=project.id, file_format='json'), "download", "Download JSON",
+                    "Every answer, for code") }}
+            {% else %}
+            {{ tile(url_for('admin.download_files', project_id=project.id), "download", "Download answers", "Every answer as a file") }}
+            {% endif %}
+        </div>
 
-            <div class="col-md-6 col-xs-12">
-                <div class="box">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">What you can do</h3>
-                    </div>
-                    <div class="box-body quick-actions">
-                        {% if project.is_annotation_project %}
-                        <a href="{{ url_for('annotation_admin.view_annotation_project', project_id=project.id) }}" class="btn btn-primary">
-                            <i class="fa fa-eye"></i> Progress and results
-                        </a>
-                        <a href="{{ url_for('annotation_admin.upload_images', project_id=project.id) }}" class="btn btn-default">
-                            <i class="fa fa-upload"></i> Upload items
-                        </a>
-                        <a href="{{ url_for('annotation_admin.generate_annotation_tasks', project_id=project.id) }}" class="btn btn-default">
-                            <i class="fa fa-tasks"></i> Hand out tasks
-                        </a>
-                        {% endif %}
-                        <a href="{{ url_for('manager.project_groups', project_id=project.id) }}" class="btn btn-default">
-                            <i class="fa fa-users"></i> Groups
-                        </a>
-                        <a href="{{ url_for('manager.project_admins', project_id=project.id) }}" class="btn btn-default">
-                            <i class="fa fa-user"></i> Manager
-                        </a>
-                        {% if project.is_annotation_project %}
-                        <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-default">
-                            <i class="fa fa-download"></i> CSV
-                        </a>
-                        <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default">
-                            <i class="fa fa-download"></i> JSON
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
+        <div class="box">
+            <div class="box-header with-border">
+                <h3 class="box-title">Settings</h3>
+            </div>
+            <div class="box-body">
+                <dl class="settings-list settings-list-wide">
+                    <dt>Description</dt>
+                    <dd class="project-desc">{{ project.desc or "None" }}</dd>
+                    <dt>Manager</dt>
+                    <dd>{{ project_admins[0].user.full_name if project_admins else "No manager" }}</dd>
+                    <dt>Groups</dt>
+                    <dd>{{ assigned_groups|map(attribute="name")|join(", ") or "None yet" }}</dd>
+                    {% if project.is_annotation_project %}
+                    <dt>Max tasks per person</dt>
+                    <dd>{{ project.max_questions_per_user }}</dd>
+                    <dt>Answers per task</dt>
+                    <dd>{{ project.answers_per_task }}</dd>
+                    <dt>Hand out work</dt>
+                    <dd>{{ "All of an item's questions to one person" if project.hand_out_per_item else "Each question on its own" }}</dd>
+                    {% endif %}
+                </dl>
             </div>
         </div>
     </section>

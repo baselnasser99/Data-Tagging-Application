@@ -1,0 +1,19 @@
+{#
+  Action tiles: a grid of large links, each with an icon, a title and one line
+  saying what it does. Fills the width of its container.
+
+  Usage:
+    {% from "includes/tiles.html" import tile %}
+    <div class="action-tiles">
+      {{ tile(url_for(...), "upload", "Upload items", "Images or audio clips, or ZIP files", primary=True) }}
+    </div>
+#}
+{% macro tile(url, icon, title, text, primary=False) -%}
+  <a href="{{ url }}" class="action-tile{% if primary %} action-tile-primary{% endif %}">
+    <span class="action-tile-icon" aria-hidden="true"><i class="fa fa-{{ icon }}"></i></span>
+    <span class="action-tile-text">
+      <strong>{{ title }}</strong>
+      <span>{{ text }}</span>
+    </span>
+  </a>
+{%- endmacro %}

@@ -520,6 +520,28 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .segmented > a:hover { color: var(--ink); background: var(--canvas); text-decoration: none; }
 .segmented > a[aria-current="page"] { background: var(--ink); color: #fff; }
 
+/* Action tiles: big, easy targets that fill the row instead of a strip of small buttons */
+.action-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.action-tile { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; background: var(--surface);
+  border-radius: var(--radius); box-shadow: var(--shadow-card, none); border: 1px solid var(--line); color: var(--ink); }
+.action-tile:hover, .action-tile:focus { color: var(--ink); text-decoration: none; border-color: var(--line-strong); }
+.action-tile:focus-visible { outline: 3px solid var(--marker); outline-offset: 2px; }
+.action-tile-icon { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--canvas);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+.action-tile-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.action-tile-text > strong { font-size: 15px; }
+.action-tile-text > span { color: var(--muted); font-size: 13px; line-height: 1.35; }
+.action-tile-primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+.action-tile-primary:hover, .action-tile-primary:focus { color: #fff; border-color: var(--ink); }
+.action-tile-primary .action-tile-icon { background: rgba(255, 255, 255, 0.14); }
+.action-tile-primary .action-tile-text > span { color: rgba(255, 255, 255, 0.75); }
+@media (hover: hover) { .action-tile { transition: transform 100ms ease-out, box-shadow 150ms; }
+  .action-tile:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(28, 39, 51, 0.10); } }
+.action-tile:active { transform: scale(0.98); }
+@media (prefers-reduced-motion: reduce) { .action-tile, .action-tile:hover, .action-tile:active { transition: none; transform: none; } }
+/* Settings lists on a full-width card: two label/value columns side by side */
+@media (min-width: 900px) { .settings-list-wide { grid-template-columns: max-content 1fr max-content 1fr; } }
+
 /* Section heading between boxes on a page */
 .section-title { font-size: 18px; font-weight: 700; margin: 8px 0 14px; color: var(--ink); }
 

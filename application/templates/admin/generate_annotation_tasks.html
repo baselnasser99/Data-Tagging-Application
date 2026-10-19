@@ -23,7 +23,7 @@
 
             <div class="form-group">
               <label for="group_id">Group that will do the work</label>
-              <select class="form-control" id="group_id" name="group_id" required>
+              <select class="form-control" id="group_id" name="group_id" required data-needed="{{ project.answers_per_task }}">
                 <option value="">Choose a group...</option>
                 {% for group in groups %}
                 <option value="{{ group.id }}" data-size="{{ group.members|length }}"
@@ -83,18 +83,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-(function () {
-  var select = document.getElementById('group_id');
-  var warning = document.getElementById('size-warning');
-  if (!select || !warning) return;
-  function check() {
-    var option = select.options[select.selectedIndex];
-    var size = parseInt(option.getAttribute('data-size') || '0', 10);
-    warning.hidden = !(option.value && size < {{ project.answers_per_task }});
-  }
-  select.addEventListener('change', check);
-  check();  // a pre-selected group is checked too
-})();
-</script>
+<script src="{{ url_for('static', filename='js/hand-out.js') }}"></script>
 {% endblock %}

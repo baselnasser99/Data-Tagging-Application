@@ -37,6 +37,7 @@ def create_app(config_object=None):
     from .groups import groups
     from .manager import manager
     from .annotation_admin import annotation_admin
+    from .permissions import can_open_upload
     from .jinja_utils import getattr_safe, plural, sidebar_summary
 
     app.register_blueprint(auth)
@@ -60,10 +61,12 @@ def create_app(config_object=None):
         if request.endpoint == "static" and (request.view_args or {}).get("filename", "").startswith("uploads/"):
             abort(404)
 
-    # shortcut: any signed-in person may open a file whose (random, unguessable) name they know; check project membership if links are ever shared outside the team.
     @app.route("/files/<path:name>")
     @login_required
     def uploaded_file(name):
+        # Only admins, the project's managers and members of its groups (see permissions.py).
+        if not can_open_upload(name):
+            abort(403)
         return send_from_directory(upload_dir(), name)
 
     @app.after_request
@@ -75,9 +78,9 @@ def create_app(config_object=None):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "same-origin"
-        # shortcut: no script-src/style-src rules because templates use inline <script> blocks; move those to static files to tighten it.
+        # Scripts only from our own static files: templates have no inline <script> or on* handlers.
         response.headers["Content-Security-Policy"] = (
-            "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+            "script-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
         )
         return response
 

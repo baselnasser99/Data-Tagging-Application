@@ -16,7 +16,7 @@ A second, simpler mode, the **survey project**, is a questionnaire in which ever
 | `project-admin` | Manager | Only the projects they manage: items, questions, settings, groups, progress, exports. A manager can exist without a project. |
 | `end-user` | Member | See and answer their own tasks; see their own progress |
 
-People are added by the admin one at a time (with a role, optionally straight into a group) or from a CSV file; a temporary password is shown when none is given. People can also create their own member account. The admin can edit a member's name, email and password, and remove a member (§7).
+People are added by the admin one at a time (with a role, optionally straight into a group) or from a CSV file; a temporary password is shown when none is given. Only an admin adds people; there is no self sign-up. The admin can edit a member's name, email and password, and remove a member (§7).
 
 ## 3. Architecture (6.1)
 
@@ -121,7 +121,7 @@ rebalance(project):
 
 ## 9. Testing and evaluation (Ch. 7)
 
-- **200+ pytest tests, about 90% line coverage**, run by GitHub Actions on Python 3.11 and 3.12 for every change. Each distribution test runs in both hand-out modes.
+- **231 pytest tests, 92% line coverage** (measured 19 Oct 2026 on Python 3.12), run by GitHub Actions on Python 3.11 and 3.12 for every change. Each distribution test runs in both hand-out modes.
 - **Benchmark** (`scripts/benchmark.py`, run on MySQL 8 by `.github/workflows/benchmark.yml`):
 
   | Tasks | People | Hand out | 10% leave | 5% join | Open-load gap after join |

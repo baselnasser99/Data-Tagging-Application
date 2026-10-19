@@ -19,7 +19,7 @@
             <span><strong>{{ admin.user.full_name }}</strong> <span class="text-muted">· {{ admin.user.email }}</span><br>
               <span class="text-muted">Added by {{ admin.assigner.full_name if admin.assigner else 'unknown' }} on {{ admin.assigned_date.strftime('%d %b %Y') }}</span></span>
             <form action="{{ url_for('manager.remove_project_admin', project_id=project.id, admin_id=admin.id) }}" method="POST"
-                  data-confirm="Remove {{ admin.user.full_name }} as manager of this project?" onsubmit="return confirm(this.dataset.confirm)">
+                  data-confirm="Remove {{ admin.user.full_name }} as manager of this project?">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btn btn-danger btn-sm">Remove</button>
             </form>

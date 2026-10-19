@@ -33,7 +33,7 @@
               <li class="assignment-row">
                 <span><strong>{{ membership.user.full_name }}</strong><br><span class="text-muted">{{ membership.user.email }}</span></span>
                 {% if not locked %}
-                <form method="POST" onsubmit="return confirm('Remove this person from the group? Their unfinished tasks go to the others.')">
+                <form method="POST" data-confirm="Remove this person from the group? Their unfinished tasks go to the others.">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="action" value="remove_user">
                   <input type="hidden" name="user_id" value="{{ membership.user.id }}">

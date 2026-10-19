@@ -226,6 +226,30 @@ def test_admin_can_create_a_manager_for_a_project(admin_client, survey):
     assert manager.role == "project-admin" and manager.is_project_admin(survey.id)
 
 
+def test_creating_a_manager_needs_a_long_enough_password(admin_client, survey):
+    resp = admin_client.post(
+        f"/admin/project/{survey.id}/admins/create",
+        data={"fullname": "Shorty", "email": "shorty@example.com", "password": "short"},
+        follow_redirects=True,
+    )
+    assert b"at least 8 characters" in resp.data
+    assert User.query.filter_by(email="shorty@example.com").first() is None
+
+
+def test_creating_a_manager_is_audited(caplog, admin_client, survey):
+    import logging
+
+    caplog.set_level(logging.INFO, logger="audit")
+    admin_client.post(
+        f"/admin/project/{survey.id}/admins/create",
+        data={"fullname": " Manny ", "email": " manny@example.com ", "password": "secret123"},
+    )
+    manager = User.query.filter_by(email="manny@example.com").one()
+    assert manager.full_name == "Manny"
+    events = [r.getMessage() for r in caplog.records if r.name == "audit"]
+    assert any(e.startswith(f"USER_CREATED user_id={manager.id} role=project-admin") for e in events)
+
+
 def test_only_one_manager_per_project(admin_client, survey, make_project_admin):
     make_project_admin(survey)
     resp = admin_client.post(

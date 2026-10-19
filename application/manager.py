@@ -1,17 +1,21 @@
 """Project managers ("project-admin" role): their projects, dashboards, managers,
 groups, results and question editing. System admins can open these pages too."""
+import logging
 from datetime import datetime, timedelta
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session
 
 from . import distribution
 from .admin import group_stats_for, save_attachment, weekly_answers
+from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
 from .feedback import flash_distribution
 from .groups import distribute_questions_to_group, project_progress
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
                      QuestionAnswer, TaskAssignment, User, UserQuestionAssignment)
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
+
+audit = logging.getLogger("audit")
 
 manager = Blueprint("manager", __name__, url_prefix="/admin")
 
@@ -217,16 +221,21 @@ def create_project_admin(project_id):
         return redirect(url_for('manager.project_admins', project_id=project_id))
     
     if request.method == 'POST':
-        fullname = request.form.get('fullname')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        # Check if email already exists
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
+        fullname = (request.form.get('fullname') or '').strip()
+        email = (request.form.get('email') or '').strip()
+        password = request.form.get('password') or ''
+
+        # The same checks as admin.create_user
+        if not fullname or not email:
+            flash('Please enter a name and an email address.', 'danger')
+            return redirect(url_for('manager.create_project_admin', project_id=project_id))
+        if User.query.filter_by(email=email).first():
             flash('A user with this email already exists.', 'danger')
             return redirect(url_for('manager.create_project_admin', project_id=project_id))
-        
+        if len(password) < MIN_PASSWORD_LENGTH:
+            flash(f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.', 'danger')
+            return redirect(url_for('manager.create_project_admin', project_id=project_id))
+
         # Check if a project admin already exists for this project
         existing_project_manager = ProjectAdmin.query.filter_by(project_id=project_id).first()
         if existing_project_manager:
@@ -236,11 +245,13 @@ def create_project_admin(project_id):
         # Create new user and assign as project admin
         new_user = User()
         new_user.register_project_admin(fullname, email, password, project_id, current_user_id)
-        
+        audit.info("USER_CREATED user_id=%s role=%s by=%s", new_user.id, new_user.role, current_user_id)
+
         flash('New project admin created successfully.', 'success')
         return redirect(url_for('manager.project_admins', project_id=project_id))
-    
-    return render_template('admin/create_project_admin.html', project=project)
+
+    return render_template('admin/create_project_admin.html', project=project,
+                           min_password_length=MIN_PASSWORD_LENGTH)
 
 @manager.route("/project/<int:project_id>/groups")
 @project_admin_required

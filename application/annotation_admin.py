@@ -1,6 +1,7 @@
 """Annotation projects: create one, upload its items, hand out tasks, follow
 progress and export the dataset. (On screen these are simply "projects".)"""
 import io
+import logging
 import os
 import uuid
 import zipfile
@@ -18,6 +19,8 @@ from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Projec
                      Question, TaskAssignment, UserGroup, media_type_for)
 from .groups import set_up_new_project
 from .permissions import project_admin_access_required, project_admin_required
+
+audit = logging.getLogger("audit")
 
 annotation_admin = Blueprint("annotation_admin", __name__, url_prefix="/admin")
 
@@ -329,6 +332,8 @@ def export_project(project_id, file_format):
                              file_format=file_format, answer_count=data["totals"]["answers"]))
     db.session.commit()
     current_app.logger.info("EXPORT project=%s format=%s by user=%s", project.id, file_format, current_user.id)
+    audit.info("EXPORT project_id=%s format=%s answers=%s by=%s",
+               project.id, file_format, data["totals"]["answers"], current_user.id)
 
     slug = secure_filename(project.name.lower().replace(" ", "-")) or f"project-{project.id}"
     if file_format == "csv":

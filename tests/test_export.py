@@ -114,6 +114,15 @@ def test_exports_are_logged_and_shown(admin_client, answered_project):
     assert b"Export history" in page.data and b"Workload per person" in page.data
 
 
+def test_exports_are_written_to_the_audit_log(caplog, admin_client, answered_project):
+    import logging
+
+    caplog.set_level(logging.INFO, logger="audit")
+    admin_client.get(f"/admin/project/{answered_project.id}/export.json")
+    events = [r.getMessage() for r in caplog.records if r.name == "audit"]
+    assert f"EXPORT project_id={answered_project.id} format=json answers=8" in " ".join(events)
+
+
 def test_unknown_format_is_404(admin_client, answered_project):
     assert admin_client.get(f"/admin/project/{answered_project.id}/export.xml").status_code == 404
 

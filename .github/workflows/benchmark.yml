@@ -2,8 +2,8 @@ name: Benchmark
 
 # Measurements for the evaluation chapter (scripts/benchmark.py) on MySQL 8,
 # like the real deployment. Start it from the Actions tab ("Run workflow");
-# it also runs when the script changes. The results table appears on the run's
-# summary page.
+# it also runs when the script changes. Every configuration runs 5 times; the
+# mean (min-max) tables appear on the run's summary page.
 on:
   workflow_dispatch:
   push:
@@ -14,7 +14,7 @@ on:
 jobs:
   benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90  # 5 configurations x 5 runs
     services:
       mysql:
         image: mysql:8.4

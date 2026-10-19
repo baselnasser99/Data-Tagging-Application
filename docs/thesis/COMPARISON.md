@@ -12,7 +12,7 @@
 | Data integrity | 4.x, 6.2 | Unique (project, item, question); no duplicate work | No such constraint | Unique (project, item, question) on tasks and unique (task, person) on assignments; older databases upgraded on start |
 | Media types | 1, 6.5 | Text, image and audio labelling | Images only | Images and audio, as loose files or ZIPs; a built-in audio player |
 | Export | 6.5.7 | Auditable JSON/CSV export | A plain text file per project and a CSV per person | CSV and JSON per project, with names, times, media type, the majority answer and **Fleiss' kappa**; every export logged |
-| Testing | 7 | About 85% test coverage with pytest | No automated tests (one empty test file) | 200+ tests, about 90% line coverage, run by GitHub Actions on Python 3.11 and 3.12 |
+| Testing | 7 | About 85% test coverage with pytest | No automated tests (one empty test file) | 252 tests, 92% line coverage, run by GitHub Actions on Python 3.11 and 3.12 |
 | Security | 6.5.1 | Flask-Login, CSRF, secure cookies | Secret key and a default admin with password `123` written in the code; no CSRF protection | CSRF on every form, HTTP-only SameSite cookies with idle timeout, `Cache-Control: no-store`, audit log, no default accounts; see also the fixes below |
 | Code structure | 6.1 | Blueprints for auth, admin, user, group, manager | One 1,850-line `admin.py` | Blueprints `auth`, `admin`, `groups`, `manager`, `annotation_admin`, `annotation`, plus shared `distribution`, `export`, `permissions` |
 | Logging and errors | 6.5 | Error pages, rotating logs, audit log | No custom error pages or logs | Custom error pages, rotating application log, audit log of sign-ins |
@@ -22,7 +22,7 @@
 
 | Topic | Thesis § | Original claim | Decision |
 |---|---|---|---|
-| Background jobs | 5, 6.4 | Celery workers and a Redis queue; a 4-service Docker setup | **Not built, on purpose.** Measurements on MySQL 8 show the heaviest job (handing out 50,000 tasks) takes 25 s and a normal project under 5 s. A queue would add two services for no measurable gain. Docker runs 2 services: web and MySQL. |
+| Background jobs | 5, 6.4 | Celery workers and a Redis queue; a 4-service Docker setup | **Not built, on purpose.** Measurements on MySQL 8 show the heaviest job (handing out 50,000 tasks) takes 43 s (mean of 5 runs) and a normal project of 1,000 tasks under 1 s. A queue would add two services for no measurable gain. Docker runs 2 services: web and MySQL. |
 | Task leases | 4, 5 | Short-lived task leases with a time limit | Dropped by design: the app uses balanced assignment with lasting ownership, protected by database constraints, not self-selection with leases |
 | Email notifications | 6.5 | Flask-Mail notifications | Future work |
 | Autosave, backups, versioned edits, caching, minified assets, password reset | 5, 6 | Listed as features | Not features of the system; removed from the text or listed as future work |
@@ -40,7 +40,7 @@ These were not in the thesis, but a reviewer would find them:
 
 ## Added beyond the thesis
 
-- **An evaluation with real numbers** (Ch. 7): speed and fairness at 1k, 10k and 50k tasks on MySQL 8, and a load test with 20 people answering at once (0 errors, median 284 ms). Script: [`scripts/benchmark.py`](../../scripts/benchmark.py).
+- **An evaluation with real numbers** (Ch. 7): speed and fairness at 1k, 10k and 50k tasks, with two answers per task and with two groups, 5 runs each on MySQL 8, and a load test with 20 people answering at once (0 errors, median 294 ms). Script: [`scripts/benchmark.py`](../../scripts/benchmark.py).
 - **People management:** add people one at a time or from a CSV file, with search and filters; edit, remove and restore people (open work handed on, answers kept).
 - **A redesigned interface:** a home page for each role, project status and progress, an answers-per-week chart, and a summary in the side panel.
 - **Demo data:** [`scripts/seed_demo.py`](../../scripts/seed_demo.py) builds the demo shown in the screenshots.

@@ -52,18 +52,22 @@ Slide outline, about 12 minutes. Screenshots are in [`docs/screenshots/`](../../
 - Hashed passwords, no default accounts, secrets only in `.env`.
 - CSRF on every form, secure cookies with an idle timeout, an audit log.
 - Every page checks the role; managers see only their own projects; all user text is escaped.
+- Uploaded files only for admins, the project's managers and its groups' members; everyone else gets 403.
+- Scripts only from the app's own files (`script-src 'self'`): no inline scripts, Chart.js served locally.
 
 ## 8. Evaluation (Ch. 7)
 
-| Tasks | Hand out | 10% leave | 5% join | Load gap after |
-|---:|---:|---:|---:|---:|
-| 1,000 | 0.39 s | 0.08 s | 0.06 s | 1 |
-| 10,000 | 4.55 s | 2.26 s | 1.84 s | 1 |
-| 50,000 | 24.9 s | 15.4 s | 16.9 s | 1 |
+| Tasks / people | Setup | Hand out | 10% leave | 5% join | Gap after join |
+|---:|---|---:|---:|---:|---:|
+| 1,000 / 20 | 1 group, r = 1 | 0.68 s (0.67–0.71) | 0.11 s (0.10–0.12) | 0.08 s (0.08–0.08) | 1 (1–1) |
+| 10,000 / 50 | 1 group, r = 1 | 7.66 s (7.36–8.45) | 2.06 s (2.00–2.17) | 1.59 s (1.49–1.73) | 1 (1–1) |
+| 50,000 / 100 | 1 group, r = 1 | 43.3 s (42.8–43.6) | 19.6 s (19.1–19.9) | 20.4 s (20.0–20.8) | 1 (1–1) |
+| 10,000 / 50 | 1 group, r = 2 | 11.44 s (11.39–11.52) | 2.48 s (2.44–2.51) | 2.39 s (2.33–2.45) | 1 (1–1) |
+| 10,000 / 50 | 2 groups, r = 1 | 7.28 s (7.21–7.38) | 1.99 s (1.92–2.03) | 1.55 s (1.48–1.62) | 1 (1–1) |
 
-- Measured on MySQL 8. Every task kept an owner and no finished answer was lost.
-- **Load test:** 20 people at once, 240 requests, 0 errors, median 284 ms.
-- 200+ automated tests at about 90% coverage, run on every change.
+- Mean (min–max) of 5 runs each on MySQL 8.4. Gap 0 after every hand-out; in all 25 runs every task kept its owners and no finished answer was lost.
+- **Load test:** 20 people at once, 240 requests, 0 errors, median 294 ms.
+- 204 test functions (252 test cases) at 92% line coverage, run on every change.
 
 ## 9. Decisions and limits
 

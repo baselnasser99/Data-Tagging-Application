@@ -8,6 +8,7 @@ Roles (thesis terminology in brackets):
 Logged-out visitors are redirected to the login page with a message.
 Logged-in users without the required role get a 403 page.
 """
+import posixpath
 from functools import wraps
 
 from flask import abort, flash, redirect, request, url_for
@@ -79,3 +80,40 @@ def user_required(func):
 
 def is_project_admin(project_id):
     return current_user.is_authenticated and current_user.is_project_admin(project_id)
+
+
+def project_for_upload(name):
+    """The id of the project an uploaded file belongs to, or None if it belongs to none.
+
+    Project items are stored as ``images/<project id>/<file>``; survey question
+    attachments sit in the upload root and are named in ``Question.file_path``.
+    """
+    from .models import Question
+
+    parts = posixpath.normpath(name).split("/")  # "images/1/../2/x" is project 2's file
+    if len(parts) == 3 and parts[0] == "images" and parts[1].isdigit():
+        return int(parts[1])
+    if len(parts) == 1:
+        question = Question.query.filter_by(file_path=parts[0]).first()
+        return question.project_id if question else None
+    return None
+
+
+def can_see_project(user, project_id):
+    """Admins, the project's managers, and members of a group assigned to it."""
+    from .models import GroupProject, UserGroupMembership
+
+    if user.role == "admin" or user.is_project_admin(project_id):
+        return True
+    return (GroupProject.query
+            .join(UserGroupMembership, UserGroupMembership.group_id == GroupProject.group_id)
+            .filter(GroupProject.project_id == project_id, UserGroupMembership.user_id == user.id)
+            .first() is not None)
+
+
+def can_open_upload(name):
+    """May the signed-in person open this uploaded file?"""
+    if current_user.role == "admin":
+        return True
+    project_id = project_for_upload(name)
+    return project_id is not None and can_see_project(current_user, project_id)

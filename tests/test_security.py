@@ -115,16 +115,38 @@ def test_every_page_sends_security_headers(client):
     assert "frame-ancestors 'none'" in resp.headers["Content-Security-Policy"]
 
 
-def test_uploaded_files_need_sign_in(app, client, user_client):
+@pytest.mark.parametrize("path", ["/login", "/admin/dashboard"])
+def test_csp_allows_only_our_own_scripts(admin_client, path):
+    csp = admin_client.get(path).headers["Content-Security-Policy"]
+    assert "script-src 'self'" in csp
+    assert "unsafe-inline" not in csp
+
+
+def test_templates_have_no_inline_scripts_or_event_handlers():
+    """script-src 'self' would block them: all JavaScript lives in static files."""
+    import glob
+
+    for path in glob.glob("application/templates/**/*.html", recursive=True):
+        html = open(path, encoding="utf-8").read()
+        for tag in re.findall(r"<script\b[^>]*>", html, re.I):
+            assert "src=" in tag, f"inline <script> in {path}"
+        assert not re.search(r"<[^>]*\son[a-z]+\s*=", html, re.I), f"inline event handler in {path}"
+        assert "javascript:" not in html.lower(), path
+
+
+def test_uploaded_files_need_sign_in(app, client, admin_user):
     import os
 
     from application.admin import upload_dir
+    from tests.conftest import login
 
     with open(os.path.join(upload_dir("images", "1"), "photo.png"), "wb") as f:
         f.write(b"png-bytes")
     assert client.get("/files/images/1/photo.png").status_code == 302  # to the sign-in page
-    assert user_client.get("/files/images/1/photo.png").data == b"png-bytes"
-    assert user_client.get("/files/../config.py").status_code == 404
+    admin = app.test_client()
+    login(admin, admin_user.email)
+    assert admin.get("/files/images/1/photo.png").data == b"png-bytes"
+    assert admin.get("/files/../config.py").status_code == 404
 
     # The old public address under /static/uploads/ no longer works.
     static_copy = os.path.join(app.static_folder, "uploads", "photo-test.png")

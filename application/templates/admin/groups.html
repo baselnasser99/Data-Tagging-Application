@@ -53,8 +53,7 @@
           <div class="box-footer project-actions">
             <a href="{{ url_for('groups.manage_group', group_id=group.id) }}" class="btn btn-primary btn-sm">Manage group</a>
             <form method="POST" action="{{ url_for('groups.delete_group', group_id=group.id) }}" class="project-delete"
-                  data-confirm="Delete {{ group.name }}? Its unfinished tasks go back to other people; finished answers are kept."
-                  onsubmit="return confirm(this.dataset.confirm)">
+                  data-confirm="Delete {{ group.name }}? Its unfinished tasks go back to other people; finished answers are kept.">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>

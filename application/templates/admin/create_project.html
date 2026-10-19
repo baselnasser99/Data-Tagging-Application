@@ -55,7 +55,7 @@
                 </div>
             </div>
             <div class="box-footer quick-actions">
-                <button type="button" onclick="addQuestion()" class="btn btn-default"><i class="fa fa-plus"></i> Add a question</button>
+                <button type="button" id="add-survey-question" class="btn btn-default"><i class="fa fa-plus"></i> Add a question</button>
             </div>
         </div>
         <p class="quick-actions">
@@ -67,94 +67,5 @@
 {% endblock %}
 
 {% block scripts %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            function toggleMcqOptions(section) {
-                const dropdown = section.querySelector('.dropdown-value');
-                const mcqOptions = section.querySelector('.mcq-options');
-                const numberOfOptionsInput = section.querySelector('.number-of-options');
-                const optionsContainer = section.querySelector('.options-container');
-                
-                // Fix: Disable hidden fields on form submit
-                dropdown.addEventListener('change', function () {
-                    if (dropdown.value === 'mcq') {
-                        mcqOptions.style.display = 'block';
-                        numberOfOptionsInput.disabled = false;
-                        const allOptionInputs = mcqOptions.querySelectorAll('input');
-                        allOptionInputs.forEach(input => input.disabled = false);
-                    } else {
-                        mcqOptions.style.display = 'none';
-                        numberOfOptionsInput.disabled = true;
-                        const allOptionInputs = mcqOptions.querySelectorAll('input');
-                        allOptionInputs.forEach(input => input.disabled = true);
-                    }
-                });
-
-                numberOfOptionsInput.addEventListener('change', function() {
-                    populateOptions(optionsContainer, numberOfOptionsInput.value);
-                });
-
-                // Trigger change events on page load to set the initial state
-                dropdown.dispatchEvent(new Event('change'));
-                numberOfOptionsInput.dispatchEvent(new Event('change'));
-            }
-
-            function populateOptions(container, numberOfOptions) {
-                container.innerHTML = '';
-                for (let i = 1; i <= numberOfOptions; i++) {
-                    const optionInput = document.createElement('input');
-                    optionInput.type = 'text';
-                    optionInput.name = `mcq-option-${i}-${container.parentElement.parentElement.querySelector('label').textContent.split(' ')[1]}`;
-                    optionInput.placeholder = `Option ${i}`;
-                    optionInput.className = 'form-control mb-2';
-                    container.appendChild(optionInput);
-                }
-            }
-
-            const quizSections = document.querySelectorAll('.quiz-section');
-            quizSections.forEach(section => toggleMcqOptions(section));
-
-            let questionsContainer = document.querySelector("#questions");
-            let totalQuestions = 1;
-
-            window.addQuestion = function() {
-                totalQuestions += 1;
-                document.getElementById('total_questions').value = totalQuestions;
-                const questionHtml = `
-                    <div class="quiz-section">
-                        <label class="form-label">Question ${totalQuestions}</label>
-                        <textarea rows="1" class="form-control" name="question-${totalQuestions}" placeholder="What do you want to ask?" required></textarea>
-                        <div class="row" style="margin-top: 10px;">
-                            <div class="col-sm-6 form-group">
-                                <label class="form-label">Answer type</label>
-                                <select name="dropdown-${totalQuestions}" class="form-control dropdown-value">
-                                    <option value="text">Free text</option>
-                                    <option value="mcq">Multiple choice</option>
-                                </select>
-                            </div>
-                            <div class="col-sm-6 form-group">
-                                <label class="form-label">Attach a file (optional)</label>
-                                <input type="file" name="question-${totalQuestions}-file" class="form-control">
-                            </div>
-                        </div>
-                        <div class="form-group mcq-options" style="display: none;">
-                            <label class="form-label">Number of options</label>
-                            <input type="number" name="number_of_options-${totalQuestions}" class="form-control number-of-options" min="1" max="6" value="0" style="max-width: 120px;">
-                            <label class="form-label" style="margin-top: 8px;">Options</label>
-                            <div class="options-container"></div>
-                        </div>
-                        <label class="form-label">Correct answer (optional)</label>
-                        <textarea rows="1" class="form-control" name="answer-${totalQuestions}" placeholder="Only you see this"></textarea>
-                    </div>
-                `;
-
-                const doc = new DOMParser().parseFromString(questionHtml, 'text/html');
-                const newQuestion = doc.body.firstChild;
-
-                questionsContainer.appendChild(newQuestion);
-
-                toggleMcqOptions(newQuestion);
-            }
-        });
-    </script>
+<script src="{{ url_for('static', filename='js/survey-form.js') }}"></script>
 {% endblock %}

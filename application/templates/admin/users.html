@@ -66,8 +66,7 @@
             {% if u.active %}
             <a class="btn btn-default btn-sm" href="{{ url_for('admin.edit_user', user_id=u.id) }}" aria-label="Edit {{ u.full_name }}">Edit</a>
             <form method="POST" action="{{ url_for('admin.remove_user', user_id=u.id) }}"
-                  data-confirm="Remove {{ u.full_name }}? Their unfinished tasks go to the rest of their groups.{% if d.answer_count %} Their answers are kept.{% endif %}"
-                  onsubmit="return confirm(this.dataset.confirm)">
+                  data-confirm="Remove {{ u.full_name }}? Their unfinished tasks go to the rest of their groups.{% if d.answer_count %} Their answers are kept.{% endif %}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btn btn-default btn-sm btn-quiet-danger" aria-label="Remove {{ u.full_name }}">Remove</button>
             </form>
@@ -89,26 +88,5 @@
     <p class="text-muted" id="people-count" aria-live="polite"></p>
   </section>
 
-<script>
-// Search and filter on the page itself: the list is small enough to never need a round trip.
-(function () {
-  var search = document.getElementById('people-search'), filter = document.getElementById('people-filter');
-  var rows = document.querySelectorAll('#people-list .person'), empty = document.getElementById('people-empty');
-  var count = document.getElementById('people-count');
-  function apply() {
-    var words = search.value.toLowerCase().trim().split(/\s+/).filter(Boolean), want = filter.value, shown = 0;
-    rows.forEach(function (row) {
-      var groups = row.dataset.groups.split(' ');
-      var inView = want ? groups.indexOf(want) !== -1 : groups[0] !== 'removed';
-      var match = words.every(function (w) { return row.dataset.search.indexOf(w) !== -1; });
-      row.hidden = !(inView && match);
-      if (!row.hidden) shown++;
-    });
-    empty.hidden = shown > 0;
-    count.textContent = (words.length || want) ? 'Showing ' + shown + ' of ' + rows.length : '';
-  }
-  search.addEventListener('input', apply);
-  filter.addEventListener('change', apply);
-})();
-</script>
+<script src="{{ url_for('static', filename='js/people-filter.js') }}"></script>
 {% endblock %}

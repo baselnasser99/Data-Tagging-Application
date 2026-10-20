@@ -77,6 +77,8 @@ rebalance(project):
     until no move narrows the gap
 ```
 
+If the least busy person can't take the busiest person's work (they already hold those tasks, as partners often do with several answers per task, or the cap blocks it), rebalancing tries the next least busy people, then the next busiest, and stops only when no pair with a gap of 2 or more can make a move (#83).
+
 **Events.**
 - **A member leaves a group:** their unfinished assignments in that group's projects are released (one `DELETE`) and handed out again with the same rule; their finished answers stay.
 - **A member joins:** open slots are filled first, then `rebalance` runs.
@@ -123,7 +125,7 @@ rebalance(project):
 
 ## 9. Testing and evaluation (Ch. 7)
 
-- **204 test functions, 252 test cases, 92% line coverage** (measured 20 Oct 2026 on Python 3.12), run by GitHub Actions on Python 3.11 and 3.12 for every change. Each distribution test runs in both hand-out modes.
+- **206 test functions, 255 test cases, 92% line coverage** (2,176 of 2,356 lines; master `34bce1b`, CI run 39416479337, Python 3.12, 20 Oct 2026), run by GitHub Actions on Python 3.11 and 3.12 for every change. Each distribution test runs in both hand-out modes.
 - **Benchmark** (`scripts/benchmark.py`, run on MySQL 8.4 by `.github/workflows/benchmark.yml`, 20 Oct 2026). Every configuration ran 5 times with different seeds; each cell is the mean (min–max). r = answers per task; "2 groups" splits the 50 people into two groups of 25 on the same project.
 
   | Tasks | People | r | Groups | Hand out | 10% leave | 5% join |
@@ -144,6 +146,18 @@ rebalance(project):
 
   The gap is the most tasks held by one person minus the fewest. It is 0 right after every hand-out. With half the work answered at random, the open (unfinished) gap is uneven by design; leavers' work goes to the least busy, which narrows it, and after newcomers join it is 1 task in every run. Every task kept its owners and no finished answer was lost in all 25 runs. Two groups on one project give the same results as one group of the same people, because the algorithm balances over everyone on the project. Standard deviations and every single run are on the workflow's summary page.
 - **Load test:** 20 people signing in and answering at once: 240 requests, 0 errors, median 294 ms, 95th percentile 991 ms.
+- **Allocation simulation** (`scripts/simulate_allocation.py`, thesis Table 15): static partitioning, self-selection and the app's own procedure (the real `distribution.py` on in-memory SQLite) under the same attrition scenario: 5,000 tasks, 50 annotators with skewed work speeds, 10% leaving at 40% done and 5 joining at 60%, 20 seeds each. Mean (min–max):
+
+  | Model | r | Stranded after leave | Stranded at end | Open-load spread after leave | Open-load spread after join | Answers by busiest 10% | Rounds to finish | Duplicates |
+  |---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | Static partitioning | 1 | 280.8 (153–374) | 280.8 (153–374) | 83.6 (78–87) | 69.1 (59–76) | 12.7% (12.4%–13.0%) | never | 0 (0–0) |
+  | Self-selection | 1 | 16.1 (7–40) | 0 (0–0) | 12.4 (5–29) | 12.6 (7–29) | 35.6% (24.3%–43.0%) | 37.1 (27–51) | 0 (0–0) |
+  | App's procedure | 1 | 0 (0–0) | 0 (0–0) | 43.4 (30–60) | 1 (1–1) | 20.9% (19.7%–21.9%) | 66.4 (59–77) | 0 (0–0) |
+  | Static partitioning | 2 | 566 (306–748) | 566 (306–748) | 167.7 (156–175) | 138.5 (118–152) | 12.7% (12.4%–13.0%) | never | 0 (0–0) |
+  | Self-selection | 2 | 16.1 (7–40) | 0 (0–0) | 12.4 (5–29) | 12.6 (7–29) | 35.6% (24.1%–43.1%) | 73.9 (54–101) | 0 (0–0) |
+  | App's procedure | 2 | 0 (0–0) | 0 (0–0) | 87 (59–138) | 1 (1–1) | 21.0% (19.8%–22.1%) | 132.3 (118–153) | 0 (0–0) |
+
+  The app's procedure never strands work and never duplicates. It shares work evenly rather than by speed, so it finishes later than self-selection while spreading the answers more evenly.
 
 ## 10. Deployment (6.4)
 

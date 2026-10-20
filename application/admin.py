@@ -64,19 +64,49 @@ def public_file_url(filename):
 @admin.route("/dashboard")
 @admin_required
 def dashboard():
-    total_projects = Project.query.count()
     total_users = User.query.filter_by(role='end-user', active=True).count()
     total_groups = UserGroup.query.count()
 
+    projects = Project.query.order_by(Project.id.desc()).all()
+    progress = {p.id: project_progress(p) for p in projects}
+    assignments = TaskAssignment.query
+    tasks_total = assignments.count()
+    tasks_done = assignments.filter(TaskAssignment.is_completed.is_(True)).count()
+
     weeks_data = weekly_answers()
     group_stats = group_stats_for(UserGroup.query.all())
+    balance = [b for b in (workload_balance(p) for p in projects if p.is_annotation_project) if b['open']]
 
     return render_template('admin/dashboard.html',
-                         total_projects=total_projects,
                          total_users=total_users,
                          total_groups=total_groups,
+                         projects=projects,
+                         progress=progress,
+                         tasks_total=tasks_total,
+                         tasks_done=tasks_done,
                          weeks_data=weeks_data,
-                         group_stats=group_stats)
+                         group_stats=group_stats,
+                         balance=balance,
+                         today=datetime.now())
+
+
+def workload_balance(project):
+    """Open and finished tasks per member of the project's groups, most still open first.
+
+    A person's share is every task they hold, open or done: that is what the
+    hand-out keeps even (application/distribution.py). Open counts drift apart
+    as people answer at different speeds.
+    """
+    members = {m.user for gp in project.assigned_groups for m in gp.group.members if m.user.active}
+    counts = {u.id: {'name': u.full_name, 'open': 0, 'done': 0} for u in members}
+    held = TaskAssignment.query.join(AnnotationTask).filter(
+        AnnotationTask.project_id == project.id, TaskAssignment.user_id.in_(counts))
+    for a in held:
+        counts[a.user_id]['done' if a.is_completed else 'open'] += 1
+    people = sorted(counts.values(), key=lambda p: (-p['open'], -p['done'], p['name']))
+    shares = [p['open'] + p['done'] for p in people]
+    return {'project': project, 'people': people, 'open': sum(p['open'] for p in people),
+            'share_min': min(shares, default=0), 'share_max': max(shares, default=0)}
 
 def weekly_answers(project_ids=None):
     """Answers submitted per week over the last 12 weeks, oldest first; only these projects if given."""

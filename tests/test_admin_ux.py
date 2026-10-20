@@ -246,3 +246,41 @@ def test_manager_home_has_the_answers_chart_for_their_projects_only(app, db, mak
     login(client, make_project_admin(mine).email)
     page = client.get("/admin/my-projects").data
     assert b'id="weeklyChart"' in page and b"Group progress" in page
+
+
+def test_dashboard_without_projects_says_what_to_do(admin_client, db):
+    db.session.add(UserGroup(name="Empty team"))
+    db.session.commit()
+    page = admin_client.get("/admin/dashboard").data
+    assert b"No projects yet" in page
+    assert b"No open work right now" in page
+    assert b"No members yet" in page  # not a red "0%"
+
+
+def test_dashboard_shows_projects_and_each_persons_share(admin_client, db, make_user):
+    from application.admin import workload_balance
+
+    group = UserGroup(name="Annotators")
+    db.session.add(group)
+    db.session.commit()
+    members = [make_user() for _ in range(2)]
+    db.session.add_all([UserGroupMembership(user_id=m.id, group_id=group.id) for m in members])
+    db.session.commit()
+    project = _create_project(admin_client)
+    _upload(admin_client, project, {"a.png": b"a", "b.png": b"b"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+
+    first = TaskAssignment.query.filter_by(user_id=members[0].id).first()
+    first.is_completed = True
+    db.session.commit()
+
+    balance = workload_balance(project)
+    assert balance["open"] == TaskAssignment.query.count() - 1
+    assert balance["share_min"] == balance["share_max"] == 2  # 2 items x 2 questions, split evenly
+    assert balance["people"][0]["open"] >= balance["people"][-1]["open"]  # most still open first
+    assert sum(p["done"] for p in balance["people"]) == 1
+
+    page = admin_client.get("/admin/dashboard").data.decode()
+    assert "Street scenes" in page and "Work balance" in page
+    assert "Everyone holds 2 tasks" in page
+    assert "1<small> of 4</small>" in page  # tasks done, in the figures row

@@ -33,10 +33,10 @@ Two good descriptions rarely match word for word. Short answers of up to three w
 ## Performance and design choices
 
 **Why did you not use Celery and Redis, as first planned?**
-I measured first. On MySQL 8, handing out 10,000 tasks takes 4.6 s and 50,000 take 25 s; a normal project takes well under a second. A queue would add two services for no visible gain. Batching the database writes did make a difference: 2.5× faster hand-out, and 15× faster handling of newcomers at 50,000 tasks.
+I measured first. On MySQL 8.4 (mean of 5 runs), handing out 10,000 tasks takes 7.7 s and 50,000 take 43 s; a normal project of 1,000 tasks takes 0.7 s. A queue would add two services for no visible gain. Batching the database writes did make a difference: 2.5× faster hand-out, and 15× faster handling of newcomers at 50,000 tasks.
 
 **How does it behave under load?**
-20 people signed in and answered at the same time: 240 requests, 0 errors, median 284 ms, 95th percentile 1.56 s.
+20 people signed in and answered at the same time: 240 requests, 0 errors, median 294 ms, 95th percentile 991 ms.
 
 **Why Flask and not Django?**
 Flask is small, and each part (sign-in, admin, groups, managers, projects, members) is its own blueprint. For a focused tool with three roles, Django's extra features would be overhead.
@@ -51,6 +51,8 @@ Passwords are hashed and there are no default accounts; the first admin and all 
 
 **How is access controlled?**
 Every route checks the role from the database. Managers can only reach their own projects, and can only change groups that no other manager also uses. Members can only open their own assignments; anything else returns 403 or 404.
+Uploaded files, survey attachments included, are served only to admins, the project's managers and members of its groups; everyone else gets 403.
+The Content-Security-Policy allows scripts only from the app's own files (`script-src 'self'`): no inline scripts, and Chart.js is served locally.
 
 **Did you find security problems in your own code?**
 Yes, while rebuilding it:
@@ -63,7 +65,7 @@ All are fixed, and each has a test.
 ## Testing
 
 **How do you know it works?**
-200+ automated tests, about 90% line coverage, run by GitHub Actions on Python 3.11 and 3.12 for every change. The distribution tests each prove one rule, and run in both hand-out modes. Hand-testing each change found real bugs that are now covered by tests.
+204 test functions (252 test cases), 92% line coverage, run by GitHub Actions on Python 3.11 and 3.12 for every change. The distribution tests each prove one rule, and run in both hand-out modes. Hand-testing each change found real bugs that are now covered by tests.
 
 ## Looking back
 

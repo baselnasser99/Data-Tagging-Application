@@ -117,21 +117,33 @@ rebalance(project):
 - Every form carries a CSRF token (Flask-WTF). Pages are sent with `Cache-Control: no-store`.
 - Every route checks the role from the database. Managers reach only their own projects, and only groups no other manager shares. Members reach only their own assignments.
 - All user-written text is escaped, including text placed inside confirm dialogs.
+- Uploaded files are served only to admins, the project's managers, and members of its groups. Everyone else gets 403, and survey attachments follow the same rule.
+- The Content-Security-Policy allows scripts only from the app's own files (`script-src 'self'`): there are no inline scripts or event handlers, and Chart.js is served locally.
 - An audit log records sign-ins, failed sign-ins and sign-outs. Errors get custom pages and go to a rotating log file.
 
 ## 9. Testing and evaluation (Ch. 7)
 
-- **231 pytest tests, 92% line coverage** (measured 19 Oct 2026 on Python 3.12), run by GitHub Actions on Python 3.11 and 3.12 for every change. Each distribution test runs in both hand-out modes.
-- **Benchmark** (`scripts/benchmark.py`, run on MySQL 8 by `.github/workflows/benchmark.yml`):
+- **204 test functions, 252 test cases, 92% line coverage** (measured 20 Oct 2026 on Python 3.12), run by GitHub Actions on Python 3.11 and 3.12 for every change. Each distribution test runs in both hand-out modes.
+- **Benchmark** (`scripts/benchmark.py`, run on MySQL 8.4 by `.github/workflows/benchmark.yml`, 20 Oct 2026). Every configuration ran 5 times with different seeds; each cell is the mean (min–max). r = answers per task; "2 groups" splits the 50 people into two groups of 25 on the same project.
 
-  | Tasks | People | Hand out | 10% leave | 5% join | Open-load gap after join |
-  |---:|---:|---:|---:|---:|---:|
-  | 1,000 | 20 | 0.39 s | 0.08 s | 0.06 s | 1 |
-  | 10,000 | 50 | 4.55 s | 2.26 s | 1.84 s | 1 |
-  | 50,000 | 100 | 24.92 s | 15.35 s | 16.90 s | 1 |
+  | Tasks | People | r | Groups | Hand out | 10% leave | 5% join |
+  |---:|---:|---:|---:|---:|---:|---:|
+  | 1,000 | 20 | 1 | 1 | 0.68 s (0.67–0.71) | 0.11 s (0.10–0.12) | 0.08 s (0.08–0.08) |
+  | 10,000 | 50 | 1 | 1 | 7.66 s (7.36–8.45) | 2.06 s (2.00–2.17) | 1.59 s (1.49–1.73) |
+  | 50,000 | 100 | 1 | 1 | 43.25 s (42.82–43.55) | 19.61 s (19.13–19.94) | 20.41 s (19.99–20.77) |
+  | 10,000 | 50 | 2 | 1 | 11.44 s (11.39–11.52) | 2.48 s (2.44–2.51) | 2.39 s (2.33–2.45) |
+  | 10,000 | 50 | 1 | 2 | 7.28 s (7.21–7.38) | 1.99 s (1.92–2.03) | 1.55 s (1.48–1.62) |
 
-  The load gap is 0 right after hand-out. With half the work answered at random, the open-load gap was 11 / 32 / 57 tasks, then 4 / 5 / 1 after 10% left and 1 / 1 / 1 after 5% joined. In every run, every task kept an owner and finished work was kept.
-- **Load test:** 20 people signing in and answering at once: 240 requests, 0 errors, median 284 ms, 95th percentile 1.56 s.
+  | Tasks | People | r | Groups | Gap after hand-out | Open gap, half answered | Open gap after 10% leave | Open gap after 5% join | Every task owned | Finished work kept |
+  |---:|---:|---:|---:|---:|---:|---:|---:|:-:|:-:|
+  | 1,000 | 20 | 1 | 1 | 0 (0–0) | 13.4 (11–17) | 5.2 (4–8) | 1 (1–1) | 5/5 | 5/5 |
+  | 10,000 | 50 | 1 | 1 | 0 (0–0) | 31.4 (27–34) | 5.6 (1–9) | 1 (1–1) | 5/5 | 5/5 |
+  | 50,000 | 100 | 1 | 1 | 0 (0–0) | 56.2 (47–72) | 2.0 (1–6) | 1 (1–1) | 5/5 | 5/5 |
+  | 10,000 | 50 | 2 | 1 | 0 (0–0) | 42.0 (38–45) | 2.0 (1–6) | 1 (1–1) | 5/5 | 5/5 |
+  | 10,000 | 50 | 1 | 2 | 0 (0–0) | 31.4 (27–34) | 5.6 (1–9) | 1 (1–1) | 5/5 | 5/5 |
+
+  The gap is the most tasks held by one person minus the fewest. It is 0 right after every hand-out. With half the work answered at random, the open (unfinished) gap is uneven by design; leavers' work goes to the least busy, which narrows it, and after newcomers join it is 1 task in every run. Every task kept its owners and no finished answer was lost in all 25 runs. Two groups on one project give the same results as one group of the same people, because the algorithm balances over everyone on the project. Standard deviations and every single run are on the workflow's summary page.
+- **Load test:** 20 people signing in and answering at once: 240 requests, 0 errors, median 294 ms, 95th percentile 991 ms.
 
 ## 10. Deployment (6.4)
 

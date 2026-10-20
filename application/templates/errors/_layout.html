@@ -5,16 +5,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Error{% endblock %} – {{ app_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
   <link href="{{ url_for('static', filename='css/auth.css') }}" rel="stylesheet">
 </head>
 <body class="error-page">
-  <main>
-    <a class="brand" href="{{ url_for('auth.login') }}">{{ mark() }} {{ app_name }}</a>
-    <p class="error-code">Error {% block code %}{% endblock %}</p>
-    <h1>{% block heading %}{% endblock %}</h1>
-    <p>{% block message %}{% endblock %}</p>
-    <a class="button" href="{{ url_for('auth.login') }}">Go to your dashboard</a>
+  <header><a class="brand" href="{{ url_for('auth.login') }}">{{ mark() }} {{ app_name }}</a></header>
+
+  <main class="error-body">
+    {# The same batch of items as the sign-in page, but the selection box frames an empty slot. #}
+    <div class="specimen error-specimen" aria-hidden="true">
+      <div class="tile is-done"></div>
+      <div class="tile is-done"></div>
+      <div class="tile"></div>
+      <div class="tile"></div>
+      <div class="tile is-selected is-empty"><span class="corners"></span><span class="tag">{% block tag %}{% endblock %}</span></div>
+      <div class="tile"></div>
+    </div>
+
+    <div class="error-text">
+      <p class="error-code">Error {% block code %}{% endblock %}</p>
+      <h1>{% block heading %}{% endblock %}</h1>
+      <p class="error-message">{% block message %}{% endblock %}</p>
+      {% block detail %}{% endblock %}
+      <a class="button" href="{{ url_for('auth.login') }}">Go to your dashboard</a>
+    </div>
   </main>
 </body>
 </html>

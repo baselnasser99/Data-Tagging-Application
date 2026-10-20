@@ -108,6 +108,14 @@ def test_custom_404_page(client):
     resp = client.get("/does-not-exist")
     assert resp.status_code == 404
     assert b"Page not found" in resp.data
+    assert b"/does-not-exist" in resp.data  # the page shows the address that was asked for
+
+
+def test_404_page_escapes_the_address(client):
+    resp = client.get("/<script>alert(1)</script>")
+    assert resp.status_code == 404
+    assert b"<script>alert" not in resp.data
+    assert b"&lt;script&gt;" in resp.data
 
 
 def test_custom_403_page(user_client):

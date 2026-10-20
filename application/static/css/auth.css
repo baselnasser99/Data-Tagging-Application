@@ -256,14 +256,40 @@ a:hover { color: var(--ink-soft); }
 }
 
 /* ---- error pages ---- */
+/* The sign-in page's batch of items, with the selection box around an empty slot. */
 .error-page {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   min-height: 100vh;
-  padding: 40px 24px;
+  padding: 40px 56px;
+  background-image: radial-gradient(#C9D0D8 1px, transparent 1px);
+  background-size: 20px 20px;
 }
-.error-page main { max-width: 34rem; margin: 0 auto; }
-.error-code { font-size: 15px; font-weight: 700; color: var(--muted); margin: 32px 0 4px; }
-.error-page h1 { font-size: 32px; line-height: 1.2; margin: 0 0 12px; }
-.error-page p { color: var(--muted); margin: 0 0 28px; }
-.error-page .button { width: auto; padding: 0 24px; }
+.error-body {
+  margin: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 380px) minmax(0, 30rem);
+  gap: 72px;
+  align-items: center;
+  padding: 48px 0;
+}
+.error-specimen { width: 100%; }
+.tile.is-empty { background: var(--canvas); box-shadow: inset 0 0 0 2px #AEB7C2; }
+.tile.is-empty::before, .tile.is-empty::after { content: none; }
+.tile.is-empty .tag { left: 50%; top: 50%; bottom: auto; transform: translate(-50%, -50%); }
+
+.error-code { font-size: 15px; font-weight: 700; color: var(--muted); margin: 0 0 6px; }
+.error-page h1 { font-size: 40px; line-height: 1.15; letter-spacing: -0.01em; margin: 0 0 14px; }
+.error-message { font-size: 18px; color: var(--muted); margin: 0 0 20px; }
+.error-path { margin: 0 0 28px; font-size: 15px; color: var(--muted); overflow-wrap: anywhere; }
+.error-path code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 14px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px;
+}
+.error-page .button { width: auto; padding: 0 24px; margin-top: 8px; }
+
+@media (max-width: 900px) {
+  .error-page { padding: 32px 24px; }
+  .error-body { grid-template-columns: 1fr; gap: 40px; margin: 0; }
+  .error-specimen { max-width: 300px; }
+}

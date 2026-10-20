@@ -4,7 +4,14 @@ import pytest
 
 from application import create_app
 from application.config import TestingConfig
+from application.extns import db as _db
 from application.models import User
+
+
+def _close_database():
+    _db.session.remove()
+    _db.drop_all()
+    _db.engine.dispose()
 
 
 @pytest.fixture
@@ -15,6 +22,7 @@ def csrf_app(tmp_path):
     app = create_app(Config)
     with app.app_context():
         yield app
+        _close_database()
 
 
 def _token(html):
@@ -68,9 +76,12 @@ def test_initial_admin_comes_from_configuration(tmp_path):
 
     app = create_app(Config)
     with app.app_context():
-        admin = User.query.filter_by(email="owner@example.com").one()
-        assert admin.role == "admin"
-        assert admin.check_password("a-long-password")
+        try:
+            admin = User.query.filter_by(email="owner@example.com").one()
+            assert admin.role == "admin"
+            assert admin.check_password("a-long-password")
+        finally:
+            _close_database()
 
 
 def test_session_cookie_is_http_only_and_same_site(client, admin_user):

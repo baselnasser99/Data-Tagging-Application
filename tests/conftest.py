@@ -2,11 +2,19 @@ import io
 import zipfile
 
 import pytest
+from flask.testing import FlaskClient
 
 from application import create_app
 from application.config import TestingConfig
 from application.extns import db as _db
 from application.models import ProjectAdmin, User
+
+
+class BufferedClient(FlaskClient):
+    """Reads each response in full and closes it, so served files are not left open."""
+
+    def open(self, *args, buffered=True, **kwargs):
+        return super().open(*args, buffered=buffered, **kwargs)
 
 
 @pytest.fixture
@@ -15,6 +23,7 @@ def app(tmp_path):
         UPLOAD_ROOT = str(tmp_path / "uploads")
 
     app = create_app(Config)
+    app.test_client_class = BufferedClient
 
     # The tests keep one app context open so they can query the database
     # between requests. Flask reuses that context (and its ``g``) for every
@@ -30,6 +39,8 @@ def app(tmp_path):
         yield app
         _db.session.remove()
         _db.drop_all()
+        # Close the pooled SQLite connection; otherwise every test leaks one.
+        _db.engine.dispose()
 
 
 @pytest.fixture

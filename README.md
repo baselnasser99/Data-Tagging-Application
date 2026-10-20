@@ -1,13 +1,28 @@
-# Data Tagging
+<img src="docs/preview/preview@2x.png" alt="Data Tagging: labelling work, shared fairly. A chart shows open tasks per person staying within one task of each other after one person leaves and another joins." width="100%">
 
-[![Tests](https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml/badge.svg)](https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml)
-![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)
-![Flask](https://img.shields.io/badge/flask-3-lightgrey)
-![MySQL](https://img.shields.io/badge/MySQL-8-blue)
+<p>
+  <a href="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml"><img src="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12-1C2733" alt="Python 3.11 and 3.12">
+  <img src="https://img.shields.io/badge/flask-3-1C2733" alt="Flask 3">
+  <img src="https://img.shields.io/badge/MySQL-8-1C2733" alt="MySQL 8">
+  <img src="https://img.shields.io/badge/coverage-~92%25-3366CC" alt="About 92% line coverage">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-F5CF3A" alt="MIT license"></a>
+</p>
 
 **A web app that shares labelling work fairly across a team.** An admin uploads images or audio clips and writes the questions. The app splits the work into tasks and hands them out so everyone carries the same load, even while people join or leave mid-project. The answers come back as a CSV or JSON dataset, with an agreement score showing how consistently people labelled.
 
-Built as my diploma thesis project, then rebuilt to production standards: security fixes, a fairness algorithm verified with measurements, 250+ automated tests, and a redesigned interface. [See what changed since the graded version →](docs/thesis/COMPARISON.md)
+Built as my diploma thesis at the University of Pécs, then rebuilt to production standards: security fixes, a fairness algorithm verified with measurements, 250+ automated tests, and a redesigned interface. [See what changed since the graded version →](docs/thesis/COMPARISON.md)
+
+**[What it does](#what-it-does)** · **[How it stays fair](#how-the-hand-out-stays-fair)** · **[Measurements](#measured-not-assumed)** · **[Run it](#run-it)** · **[Docs](#documentation)**
+
+<table>
+  <tr>
+    <td align="center" width="25%"><h3>1 task</h3><sub>most minus fewest open tasks per person, after people join</sub></td>
+    <td align="center" width="25%"><h3>0 lost</h3><sub>finished answers lost across 25 benchmark runs</sub></td>
+    <td align="center" width="25%"><h3>250+</h3><sub>automated tests, ~92% line coverage</sub></td>
+    <td align="center" width="25%"><h3>294 ms</h3><sub>median response, 20 people answering at once, 0 errors</sub></td>
+  </tr>
+</table>
 
 ![Admin dashboard: projects, people, answers per week and progress per group](docs/screenshots/admin-dashboard.png)
 
@@ -24,8 +39,6 @@ Built as my diploma thesis project, then rebuilt to production standards: securi
 
 <sub>Screenshots use the demo data from <code>scripts/seed_demo.py</code>.</sub>
 
----
-
 ## What it does
 
 | | |
@@ -40,6 +53,17 @@ Built as my diploma thesis project, then rebuilt to production standards: securi
 | **Surveys** | A simpler mode in which every member answers every question. |
 
 ## How the hand-out stays fair
+
+```mermaid
+flowchart LR
+    U["Admin uploads items<br>and writes questions"] --> T["Every item × question<br>becomes a task"]
+    T --> H["Each task goes to the<br>lightest open load"]
+    H --> L{"Team changes"}
+    L -- "someone leaves" --> R["Their unfinished tasks<br>are handed out again"]
+    L -- "someone joins" --> B["Unstarted tasks move from<br>the busiest to the least busy"]
+    R --> H
+    B --> H
+```
 
 ```
 for each task (item, question) still needing answers:
@@ -72,13 +96,96 @@ The code is in [`application/distribution.py`](application/distribution.py), and
 - Batching the database writes made the hand-out **2.5× faster**, and handling 5% newcomers at 50k tasks **15× faster** (250 s → 17 s).
 - **Load test:** 20 people answering at once made 240 requests with **0 errors**; median response time 294 ms.
 
+## Run it
+
+**Codespaces (no install):** on GitHub, click **Code → Codespaces → Create codespace**, then:
+
+```bash
+cp .env.example .env          # set SECRET_KEY, ADMIN_EMAIL and ADMIN_PASSWORD
+pip install -r requirements.txt
+flask --app app run --debug
+```
+
+<details>
+<summary><b>On your own computer</b></summary>
+
+<br>
+
+The same steps, after `python -m venv .venv` and activating it (`source .venv/bin/activate`, or `.venv\Scripts\activate` on Windows). Open http://127.0.0.1:5000 and sign in with the admin email and password from `.env`.
+
+</details>
+
+<details>
+<summary><b>With Docker (Flask + MySQL 8)</b></summary>
+
+<br>
+
+`cp .env.example .env`, edit the passwords, then `docker compose up --build`.
+
+</details>
+
+<details>
+<summary><b>Try it with demo data</b></summary>
+
+<br>
+
+Fill a separate demo database with 13 people, 3 groups, a manager, two image projects and five weeks of answers:
+
+```bash
+export DATABASE_URL=sqlite:///demo.db
+python scripts/seed_demo.py
+flask --app app run --debug
+```
+
+The script prints the demo sign-ins. It refuses to run on a database that already has people or projects in it.
+
+</details>
+
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest --cov
+```
+
+The tests cover sign-in and access control for each role, CSRF, the distribution rules (joins, leaves, caps, several answers per task), uploads, CSV import, exports and agreement scores, database rules, and the security fixes. GitHub Actions runs them on every push.
+
+<details>
+<summary><b>Tracking down a leaked connection or file</b></summary>
+
+<br>
+
+A database connection or file left open makes the tests fail on purpose (see `pytest.ini`). The failure often shows up in whichever test was running when Python cleaned up, not the one that leaked. To see where the leaked object was created, run the tests with allocation tracing (much slower):
+
+```bash
+PYTHONTRACEMALLOC=25 pytest --cov
+```
+
+On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest --cov`.
+
+</details>
+
+## Security
+
+- Passwords are hashed (Werkzeug scrypt); there are no default accounts, and secrets live only in `.env`.
+- Every form has a CSRF token. Cookies are HTTP-only and SameSite, with an idle timeout. Pages are sent with `Cache-Control: no-store`.
+- Access is checked on every route: managers see only their own projects, and members only their own tasks.
+- All user-written text is escaped, including inside confirm dialogs.
+- After 5 wrong passwords, an account pauses for 15 minutes (stored in the database, so it holds across server processes).
+- Sign-ins, failed sign-ins and sign-outs are written to an audit log.
+
 ## Tech stack
 
-- **Backend:** Python 3.11, Flask (app factory and blueprints), SQLAlchemy 2, Flask-Login, Flask-WTF (CSRF)
-- **Database:** MySQL 8 in production, SQLite for development and tests; older databases are upgraded automatically on start
-- **Frontend:** Jinja templates, Bootstrap 3 and AdminLTE 2, a custom design layer (`app.css`, `apple.css`) with reduced-motion and high-contrast fallbacks, Chart.js
-- **Quality:** pytest with ~92% line coverage on Python 3.11 and 3.12, GitHub Actions, Dependabot
-- **Deployment:** Docker Compose (Gunicorn and MySQL)
+| | |
+|---|---|
+| **Backend** | Python 3.11, Flask (app factory and blueprints), SQLAlchemy 2, Flask-Login, Flask-WTF (CSRF) |
+| **Database** | MySQL 8 in production, SQLite for development and tests; older databases are upgraded automatically on start |
+| **Frontend** | Jinja templates, Bootstrap 3 and AdminLTE 2, a custom design layer (`app.css`, `apple.css`) with reduced-motion and high-contrast fallbacks, Chart.js |
+| **Quality** | pytest with ~92% line coverage on Python 3.11 and 3.12, GitHub Actions, Dependabot |
+| **Deployment** | Docker Compose (Gunicorn and MySQL) |
+
+<details>
+<summary><b>Project layout</b></summary>
 
 ```
 application/
@@ -93,57 +200,7 @@ application/
 └── permissions.py, models.py, templates/, static/
 ```
 
-## Run it
-
-**Codespaces (no install):** on GitHub, click **Code → Codespaces → Create codespace**, then:
-
-```bash
-cp .env.example .env          # set SECRET_KEY, ADMIN_EMAIL and ADMIN_PASSWORD
-pip install -r requirements.txt
-flask --app app run --debug
-```
-
-**Your own computer:** the same steps, after `python -m venv .venv` and activating it (`source .venv/bin/activate`, or `.venv\Scripts\activate` on Windows). Open http://127.0.0.1:5000 and sign in with the admin email and password from `.env`.
-
-**Docker (Flask + MySQL 8):** `cp .env.example .env`, edit the passwords, then `docker compose up --build`.
-
-### Try it with demo data
-
-Fill a separate demo database with 13 people, 3 groups, a manager, two image projects and five weeks of answers:
-
-```bash
-export DATABASE_URL=sqlite:///demo.db
-python scripts/seed_demo.py
-flask --app app run --debug
-```
-
-The script prints the demo sign-ins. It refuses to run on a database that already has people or projects in it.
-
-## Tests
-
-```bash
-pip install -r requirements-dev.txt
-pytest --cov
-```
-
-The tests cover sign-in and access control for each role, CSRF, the distribution rules (joins, leaves, caps, several answers per task), uploads, CSV import, exports and agreement scores, database rules, and the security fixes. GitHub Actions runs them on every push.
-
-A database connection or file left open makes the tests fail on purpose (see `pytest.ini`). The failure often shows up in whichever test was running when Python cleaned up, not the one that leaked. To see where the leaked object was created, run the tests with allocation tracing (much slower):
-
-```bash
-PYTHONTRACEMALLOC=25 pytest --cov
-```
-
-On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest --cov`.
-
-## Security
-
-- Passwords are hashed (Werkzeug scrypt); there are no default accounts, and secrets live only in `.env`.
-- Every form has a CSRF token. Cookies are HTTP-only and SameSite, with an idle timeout. Pages are sent with `Cache-Control: no-store`.
-- Access is checked on every route: managers see only their own projects, and members only their own tasks.
-- All user-written text is escaped, including inside confirm dialogs.
-- After 5 wrong passwords, an account pauses for 15 minutes (stored in the database, so it holds across server processes).
-- Sign-ins, failed sign-ins and sign-outs are written to an audit log.
+</details>
 
 ## Documentation
 

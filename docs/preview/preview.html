@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Data Tagging preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1C2733; --ink-soft: #2E3B4A; --canvas: #EDF0F3; --surface: #FFFFFF;
+    --line: #D4DAE1; --line-strong: #AEB7C2; --muted: #56616F;
+    --marker: #F5CF3A; --marker-soft: #FCF1C4; --accent: #3366CC;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 378px; overflow: hidden; }
+  body {
+    font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+    color: var(--ink); background: var(--canvas);
+    display: grid; grid-template-columns: 1fr 548px; gap: 56px;
+    padding: 44px 52px 40px 60px; position: relative;
+  }
+  /* faint dot grid, like an empty labelling canvas */
+  body::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(#C9D0D8 1px, transparent 1px);
+    background-size: 20px 20px; opacity: .55;
+    mask-image: linear-gradient(90deg, transparent 0%, #000 55%, #000 100%);
+  }
+  .left, .panel { position: relative; }
+
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; }
+  .left { display: flex; flex-direction: column; }
+  h1 { font-size: 54px; line-height: 1.04; letter-spacing: -1.4px; margin-top: 30px; font-weight: 700; }
+  .hl { position: relative; white-space: nowrap; z-index: 0; }
+  .hl::after {
+    content: ""; position: absolute; z-index: -1; left: -4px; right: -6px; bottom: 4px; height: 22px;
+    background: var(--marker); transform: skewX(-8deg); border-radius: 2px;
+  }
+  .sub { margin-top: 18px; font-size: 18px; line-height: 1.45; color: var(--ink-soft); max-width: 540px; }
+  .meta {
+    margin-top: auto; display: flex; flex-wrap: wrap; gap: 0 18px;
+    font-size: 14px; color: var(--muted); letter-spacing: .1px;
+  }
+  .meta span + span::before { content: ""; display: inline-block; width: 4px; height: 4px;
+    border-radius: 50%; background: var(--line-strong); margin: 0 18px 3px -18px; vertical-align: middle; position: relative; left: 7px; }
+  .meta b { color: var(--ink); font-weight: 700; }
+
+  /* the right side: a selection box around the fairness result */
+  .panel {
+    align-self: center; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 6px; padding: 18px 22px 16px; box-shadow: 0 18px 40px -24px rgba(28,39,51,.35);
+  }
+  .corner { position: absolute; width: 18px; height: 18px; border: 3px solid var(--ink); }
+  .c1 { top: -11px; left: -11px; border-right: 0; border-bottom: 0; }
+  .c2 { top: -11px; right: -11px; border-left: 0; border-bottom: 0; }
+  .c3 { bottom: -11px; right: -11px; border-left: 0; border-top: 0; }
+  .c4 { bottom: -11px; left: -11px; border-right: 0; border-top: 0; }
+
+  .ph { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .ph h2 { font-size: 15px; font-weight: 700; }
+  .ph small { font-size: 12.5px; color: var(--muted); }
+
+  .row { display: grid; grid-template-columns: 112px 1fr 28px; align-items: center; height: 25px; font-size: 13.5px; }
+  .row .who { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tasks { display: flex; gap: 4px; }
+  .t { width: 15px; height: 15px; border-radius: 3px; background: var(--accent); }
+  .t.moved { background: var(--marker); box-shadow: inset 0 0 0 1px #D9B21F; }
+  .t.gone { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+  .row.left-team { color: var(--muted); }
+  .row.left-team .who s { text-decoration-thickness: 1px; }
+  .tag { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-left: 8px; align-self: center; white-space: nowrap; }
+  .tag.out { color: var(--muted); background: var(--canvas); }
+  .tag.in { color: #6B4E00; background: var(--marker-soft); }
+
+  .pf { margin-top: 10px; padding-top: 11px; border-top: 1px solid var(--line);
+        display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--muted); }
+  .pf strong { color: var(--ink); font-size: 14px; }
+  .key { display: flex; gap: 14px; }
+  .key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+  <section class="left">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+        <path d="M2 9V2h7M19 2h7v7M26 19v7h-7M9 26H2v-7" fill="none" stroke="#1C2733" stroke-width="2.5" stroke-linecap="square"/>
+        <rect x="10" y="10" width="8" height="8" rx="1" fill="#F5CF3A"/>
+      </svg>
+      Data Tagging
+    </div>
+    <h1>Labelling work,<br>shared <span class="hl">fairly.</span></h1>
+    <p class="sub">Images and audio are split into tasks and handed to whoever has the lightest load, even as people join or leave mid-project.</p>
+    <div class="meta">
+      <span><b>Bachelor's thesis</b>, University of Pécs</span>
+      <span>Python · Flask</span>
+      <span>MySQL 8</span>
+      <span><b>250+</b> tests</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+    <div class="ph"><h2>Open tasks per person</h2><small>Day shift, after one leaves and one joins</small></div>
+    <div id="rows"></div>
+    <div class="pf">
+      <div class="key">
+        <span><i style="background:#3366CC"></i>open</span>
+        <span><i style="background:#F5CF3A"></i>moved to them</span>
+      </div>
+      <span>Busiest vs. lightest: <strong>1 task</strong></span>
+    </div>
+  </section>
+
+<script>
+  // [name, open tasks kept, tasks moved to them, state]; Kenji's 8 are handed on, then Daniel is filled from the busiest
+  const people = [
+    ["Amira Haddad", 6, 2],
+    ["Lucas Martin", 6, 1],
+    ["Priya Nair",   7, 1],
+    ["Tomás García", 5, 2],
+    ["Hannah Weber", 6, 2],
+    ["Kenji Sato",   0, 0, "out"],
+    ["Daniel Brooks",0, 7, "in"],
+  ];
+  const rows = document.getElementById("rows");
+  for (const [name, own, moved, state] of people) {
+    const r = document.createElement("div");
+    r.className = "row" + (state === "out" ? " left-team" : "");
+    let sq = "";
+    if (state === "out") for (let i = 0; i < 8; i++) sq += '<span class="t gone"></span>';
+    else {
+      for (let i = 0; i < own; i++) sq += '<span class="t"></span>';
+      for (let i = 0; i < moved; i++) sq += '<span class="t moved"></span>';
+    }
+    const tag = state === "out" ? '<span class="tag out">left the group</span>'
+              : state === "in" ? '<span class="tag in">just joined</span>' : "";
+    const who = state === "out" ? `<s>${name}</s>` : name;
+    r.innerHTML = `<span class="who">${who}</span><span class="tasks">${sq}${tag}</span><span class="n">${state === "out" ? "0" : own + moved}</span>`;
+    rows.appendChild(r);
+  }
+</script>
+</body>
+</html>

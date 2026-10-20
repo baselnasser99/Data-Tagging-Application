@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Data Tagging LinkedIn</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* 16:9 for LinkedIn's project media. Shown at about 255 px wide, so every word is large. */
+  :root {
+    --ink: #1C2733; --ink-soft: #2E3B4A; --canvas: #EDF0F3; --surface: #FFFFFF;
+    --line: #D4DAE1; --line-strong: #AEB7C2; --muted: #56616F;
+    --marker: #F5CF3A; --marker-soft: #FCF1C4; --accent: #3366CC;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 675px; overflow: hidden; }
+  body {
+    font-family: "Atkinson Hyperlegible", system-ui, sans-serif; color: var(--ink); background: var(--canvas);
+    display: grid; grid-template-columns: 1fr 424px; gap: 48px; align-items: center;
+    padding: 64px 68px; position: relative;
+  }
+  body::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(#C9D0D8 1.5px, transparent 1.5px); background-size: 24px 24px; opacity: .5;
+    mask-image: linear-gradient(90deg, transparent 0%, #000 55%);
+  }
+  .left, .panel { position: relative; }
+  .brand { display: flex; align-items: center; gap: 14px; font-weight: 700; font-size: 34px; }
+  h1 { font-size: 84px; line-height: 1.02; letter-spacing: -2.4px; margin-top: 44px; }
+  .hl { position: relative; white-space: nowrap; z-index: 0; }
+  .hl::after { content: ""; position: absolute; z-index: -1; left: -6px; right: -8px; bottom: 8px; height: 36px;
+    background: var(--marker); transform: skewX(-8deg); border-radius: 3px; }
+  .sub { margin-top: 36px; font-size: 27px; line-height: 1.35; color: var(--ink-soft); }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 28px 28px 24px; box-shadow: 0 24px 50px -28px rgba(28,39,51,.4); }
+  .corner { position: absolute; width: 30px; height: 30px; border: 5px solid var(--ink); }
+  .c1 { top: -17px; left: -17px; border-right: 0; border-bottom: 0; }
+  .c2 { top: -17px; right: -17px; border-left: 0; border-bottom: 0; }
+  .c3 { bottom: -17px; right: -17px; border-left: 0; border-top: 0; }
+  .c4 { bottom: -17px; left: -17px; border-right: 0; border-top: 0; }
+  h2 { font-size: 25px; margin-bottom: 18px; }
+  .row { display: grid; grid-template-columns: 1fr 34px; align-items: center; height: 48px; }
+  .tasks { display: flex; gap: 6px; align-items: center; }
+  .t { width: 29px; height: 29px; border-radius: 6px; background: var(--accent); }
+  .t.moved { background: var(--marker); box-shadow: inset 0 0 0 1.5px #D9B21F; }
+  .t.gone { background: transparent; box-shadow: inset 0 0 0 2.5px var(--line-strong); }
+  .n { text-align: right; font-size: 26px; font-weight: 700; }
+  .row.out .n { color: var(--muted); }
+  .tag { font-size: 17px; font-weight: 700; padding: 3px 9px; border-radius: 5px; margin-left: 8px; white-space: nowrap; }
+  .tag.out { color: var(--muted); background: var(--canvas); }
+  .tag.in { color: #6B4E00; background: var(--marker-soft); }
+  .pf { margin-top: 16px; padding-top: 18px; border-top: 1.5px solid var(--line);
+        font-size: 23px; color: var(--muted); }
+  .pf strong { color: var(--ink); }
+</style>
+</head>
+<body>
+  <section class="left">
+    <div class="brand">
+      <svg width="42" height="42" viewBox="0 0 28 28" aria-hidden="true">
+        <path d="M2 9V2h7M19 2h7v7M26 19v7h-7M9 26H2v-7" fill="none" stroke="#1C2733" stroke-width="2.5" stroke-linecap="square"/>
+        <rect x="10" y="10" width="8" height="8" rx="1" fill="#F5CF3A"/>
+      </svg>
+      Data Tagging
+    </div>
+    <h1>Labelling work,<br>shared <span class="hl">fairly.</span></h1>
+    <p class="sub">Tasks go to whoever has the lightest load, even as people join or leave.</p>
+  </section>
+
+  <section class="panel">
+    <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+    <h2>Open tasks per person</h2>
+    <div id="rows"></div>
+    <div class="pf">Busiest vs. lightest: <strong>1 task</strong></div>
+  </section>
+
+<script>
+  // [open tasks kept, tasks moved to them, state]: the leaver's 6 are handed on, the newcomer is filled from the busiest
+  const people = [[6, 2], [5, 2], [6, 2], [0, 0, "out"], [0, 7, "in"]];
+  const rows = document.getElementById("rows");
+  for (const [own, moved, state] of people) {
+    const r = document.createElement("div");
+    r.className = "row" + (state === "out" ? " out" : "");
+    let sq = "";
+    if (state === "out") sq = '<span class="t gone"></span>'.repeat(6) + '<span class="tag out">left</span>';
+    else sq = '<span class="t"></span>'.repeat(own) + '<span class="t moved"></span>'.repeat(moved)
+            + (state === "in" ? '<span class="tag in">joined</span>' : "");
+    r.innerHTML = `<span class="tasks">${sq}</span><span class="n">${own + moved}</span>`;
+    rows.appendChild(r);
+  }
+</script>
+</body>
+</html>

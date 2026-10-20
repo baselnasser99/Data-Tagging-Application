@@ -65,7 +65,7 @@ All are fixed, and each has a test.
 ## Testing
 
 **How do you know it works?**
-206 test functions (255 test cases), 92% line coverage, run by GitHub Actions on Python 3.11 and 3.12 for every change. The distribution tests each prove one rule, and run in both hand-out modes. Hand-testing each change found real bugs that are now covered by tests.
+206 test functions (255 test cases), 92% line coverage (as of 20 Oct 2026), run by GitHub Actions on Python 3.11 and 3.12 for every change. The distribution tests each prove one rule, and run in both hand-out modes. Hand-testing each change found real bugs that are now covered by tests.
 
 ## Looking back
 

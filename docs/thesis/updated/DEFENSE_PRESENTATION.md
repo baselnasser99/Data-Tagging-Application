@@ -67,7 +67,7 @@ Slide outline, about 12 minutes. Screenshots are in [`docs/screenshots/`](../../
 
 - Mean (min–max) of 5 runs each on MySQL 8.4. Gap 0 after every hand-out; in all 25 runs every task kept its owners and no finished answer was lost.
 - **Load test:** 20 people at once, 240 requests, 0 errors, median 294 ms.
-- 206 test functions (255 test cases) at 92% line coverage, run on every change.
+- 206 test functions (255 test cases) at 92% line coverage (as of 20 Oct 2026), run on every change.
 
 ## 9. Decisions and limits
 

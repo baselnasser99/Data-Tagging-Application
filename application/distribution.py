@@ -291,13 +291,19 @@ def _shortage_warning(project: Project, n_users: int) -> str:
 
 
 def rebalance(project: Project, users: list[User] | None = None) -> DistributionResult:
-    """Move unstarted work from the busiest person to the least busy one.
+    """Move unstarted work from the busiest people to the least busy ones.
 
     Work moves one task at a time, or in per-item projects one item at a time
     (all of that person's unstarted questions for it, keeping "one item, one
     sitting"). A move is made only if it narrows the gap between the two people,
     the receiver holds none of those tasks yet, and stays under the cap.
-    Completed assignments are never moved. Stops when no move narrows the gap.
+    Completed assignments are never moved.
+
+    The busiest person's work goes to the least busy person who can take it:
+    if the least busy already holds those tasks (with several answers per task,
+    partners often share all their tasks) or is at the cap, the next least busy
+    is tried, and then the next busiest giver. Stops when no pair with a gap of
+    2 or more can make a move.
 
     The project's assignments are read once and the moves are worked out in
     memory, then saved together: re-reading every workload after each single
@@ -322,21 +328,16 @@ def rebalance(project: Project, users: list[User] | None = None) -> Distribution
         if not assignment.is_completed:
             open_work[assignment.user_id].append(assignment)
 
-    while True:
-        by_open = sorted(ids, key=lambda uid: (len(open_work[uid]), uid))
-        light, heavy = by_open[0], by_open[-1]
-        gap = len(open_work[heavy]) - len(open_work[light])
-        if gap <= 1:
-            break
-
+    def bundles_of(uid):
         bundles: dict[int, list] = {}
-        for assignment in open_work[heavy]:
+        for assignment in open_work[uid]:
             key = assignment.task.image_id if project.hand_out_per_item else assignment.task_id
             bundles.setdefault(key, []).append(assignment)
+        return [bundles[k] for k in sorted(bundles, key=lambda k: (len(bundles[k]), -k))]
 
-        move = None
-        for key in sorted(bundles, key=lambda k: (len(bundles[k]), -k)):
-            bundle = bundles[key]
+    def movable(bundles, light, gap):
+        """The first bundle the giver can hand to `light` under every rule, or None."""
+        for bundle in bundles:
             size = len(bundle)
             if size >= gap:  # moving it would not narrow the gap
                 continue
@@ -344,10 +345,26 @@ def rebalance(project: Project, users: list[User] | None = None) -> Distribution
                 continue
             if total[light] + size > cap:
                 continue
-            move = bundle
-            break
+            return bundle
+        return None
+
+    while True:
+        by_open = sorted(ids, key=lambda uid: (len(open_work[uid]), uid))
+        move = None
+        for heavy in reversed(by_open):  # busiest givers first
+            bundles = None
+            for light in by_open:  # least busy receivers first
+                gap = len(open_work[heavy]) - len(open_work[light])
+                if gap <= 1:
+                    break  # the receivers after this one are busier still
+                bundles = bundles if bundles is not None else bundles_of(heavy)
+                move = movable(bundles, light, gap)
+                if move:
+                    break
+            if move:
+                break
         if move is None:
-            break
+            break  # no pair with a gap of 2 or more can make a move
         for assignment in move:
             assignment.user_id = light
             open_work[heavy].remove(assignment)

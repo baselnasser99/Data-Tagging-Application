@@ -77,7 +77,7 @@ The code is in [`application/distribution.py`](application/distribution.py), and
 - **Backend:** Python 3.11, Flask (app factory and blueprints), SQLAlchemy 2, Flask-Login, Flask-WTF (CSRF)
 - **Database:** MySQL 8 in production, SQLite for development and tests; older databases are upgraded automatically on start
 - **Frontend:** Jinja templates, Bootstrap 3 and AdminLTE 2, a custom design layer (`app.css`, `apple.css`) with reduced-motion and high-contrast fallbacks, Chart.js
-- **Quality:** pytest with ~90% line coverage on Python 3.11 and 3.12, GitHub Actions, Dependabot
+- **Quality:** pytest with ~92% line coverage on Python 3.11 and 3.12, GitHub Actions, Dependabot
 - **Deployment:** Docker Compose (Gunicorn and MySQL)
 
 ```

@@ -233,6 +233,34 @@ def test_new_member_takes_a_fair_share(db, setup, make_user):
     assert sum(result.moves.values()) == 4  # the message names who gave work to whom
 
 
+def test_rebalancing_tries_other_pairs_when_partners_share_every_task(db, setup):
+    """With 2 answers per task, partners often hold the same tasks. If the least busy
+    person already holds all of the busiest person's tasks, the work goes to the next
+    least busy person instead of rebalancing stopping with a large gap."""
+    project, group, (a, b, c, e) = setup(n_images=17, n_questions=1, n_users=4, answers_per_task=2)
+    distribution.generate_tasks(project)
+    tasks = AnnotationTask.query.filter_by(project_id=project.id).order_by(AnnotationTask.id).all()
+    for task in tasks:  # a and b share tasks 0-8, c and e share 9-16; a and c have finished
+        finished, waiting = (a, b) if tasks.index(task) < 9 else (c, e)
+        db.session.add(TaskAssignment(task_id=task.id, user_id=finished.id, is_completed=True))
+        db.session.add(TaskAssignment(task_id=task.id, user_id=waiting.id))
+        task.current_answers = 1
+    db.session.commit()
+    done_before = {(x.task_id, x.user_id) for x in assignments(project) if x.is_completed}
+    assert open_load(project)[b.id] == 9 and open_load(project)[a.id] == 0  # a holds all of b's tasks
+
+    result = distribution.rebalance(project)
+
+    load = open_load(project)
+    loads = [load[u.id] for u in (a, b, c, e)]
+    assert max(loads) - min(loads) <= 1, loads
+    assert result.assignments_moved > 0
+    assert {(x.task_id, x.user_id) for x in assignments(project) if x.is_completed} == done_before
+    holders = Counter((x.task_id, x.user_id) for x in assignments(project))
+    assert max(holders.values()) == 1  # nobody holds a task twice
+    assert len(assignments(project)) == 34  # work moved, nothing added or lost
+
+
 def test_rebalancing_never_moves_finished_work(db, setup, make_user):
     project, group, users = setup(n_images=6, n_questions=1, n_users=1)
     distribution.distribute(project)

@@ -30,6 +30,8 @@ def app(tmp_path):
         yield app
         _db.session.remove()
         _db.drop_all()
+        # Close the pooled SQLite connection; otherwise every test leaks one.
+        _db.engine.dispose()
 
 
 @pytest.fixture

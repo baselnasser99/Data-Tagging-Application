@@ -337,15 +337,20 @@ def main(argv=None):
     app = make_app()
     database = app.config["SQLALCHEMY_DATABASE_URI"].split(":", 1)[0].split("+")[0]
     with app.app_context():
-        if database == "mysql":
-            database = "MySQL " + db.session.execute(db.text("SELECT VERSION()")).scalar()
-        summaries, every_run = run_all(args.configs, args.runs, args.seed)
-        load = None
-        if args.load:
-            print("Running the load test...", file=sys.stderr, flush=True)
-            load = load_test(app)
-        db.session.remove()
-        db.drop_all()
+        try:
+            if database == "mysql":
+                database = "MySQL " + db.session.execute(db.text("SELECT VERSION()")).scalar()
+            summaries, every_run = run_all(args.configs, args.runs, args.seed)
+            load = None
+            if args.load:
+                print("Running the load test...", file=sys.stderr, flush=True)
+                load = load_test(app)
+            db.session.remove()
+            db.drop_all()
+        finally:
+            # Close the database connections even if a run fails partway.
+            db.session.remove()
+            db.engine.dispose()
 
     text = report(summaries, load, database, every_run)
     print(text)

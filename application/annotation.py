@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort
 from .models import Project, Question, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer
@@ -48,13 +49,19 @@ def dashboard():
             if total_assigned_tasks > total_solved:
                 available_projects = group_projects_count
 
+            answered_this_week = QuestionAnswer.query.filter(
+                QuestionAnswer.user_id == user_id,
+                QuestionAnswer.submitted_date >= datetime.now() - timedelta(days=7)).count()
+
             return render_template('end-user/dashboard.html',
                                    group_projects=_my_group_projects(user_id),
                                    assigned_projects=group_projects_count,
                                    group_memberships=group_memberships,
                                    solved_questions=total_solved,
                                    unanswered_questions=unanswered_questions,
-                                   available_projects=available_projects)
+                                   available_projects=available_projects,
+                                   answered_this_week=answered_this_week,
+                                   next_up=_next_open_task(user_id))
         else:
             flash('User not found', 'danger')
             return redirect(url_for('annotation.my_projects'))
@@ -70,6 +77,28 @@ def dashboard():
 @user_required
 def my_projects():
     return render_template('end-user/my_projects.html', group_projects=_my_group_projects(session['id']))
+
+
+def _next_open_task(user_id):
+    """The member's first unanswered task, with the page that answers it; None when nothing is open."""
+    nxt = TaskAssignment.query.join(AnnotationTask).filter(
+        TaskAssignment.user_id == user_id, TaskAssignment.is_completed == False,
+    ).order_by(AnnotationTask.project_id, AnnotationTask.image_id, AnnotationTask.question_id).first()
+    if nxt is None:
+        return None
+    task = nxt.task
+    if task.project.hand_out_per_item:
+        url = url_for("annotation.annotate_image", image_id=task.image_id, project_id=task.project_id)
+    else:
+        url = url_for("annotation.annotation_task", assignment_id=nxt.id)
+    return {"url": url, "project": task.project, "item": task.image, "question": task.question}
+
+
+def _my_progress(user_id, project_id):
+    """(done, total) of the member's own tasks in one project."""
+    mine = TaskAssignment.query.join(AnnotationTask).filter(
+        TaskAssignment.user_id == user_id, AnnotationTask.project_id == project_id)
+    return mine.filter(TaskAssignment.is_completed == True).count(), mine.count()
 
 
 def _my_group_projects(user_id):
@@ -300,12 +329,15 @@ def annotation_task(assignment_id):
         else:
             flash("Please provide an answer!", "error")
 
+    done, total = _my_progress(session["id"], project.id)
     return render_template("user/annotation_task.html",
                          assignment=assignment,
                          task=task,
                          image=image,
                          question=question,
-                         project=project)
+                         project=project,
+                         done=done,
+                         total=total)
 
 
 @annotation.route("/annotate-image/<int:image_id>/<int:project_id>", methods=["GET", "POST"])
@@ -354,10 +386,13 @@ def annotate_image(image_id, project_id, batch_index=0):
             return redirect(url_for("annotation.annotate_image", image_id=image.id, project_id=project.id))
         return _next_item(user_id, project.id)
 
+    done, total = _my_progress(user_id, project.id)
     return render_template("user/annotate_image.html",
                          image=image,
                          project=project,
                          assignments=current_batch_assignments, # Pass only the current batch
                          batch_index=batch_index,
                          total_uncompleted_questions=total_uncompleted_questions,
-                         batch_size=batch_size)
+                         batch_size=batch_size,
+                         done=done,
+                         total=total)

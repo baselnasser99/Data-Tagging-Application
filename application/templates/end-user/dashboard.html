@@ -1,19 +1,39 @@
 {% extends "base.html" %}
+{% from "includes/media.html" import media_item %}
 {% block title %}Overview – {{ app_name }}{% endblock %}
 
 {% block content %}
 <section class="content-header">
   <h1>Hello, {{ current_user.full_name.split(' ')[0] }}</h1>
+  <p class="text-muted page-subtitle">
+    {%- if unanswered_questions %}{{ plural(unanswered_questions, "task") }} waiting for you.
+    {%- elif assigned_projects %}You are all caught up.
+    {%- else %}Welcome to {{ app_name }}.{% endif -%}
+  </p>
 </section>
 
 <section class="content">
-  {% if unanswered_questions > 0 %}
+  {% if next_up %}
+  {# The very next task, one click away: the item, its question, and a button that opens it. #}
+  <a class="next-task" href="{{ next_up.url }}">
+    <span class="next-task-item">
+      <span class="corners" aria-hidden="true"></span>
+      {{ media_item(next_up.project, next_up.item, thumbnail=True, img_class="next-task-media") }}
+    </span>
+    <span class="next-task-text">
+      <span class="next-task-kicker">Up next · {{ next_up.project.name }}</span>
+      <strong class="next-task-question">{{ next_up.question.question }}</strong>
+      <span class="next-task-note">Your answer is saved as soon as you submit it, so you can stop at any time.</span>
+    </span>
+    <span class="btn btn-primary btn-lg next-task-go">Start <i class="fa fa-arrow-right" aria-hidden="true"></i></span>
+  </a>
+  {% elif unanswered_questions > 0 %}
   <div class="next-up">
     <div>
       <h2>{{ unanswered_questions }} {{ 'task is' if unanswered_questions == 1 else 'tasks are' }} waiting for you</h2>
       <p>Pick up where you left off. Your answers are saved as soon as you submit each one.</p>
     </div>
-    <a class="btn btn-primary btn-lg" href="{{ url_for('annotation.annotation_tasks') }}">Continue labelling</a>
+    <a class="btn btn-primary btn-lg" href="{{ url_for('annotation.my_projects') }}">Continue labelling</a>
   </div>
   {% elif assigned_projects == 0 %}
   <div class="box">
@@ -23,7 +43,7 @@
     </div>
   </div>
   {% else %}
-  <div class="next-up">
+  <div class="next-up is-done">
     <div>
       <h2>You are all caught up</h2>
       <p>Every task assigned to you has an answer. New tasks will appear here.</p>
@@ -32,22 +52,26 @@
   </div>
   {% endif %}
 
+  {% set total_tasks = solved_questions + unanswered_questions %}
   <div class="figures">
     <div class="figure">
-      <span class="figure-value">{{ solved_questions }}</span>
+      <span class="figure-value">{{ solved_questions }}{% if total_tasks %}<small> of {{ total_tasks }}</small>{% endif %}</span>
       <span class="figure-label">Tasks completed</span>
+      {% if total_tasks %}
+      <div class="progress figure-bar" aria-hidden="true"><div class="progress-bar" style="width: {{ (solved_questions / total_tasks * 100)|round(1) }}%"></div></div>
+      {% endif %}
     </div>
     <div class="figure">
       <span class="figure-value">{{ unanswered_questions }}</span>
       <span class="figure-label">Tasks waiting</span>
     </div>
     <div class="figure">
-      <span class="figure-value">{{ assigned_projects }}</span>
-      <span class="figure-label">Projects</span>
+      <span class="figure-value">{{ answered_this_week }}</span>
+      <span class="figure-label">Answered in the last 7 days</span>
     </div>
     <div class="figure">
-      <span class="figure-value">{{ group_memberships }}</span>
-      <span class="figure-label">Groups</span>
+      <span class="figure-value">{{ assigned_projects }}</span>
+      <span class="figure-label">{{ 'Project' if assigned_projects == 1 else 'Projects' }} in {{ plural(group_memberships, "group") }}</span>
     </div>
   </div>
 

@@ -17,4 +17,5 @@ RUN useradd --create-home appuser \
 USER appuser
 
 EXPOSE 5000
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "app:app"]
+# --timeout 120: handing out 50,000 tasks takes about 43 s (scripts/benchmark.py), over Gunicorn's 30 s default.
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "--timeout", "120", "app:app"]

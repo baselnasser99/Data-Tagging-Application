@@ -7,7 +7,7 @@
 
 **A web app that shares labelling work fairly across a team.** An admin uploads images or audio clips and writes the questions. The app splits the work into tasks and hands them out so everyone carries the same load, even while people join or leave mid-project. The answers come back as a CSV or JSON dataset, with an agreement score showing how consistently people labelled.
 
-Built as my diploma thesis project, then rebuilt to production standards: security fixes, a fairness algorithm verified with measurements, 200+ automated tests, and a redesigned interface. [See what changed since the graded version →](docs/thesis/COMPARISON.md)
+Built as my diploma thesis project, then rebuilt to production standards: security fixes, a fairness algorithm verified with measurements, 250+ automated tests, and a redesigned interface. [See what changed since the graded version →](docs/thesis/COMPARISON.md)
 
 ![Admin dashboard: projects, people, answers per week and progress per group](docs/screenshots/admin-dashboard.png)
 
@@ -57,18 +57,20 @@ The code is in [`application/distribution.py`](application/distribution.py), and
 
 ## Measured, not assumed
 
-[`scripts/benchmark.py`](scripts/benchmark.py) builds made-up teams and projects on a **MySQL 8** server in GitHub Actions ([workflow](.github/workflows/benchmark.yml)), then times the real distribution code and checks its fairness.
+[`scripts/benchmark.py`](scripts/benchmark.py) builds made-up teams and projects on a **MySQL 8** server in GitHub Actions ([workflow](.github/workflows/benchmark.yml)), then times the real distribution code and checks its fairness. Each setup runs 5 times; cells show the mean (min–max).
 
-| Tasks | People | Hand out | 10% of people leave | 5% join | Load gap after joining |
-|---:|---:|---:|---:|---:|---:|
-| 1,000 | 20 | 0.39 s | 0.08 s | 0.06 s | 1 |
-| 10,000 | 50 | 4.55 s | 2.26 s | 1.84 s | 1 |
-| 50,000 | 100 | 24.9 s | 15.4 s | 16.9 s | 1 |
+| Tasks | People | Setup | Hand out | 10% of people leave | 5% join | Load gap after joining |
+|---:|---:|---|---:|---:|---:|---:|
+| 1,000 | 20 | 1 group | 0.68 s (0.67–0.71) | 0.11 s (0.10–0.12) | 0.08 s (0.08–0.08) | 1 |
+| 10,000 | 50 | 1 group | 7.66 s (7.36–8.45) | 2.06 s (2.00–2.17) | 1.59 s (1.49–1.73) | 1 |
+| 50,000 | 100 | 1 group | 43.3 s (42.8–43.6) | 19.6 s (19.1–19.9) | 20.4 s (20.0–20.8) | 1 |
+| 10,000 | 50 | 2 answers per task | 11.44 s (11.39–11.52) | 2.48 s (2.44–2.51) | 2.39 s (2.33–2.45) | 1 |
+| 10,000 | 50 | 2 groups of 25 | 7.28 s (7.21–7.38) | 1.99 s (1.92–2.03) | 1.55 s (1.48–1.62) | 1 |
 
 - The load gap (most open tasks held by one person minus fewest) is **0** right after hand-out.
-- In every run, every task kept an owner and no finished answer was lost.
+- In all 25 runs, every task kept its owners and no finished answer was lost.
 - Batching the database writes made the hand-out **2.5× faster**, and handling 5% newcomers at 50k tasks **15× faster** (250 s → 17 s).
-- **Load test:** 20 people answering at once made 240 requests with **0 errors**; median response time 284 ms.
+- **Load test:** 20 people answering at once made 240 requests with **0 errors**; median response time 294 ms.
 
 ## Tech stack
 

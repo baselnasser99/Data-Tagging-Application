@@ -5,9 +5,13 @@ Everything runs on a throwaway database filled with made-up people and items,
 using the same distribution code the app uses (application/distribution.py).
 Nothing touches your real data.
 
-    python scripts/benchmark.py                 # 1k, 10k and 50k tasks
-    python scripts/benchmark.py --sizes 1000    # one size only
-    python scripts/benchmark.py --load          # also: 20 people answering at once
+    python scripts/benchmark.py                       # every configuration, 5 runs each
+    python scripts/benchmark.py --configs 1k --runs 2 # one configuration, 2 runs
+    python scripts/benchmark.py --load                # also: 20 people answering at once
+
+Each run of a configuration uses its own seed (--seed, --seed + 1, ...), which
+decides whose work counts as answered and who leaves. Every number is reported
+as mean (min-max) with its standard deviation across the runs.
 
 The database is a temporary SQLite file unless BENCH_DATABASE_URL is set
 (GitHub Actions sets it to a MySQL 8 server, like the real deployment).
@@ -39,12 +43,22 @@ from application.models import (AnnotationTask, GroupProject, Project, ProjectIm
                                 TaskAssignment, User, UserGroup, UserGroupMembership)
 
 QUESTIONS = 10
-SCENARIOS = {  # tasks -> (people, items); every item gets QUESTIONS questions
-    1_000: (20, 100),
-    10_000: (50, 1_000),
-    50_000: (100, 5_000),
+# name -> settings; every item gets QUESTIONS questions, so tasks = items x QUESTIONS.
+# r = answers per task; the people are split evenly over `groups` groups, all on the same project.
+CONFIGS = {
+    "1k": {"people": 20, "items": 100, "r": 1, "groups": 1},
+    "10k": {"people": 50, "items": 1_000, "r": 1, "groups": 1},
+    "50k": {"people": 100, "items": 5_000, "r": 1, "groups": 1},
+    "10k-r2": {"people": 50, "items": 1_000, "r": 2, "groups": 1},
+    "10k-2groups": {"people": 50, "items": 1_000, "r": 1, "groups": 2},
 }
+RUNS = 5
 PASSWORD = "bench-password"
+
+TIMINGS = [("handout_s", "Hand out"), ("leave_s", "10% leave"), ("join_s", "5% join")]
+FAIRNESS = [("gap_total", "Gap after hand-out"), ("gap_open_start", "Open gap, half answered"),
+            ("gap_open_leave", "Open gap after 10% leave"), ("gap_open_join", "Open gap after 5% join")]
+INTEGRITY = [("owned", "Every task owned"), ("kept", "Finished work kept")]
 
 
 def make_app():
@@ -63,12 +77,15 @@ def reset_database():
     db.create_all()
 
 
-def build(people, items, questions=QUESTIONS, answers_per_task=1, password_hash="x"):
-    """A group of `people` working on one project of `items` x `questions`."""
-    group = UserGroup(name="Bench group")
+def build(people, items, questions=QUESTIONS, answers_per_task=1, groups=1, password_hash="x"):
+    """`people` split over `groups` groups, all working on one project of `items` x `questions`.
+
+    Returns the project, the groups, and the people; person i is in group i % groups.
+    """
     project = Project(name="Bench project", desc="made-up data", is_annotation_project=True,
                       answers_per_task=answers_per_task, max_questions_per_user=1_000_000)
-    db.session.add_all([group, project])
+    teams = [UserGroup(name=f"Bench group {g + 1}") for g in range(groups)]
+    db.session.add_all([project, *teams])
     db.session.flush()
     users = [User(full_name=f"Person {i:04d}", email=f"bench{i:04d}@example.com", role="end-user",
                   password_hash=password_hash) for i in range(people)]
@@ -76,11 +93,11 @@ def build(people, items, questions=QUESTIONS, answers_per_task=1, password_hash=
     db.session.add_all([Question(question=f"Question {q + 1}?", project_id=project.id) for q in range(questions)])
     db.session.add_all([ProjectImage(project_id=project.id, filename=f"{i}.png", original_filename=f"{i}.png",
                                      file_path=f"/bench/{i}.png") for i in range(items)])
-    db.session.add(GroupProject(group_id=group.id, project_id=project.id))
+    db.session.add_all([GroupProject(group_id=team.id, project_id=project.id) for team in teams])
     db.session.flush()
-    db.session.add_all([UserGroupMembership(user_id=u.id, group_id=group.id) for u in users])
+    db.session.add_all([UserGroupMembership(user_id=u.id, group_id=teams[i % groups].id) for i, u in enumerate(users)])
     db.session.commit()
-    return project, group, users
+    return project, teams, users
 
 
 def loads(project):
@@ -113,10 +130,14 @@ def finish_half(project, rng):
     db.session.commit()
 
 
-def run_scenario(tasks, rng):
-    people, items = SCENARIOS[tasks]
+def run_config(name, seed):
+    """One run of a configuration: hand out, half answered, 10% leave, 5% join. Returns its measurements."""
+    config = CONFIGS[name]
+    people, groups = config["people"], config["groups"]
+    rng = random.Random(seed)
     reset_database()
-    project, group, users = build(people, items)
+    project, teams, users = build(people, config["items"], answers_per_task=config["r"], groups=groups)
+    group_of = {u.id: teams[i % groups].id for i, u in enumerate(users)}
 
     start = time.perf_counter()
     distribution.distribute(project)
@@ -131,32 +152,107 @@ def run_scenario(tasks, rng):
     leavers = rng.sample(users, max(1, people // 10))  # 10% leave
     start = time.perf_counter()
     for user in leavers:
-        UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).delete()
+        UserGroupMembership.query.filter_by(user_id=user.id, group_id=group_of[user.id]).delete()
         db.session.commit()
-        distribution.on_member_removed(user, group.id)
+        distribution.on_member_removed(user, group_of[user.id])
     leave = time.perf_counter() - start
     open_after_leave, _ = loads(project)
     kept = TaskAssignment.query.filter_by(is_completed=True).count() == done_before
 
     joiners = [User(full_name=f"Newcomer {i}", email=f"new{i:04d}@example.com", role="end-user", password_hash="x")
-               for i in range(max(1, people // 20))]  # 5% join
+               for i in range(max(1, people // 20))]  # 5% join, spread over the groups
     db.session.add_all(joiners)
     db.session.commit()
     start = time.perf_counter()
-    for user in joiners:
-        db.session.add(UserGroupMembership(user_id=user.id, group_id=group.id))
+    for i, user in enumerate(joiners):
+        team = teams[i % groups].id
+        db.session.add(UserGroupMembership(user_id=user.id, group_id=team))
         db.session.commit()
-        distribution.on_member_added(user, group.id)
+        distribution.on_member_added(user, team)
     join = time.perf_counter() - start
     open_after_join, _ = loads(project)
 
     return {
-        "tasks": tasks, "people": people, "handout_s": handout, "gap_total": gap(total),
+        "config": name, "seed": seed, "tasks": config["items"] * QUESTIONS, "people": people,
+        "r": config["r"], "groups": groups, "handout_s": handout, "gap_total": gap(total),
         "gap_open_start": gap(open_before_leave),
         "leavers": len(leavers), "leave_s": leave, "gap_open_leave": gap(open_after_leave),
         "joiners": len(joiners), "join_s": join, "gap_open_join": gap(open_after_join),
         "owned": owned_after_handout and every_task_owned(project), "kept": kept,
     }
+
+
+def spread(values):
+    """mean, min, max and standard deviation (0 for a single run) of a list of numbers."""
+    return {"mean": statistics.mean(values), "min": min(values), "max": max(values),
+            "sd": statistics.stdev(values) if len(values) > 1 else 0.0, "n": len(values)}
+
+
+def summarise(runs):
+    """The runs of one configuration -> its settings plus a spread for every measurement."""
+    first = runs[0]
+    summary = {key: first[key] for key in ("config", "tasks", "people", "r", "groups", "leavers", "joiners")}
+    summary["runs"] = len(runs)
+    for key, _ in TIMINGS + FAIRNESS:
+        summary[key] = spread([run[key] for run in runs])
+    for key, _ in INTEGRITY:
+        summary[key] = sum(bool(run[key]) for run in runs)  # runs where it held
+    return summary
+
+
+def cell(s, unit="", digits=2):
+    """'mean (min–max), sd', e.g. '0.39 s (0.37–0.41), sd 0.02'. digits=0: whole numbers stay whole."""
+    def fmt(x):
+        if digits:
+            return f"{x:.{digits}f}"
+        return f"{x:.0f}" if float(x).is_integer() else f"{x:.1f}"
+    return f"{fmt(s['mean'])}{unit} ({fmt(s['min'])}–{fmt(s['max'])}), sd {s['sd']:.{digits or 1}f}"
+
+
+def setting(s):
+    return f"| {s['tasks']:,} | {s['people']} | {s['r']} | {s['groups']} | {s['runs']} "
+
+
+def report(summaries, load, database, runs=()):
+    head = "| Tasks | People | r | Groups | Runs "
+    lines = [f"## Timings ({database})", "",
+             head + "| Leavers / newcomers | " + " | ".join(label for _, label in TIMINGS) + " |",
+             "|---:|---:|---:|---:|---:|---:|" + "---:|" * len(TIMINGS)]
+    for s in summaries:
+        lines.append(setting(s) + f"| {s['leavers']} / {s['joiners']} | "
+                     + " | ".join(cell(s[key], " s") for key, _ in TIMINGS) + " |")
+    lines += ["", "Each cell: mean (min–max) over the runs, then the standard deviation. "
+                  "10% leave and 5% join time all leavers, or all newcomers, together.",
+              "", f"## Fairness and integrity ({database})", "",
+              head + "| " + " | ".join(label for _, label in FAIRNESS + INTEGRITY) + " |",
+              "|---:|---:|---:|---:|---:|" + "---:|" * len(FAIRNESS) + ":-:|" * len(INTEGRITY)]
+    for s in summaries:
+        lines.append(setting(s) + "| " + " | ".join(cell(s[key], digits=0) for key, _ in FAIRNESS)
+                     + " | " + " | ".join(f"{s[key]}/{s['runs']}" for key, _ in INTEGRITY) + " |")
+    lines += ["", "Gap = most tasks held by one person minus fewest (with r = 2, each person's share of the "
+                  "2 answers per task). 'Open' counts unfinished tasks only: half the work is marked as answered "
+                  "at random, as if people worked at different speeds, so the open gap is uneven before anyone "
+                  "leaves. Integrity columns count the runs in which it held."]
+    if runs:
+        lines += ["", "<details><summary>Every run</summary>", "",
+                  "| Config | Seed | Hand out | 10% leave | 5% join | Gap | Open, half | Open after leave "
+                  "| Open after join | Owned | Kept |",
+                  "|---|---:|---:|---:|---:|---:|---:|---:|---:|:-:|:-:|"]
+        for r in runs:
+            lines.append(f"| {r['config']} | {r['seed']} | {r['handout_s']:.2f} s | {r['leave_s']:.2f} s "
+                         f"| {r['join_s']:.2f} s | {r['gap_total']} | {r['gap_open_start']} | {r['gap_open_leave']} "
+                         f"| {r['gap_open_join']} | {'yes' if r['owned'] else 'NO'} | {'yes' if r['kept'] else 'NO'} |")
+        lines += ["", "</details>"]
+    if load:
+        lines += ["", f"## Load test ({database})", "",
+                  "| People at once | Requests | Errors | Time | Requests/s | Median | 95th percentile | Slowest | Tasks answered |",
+                  "|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+                  f"| {load['people']} | {load['requests']} | {load['errors']} | {load['seconds']:.1f} s "
+                  f"| {load['per_second']:.0f} | {load['median_ms']:.0f} ms | {load['p95_ms']:.0f} ms "
+                  f"| {load['max_ms']:.0f} ms | {load['answered']} of {load['total']} |"]
+        if load["first_errors"]:
+            lines += ["", "First errors: " + "; ".join(load["first_errors"])]
+    return "\n".join(lines)
 
 
 def load_test(app, people=20, items=50, questions=2):
@@ -217,45 +313,33 @@ def load_test(app, people=20, items=50, questions=2):
     }
 
 
-def report(rows, load, database):
-    lines = [f"## Hand-out speed and fairness ({database})", "",
-             "| Tasks | People | Hand out | Gap after hand-out | Open gap, half answered | 10% leave | Open gap after | 5% join | Open gap after | Every task owned | Finished work kept |",
-             "|---:|---:|---:|---:|---:|---:|---:|---:|---:|:-:|:-:|"]
-    for r in rows:
-        lines.append(f"| {r['tasks']:,} | {r['people']} | {r['handout_s']:.2f} s | {r['gap_total']} | {r['gap_open_start']} "
-                     f"| {r['leavers']} in {r['leave_s']:.2f} s | {r['gap_open_leave']} "
-                     f"| {r['joiners']} in {r['join_s']:.2f} s | {r['gap_open_join']} "
-                     f"| {'yes' if r['owned'] else 'NO'} | {'yes' if r['kept'] else 'NO'} |")
-    lines += ["", "Gap = most tasks held by one person minus fewest. 'Open' counts unfinished tasks only: "
-                  "half the work is marked as answered at random, as if people worked at different speeds, "
-                  "so the open gap is uneven before anyone leaves."]
-    if load:
-        lines += ["", f"## Load test ({database})", "",
-                  "| People at once | Requests | Errors | Time | Requests/s | Median | 95th percentile | Slowest | Tasks answered |",
-                  "|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
-                  f"| {load['people']} | {load['requests']} | {load['errors']} | {load['seconds']:.1f} s "
-                  f"| {load['per_second']:.0f} | {load['median_ms']:.0f} ms | {load['p95_ms']:.0f} ms "
-                  f"| {load['max_ms']:.0f} ms | {load['answered']} of {load['total']} |"]
-        if load["first_errors"]:
-            lines += ["", "First errors: " + "; ".join(load["first_errors"])]
-    return "\n".join(lines)
+def run_all(names, runs, seed):
+    """Every configuration `runs` times (seeds seed, seed + 1, ...). Returns (summaries, every run)."""
+    summaries, every_run = [], []
+    for name in names:
+        results = []
+        for n in range(runs):
+            print(f"Running {name}, run {n + 1} of {runs}...", file=sys.stderr, flush=True)
+            results.append(run_config(name, seed + n))
+        summaries.append(summarise(results))
+        every_run += results
+    return summaries, every_run
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--sizes", type=int, nargs="*", default=list(SCENARIOS), choices=list(SCENARIOS))
+    parser.add_argument("--configs", nargs="*", default=list(CONFIGS), choices=list(CONFIGS))
+    parser.add_argument("--runs", type=int, default=RUNS, help=f"runs per configuration (default {RUNS})")
+    parser.add_argument("--seed", type=int, default=1, help="seed of the first run; run n uses seed + n")
     parser.add_argument("--load", action="store_true", help="also run the load test")
-    parser.add_argument("--seed", type=int, default=1)
     args = parser.parse_args(argv)
 
-    rng = random.Random(args.seed)  # the same made-up data every run
     app = make_app()
     database = app.config["SQLALCHEMY_DATABASE_URI"].split(":", 1)[0].split("+")[0]
     with app.app_context():
-        rows = []
-        for tasks in args.sizes:
-            print(f"Running {tasks:,} tasks...", file=sys.stderr, flush=True)
-            rows.append(run_scenario(tasks, rng))
+        if database == "mysql":
+            database = "MySQL " + db.session.execute(db.text("SELECT VERSION()")).scalar()
+        summaries, every_run = run_all(args.configs, args.runs, args.seed)
         load = None
         if args.load:
             print("Running the load test...", file=sys.stderr, flush=True)
@@ -263,12 +347,12 @@ def main(argv=None):
         db.session.remove()
         db.drop_all()
 
-    text = report(rows, load, database)
+    text = report(summaries, load, database, every_run)
     print(text)
     if os.environ.get("GITHUB_STEP_SUMMARY"):
-        with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
             summary.write(text + "\n")
-    return rows, load
+    return summaries, load
 
 
 if __name__ == "__main__":

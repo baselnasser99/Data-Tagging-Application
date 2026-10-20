@@ -1,8 +1,8 @@
 {% extends "includes/auth_layout.html" %}
 {% block title %}Sign in{% endblock %}
 {% block form %}
-<h2>Sign in</h2>
-<p class="lede">Use the email address your admin registered for you.</p>
+<h2>Welcome back</h2>
+<p class="lede">Sign in with the email address your admin registered for you.</p>
 {% include "flash_messages.html" %}
 <form action="{{ url_for('auth.login', next=request.args.get('next')) }}" method="POST" novalidate>
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -12,8 +12,13 @@
   </div>
   <div class="field">
     <label for="password">Password</label>
-    <input id="password" type="password" name="password" autocomplete="current-password" required>
+    <div class="password-field">
+      <input id="password" type="password" name="password" autocomplete="current-password" required>
+      {# Shown by auth.js; without JavaScript the field works as a plain password box. #}
+      <button type="button" class="reveal" aria-controls="password" aria-pressed="false" hidden>Show</button>
+    </div>
   </div>
   <button type="submit" class="button">Sign in</button>
 </form>
+<p class="auth-help">Forgot your password? Ask your admin to set a new one.</p>
 {% endblock %}

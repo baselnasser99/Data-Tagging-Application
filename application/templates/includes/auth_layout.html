@@ -25,10 +25,15 @@
           <div class="tile"></div>
         </div>
 
-        <h1>Labelling work, shared fairly across your team.</h1>
-        <p>Upload images or audio and write your questions once. Everyone gets an even share of the tasks,
-          and if someone leaves, their unfinished work moves to the others automatically.</p>
+        <h1>Labelling work, shared <span class="hl">fairly</span> across your team.</h1>
+        <ul class="auth-points">
+          <li><b>An even share for everyone.</b> Each task goes to whoever has the lightest load.</li>
+          <li><b>People can come and go.</b> When someone leaves, their unfinished work moves to the others.</li>
+          <li><b>A clean dataset at the end.</b> CSV or JSON, with a score for how well people agreed.</li>
+        </ul>
       </div>
+
+      <p class="auth-credit">Built as a diploma project at the University of Pécs.</p>
     </section>
 
     <main class="auth-panel">
@@ -38,5 +43,6 @@
       </div>
     </main>
   </div>
+  <script src="{{ url_for('static', filename='js/auth.js') }}" defer></script>
 </body>
 </html>

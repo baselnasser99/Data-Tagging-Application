@@ -69,15 +69,52 @@ a:hover { color: var(--ink-soft); }
   font-size: 40px;
   line-height: 1.15;
   letter-spacing: -0.01em;
-  margin: 40px 0 16px;
+  margin: 40px 0 24px;
 }
 
-.auth-intro p {
-  font-size: 18px;
-  color: var(--muted);
-  margin: 0;
-  max-width: 30rem;
+.auth-intro {
+  background-image: radial-gradient(#C9D0D8 1px, transparent 1px);
+  background-size: 20px 20px;
 }
+
+/* the highlighter stroke from the brand: the word that matters most */
+.hl { position: relative; z-index: 0; white-space: nowrap; }
+.hl::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: -3px; right: -4px; bottom: 0.08em;
+  height: 0.42em;
+  background: var(--marker);
+  transform: skewX(-8deg);
+  border-radius: 2px;
+}
+
+.auth-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 30rem;
+  display: grid;
+  gap: 14px;
+}
+.auth-points li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 17px;
+  color: var(--muted);
+}
+.auth-points li::before {   /* a dab of the highlighter as the bullet */
+  content: "";
+  position: absolute;
+  left: 2px; top: 0.5em;
+  width: 9px; height: 9px;
+  border-radius: 2px;
+  background: var(--marker);
+}
+.auth-points b { color: var(--ink); }
+
+.auth-credit { margin: 0; font-size: 14px; color: var(--muted); }
 
 /* The specimen: a small batch of items, one of them selected and tagged. */
 .specimen {
@@ -180,7 +217,28 @@ a:hover { color: var(--ink-soft); }
 .auth-form .lede {
   margin: 0 0 28px;
   color: var(--muted);
+  text-wrap: pretty;
 }
+
+.password-field { position: relative; }
+.password-field input { padding-right: 72px; }
+.reveal {
+  position: absolute;
+  top: 6px; right: 6px; bottom: 6px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--canvas);
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.reveal:hover { background: var(--line); }
+.reveal[hidden] { display: none; }
+
+.auth-help { margin: 20px 0 0; font-size: 15px; color: var(--muted); text-wrap: balance; }
 
 .field { margin-bottom: 20px; }
 

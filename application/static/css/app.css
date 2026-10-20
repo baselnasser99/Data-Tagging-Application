@@ -481,6 +481,60 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .figure:first-child { border-left: 0; }
 .figure-value { display: block; font-size: 30px; font-weight: 700; line-height: 1.1; }
 .figure-label { display: block; color: var(--muted); margin-top: 4px; }
+/* Narrow screens: two by two, never three and a lonely one */
+@media (max-width: 991px) {
+  .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures .figure { border-left: 1px solid var(--line); border-top: 0; }
+  .figures .figure:nth-child(odd) { border-left: 0; }
+  .figures .figure:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+.figure-value small { font-size: 17px; font-weight: 400; color: var(--muted); }
+.figure-note { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.figure-bar { margin: 10px 0 0; height: 6px; }
+
+/* Page title with its main action on the right */
+.page-heading { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.page-heading h1 { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; color: var(--ink); }
+.page-heading .page-lede { margin: 6px 0 0; color: var(--muted); }
+.page-heading .btn { margin-bottom: 4px; }
+
+.box-header-split { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.box-header-split::before, .box-header-split::after { content: none; }  /* AdminLTE clearfix; would count as flex items */
+.box-subtitle { margin: 4px 0 0; font-size: 14px; }
+.section-title { font-size: 16px; font-weight: 700; margin: 8px 0 12px; }
+
+/* Projects on the dashboard: name, what it is, then its status line and bar */
+.project-list { list-style: none; margin: 0; padding: 0; }
+.project-list > li { padding: 14px 18px; border-top: 1px solid var(--line); }
+.project-list > li:first-child { border-top: 0; }
+.project-list-name { font-weight: 700; font-size: 15px; text-decoration: none; }
+.project-list-name:hover { text-decoration: underline; }
+.project-list-meta { display: block; color: var(--muted); font-size: 13px; margin: 2px 0 8px; }
+.project-list .project-status .progress { margin-bottom: 0; }
+
+/* Work balance: open tasks per person, the number the hand-out keeps even */
+.balance { padding: 14px 18px; border-top: 1px solid var(--line); }
+.balance:first-of-type { border-top: 0; }
+.balance-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 10px; }
+.balance-gap { font-size: 13px; color: var(--muted); }
+.balance-gap.is-even { color: var(--success); font-weight: 700; }
+.balance-people { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.balance-people > li { display: grid; grid-template-columns: minmax(0, 9.5rem) 1fr auto; align-items: center; gap: 12px; font-size: 14px; }
+.balance-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.balance-bar { display: flex; height: 10px; border-radius: 3px; background: var(--canvas); overflow: hidden; }
+.balance-bar .is-open { background: var(--accent); }
+.balance-bar .is-done { background: #B9CBEA; }
+.balance-count { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 4.5rem; text-align: right; }
+.balance-count b { color: var(--ink); }
+.balance-more { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.balance-key { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
+.balance-key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.key-open { background: var(--accent); }
+.key-done { background: #B9CBEA; }
+
+.group-complete { display: flex; align-items: center; gap: 10px; }
+.group-complete .progress { flex: 1; margin: 0; min-width: 48px; }
+.group-complete span { font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; }
 
 .next-up {
   display: flex;

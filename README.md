@@ -128,6 +128,14 @@ pytest --cov
 
 The tests cover sign-in and access control for each role, CSRF, the distribution rules (joins, leaves, caps, several answers per task), uploads, CSV import, exports and agreement scores, database rules, and the security fixes. GitHub Actions runs them on every push.
 
+A database connection or file left open makes the tests fail on purpose (see `pytest.ini`). The failure often shows up in whichever test was running when Python cleaned up, not the one that leaked. To see where the leaked object was created, run the tests with allocation tracing (much slower):
+
+```bash
+PYTHONTRACEMALLOC=25 pytest --cov
+```
+
+On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest --cov`.
+
 ## Security
 
 - Passwords are hashed (Werkzeug scrypt); there are no default accounts, and secrets live only in `.env`.

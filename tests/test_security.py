@@ -6,6 +6,7 @@ from application import create_app
 from application.config import TestingConfig
 from application.extns import db as _db
 from application.models import User
+from tests.conftest import BufferedClient
 
 
 def _close_database():
@@ -20,6 +21,7 @@ def csrf_app(tmp_path):
         WTF_CSRF_ENABLED = True
 
     app = create_app(Config)
+    app.test_client_class = BufferedClient
     with app.app_context():
         yield app
         _close_database()
@@ -59,7 +61,8 @@ def test_every_post_form_in_templates_has_csrf_token():
     import glob
 
     for path in glob.glob("application/templates/**/*.html", recursive=True):
-        html = open(path, encoding="utf-8").read()
+        with open(path, encoding="utf-8") as f:
+            html = f.read()
         forms = re.findall(r"<form\b[^>]*method=[\"']post[\"'][^>]*>", html, re.I)
         assert html.count("csrf_token()") >= len(forms), path
 
@@ -138,7 +141,8 @@ def test_templates_have_no_inline_scripts_or_event_handlers():
     import glob
 
     for path in glob.glob("application/templates/**/*.html", recursive=True):
-        html = open(path, encoding="utf-8").read()
+        with open(path, encoding="utf-8") as f:
+            html = f.read()
         for tag in re.findall(r"<script\b[^>]*>", html, re.I):
             assert "src=" in tag, f"inline <script> in {path}"
         assert not re.search(r"<[^>]*\son[a-z]+\s*=", html, re.I), f"inline event handler in {path}"

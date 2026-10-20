@@ -143,6 +143,7 @@ The tests cover sign-in and access control for each role, CSRF, the distribution
 - [Original vs. updated](docs/thesis/COMPARISON.md): what the graded thesis claimed, what the code did then, and what is true now
 - [Defence presentation](docs/thesis/updated/DEFENSE_PRESENTATION.md) and [defence Q&A](docs/thesis/updated/DEFENSE_FAQ.md)
 - The code as graded: tag [`v1.0-thesis-submitted`](https://github.com/baselnasser99/Data-Tagging-Application/tree/v1.0-thesis-submitted)
+- Thesis (revised 2026, PDF): see the [latest release](https://github.com/baselnasser99/Data-Tagging-Application/releases/latest).
 
 ## License
 

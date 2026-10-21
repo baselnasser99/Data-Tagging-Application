@@ -341,6 +341,35 @@ def test_leaving_with_an_item_half_answered(db, setup):
     assert stranded_slots(project) == 0
 
 
+def test_a_new_question_goes_to_whoever_is_working_on_the_item(db, setup):
+    """Per-item mode: all open questions about an item stay with one annotator,
+    also when a question is added after work has started."""
+    project, _, users = setup(n_images=6, n_questions=3, n_users=3, per_item=True)
+    distribution.distribute(project)
+    # Everyone answers one question of each of their items, so every item is
+    # half done, and loads differ: the first person also finishes one item.
+    first_of_item = {}
+    for a in sorted(assignments(project), key=lambda a: a.id):
+        first_of_item.setdefault(a.task.image_id, a)
+    for a in first_of_item.values():
+        complete(a)
+    finished_item = next(iter(first_of_item))
+    for a in assignments(project):
+        if a.task.image_id == finished_item and not a.is_completed:
+            complete(a)
+
+    db.session.add(Question(question="Added later", project_id=project.id))
+    db.session.commit()
+    distribution.distribute(project)
+
+    open_holders = {}
+    for a in assignments(project):
+        if not a.is_completed:
+            open_holders.setdefault(a.task.image_id, set()).add(a.user_id)
+    assert all(len(people) == 1 for people in open_holders.values()), open_holders
+    assert stranded_slots(project) == 0
+
+
 def test_lowering_answers_per_task_releases_work_no_longer_needed(setup):
     project, _, users = setup(n_images=2, n_questions=1, n_users=3, answers_per_task=3)
     distribution.distribute(project)

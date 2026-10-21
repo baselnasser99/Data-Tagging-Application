@@ -17,7 +17,7 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
 
 <table>
   <tr>
-    <td align="center" width="25%"><h3>1 task</h3><sub>most minus fewest open tasks per person, after people join</sub></td>
+    <td align="center" width="25%"><h3>1 task</h3><sub>loads stay within 1 task of each other, even after people join</sub></td>
     <td align="center" width="25%"><h3>0 lost</h3><sub>finished answers lost across 25 benchmark runs</sub></td>
     <td align="center" width="25%"><h3>250+</h3><sub>automated tests, ~92% line coverage</sub></td>
     <td align="center" width="25%"><h3>294 ms</h3><sub>median response, 20 people answering at once, 0 errors</sub></td>

@@ -133,7 +133,7 @@
               Create project
             </button>
             <a href="{{ url_for('admin.view_projects') }}" class="btn btn-default">
-              <i class="fa fa-arrow-left"></i> Cancel
+              Cancel
             </a>
           </div>
         </form>
@@ -141,24 +141,21 @@
     </div>
     
     <div class="col-md-4">
-      <div class="box box-info">
+      <div class="box">
         <div class="box-header with-border">
-          <h3 class="box-title">
-            <i class="fa fa-info-circle"></i> How It Works
-          </h3>
+          <h3 class="box-title">What happens next</h3>
+          <p class="text-muted box-subtitle">Four steps from here to a labelled dataset</p>
         </div>
         <div class="box-body">
-          <ol>
-            <li><strong>Create Project</strong> - Set up your project and its settings</li>
-            <li><strong>Questions</strong> - Free text, or multiple choice when you want comparable answers</li>
-            <li><strong>Upload Items</strong> - Batch upload images and/or audio clips via ZIP file</li>
-            <li><strong>Hand out tasks</strong> - every item × question becomes a task, shared fairly</li>
-            <li><strong>Assign a group</strong> - Work is split evenly; if someone leaves, their unfinished tasks go to the others</li>
-            <li><strong>Monitor Progress</strong> - Track completion and download results</li>
+          <ol class="steps">
+            <li class="is-current"><strong>Create the project</strong><span>Its name, its questions and how many people answer each task.</span></li>
+            <li><strong>Upload items</strong><span>Images and audio clips, one by one or as ZIP files.</span></li>
+            <li><strong>Hand out tasks to a group</strong><span>Every item × question becomes a task, and each goes to whoever has the fewest. If someone leaves, their unfinished tasks go to the others.</span></li>
+            <li><strong>Follow progress and results</strong><span>See who did what and how well people agreed, then download the answers as CSV or JSON.</span></li>
           </ol>
         </div>
       </div>
-      
+
       <div class="box">
         <div class="box-header with-border">
           <h3 class="box-title">Choosing an answer type</h3>

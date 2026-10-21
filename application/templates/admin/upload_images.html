@@ -12,7 +12,7 @@
 </section>
 
 <section class="content">
-  <div class="row task-grid">
+  <div class="row">
     <div class="col-md-8 col-xs-12">
       <div class="box">
         <form method="POST" enctype="multipart/form-data" class="upload-form">
@@ -51,20 +51,24 @@
     </div>
 
     <div class="col-md-4 col-xs-12">
+      {% set n_items, n_questions = project.images|length, project.questions|length %}
       <div class="box">
-        <div class="box-header with-border"><h3 class="box-title">Questions asked about each item</h3></div>
+        <div class="box-header with-border">
+          <h3 class="box-title">Each item is asked</h3>
+          <p class="text-muted box-subtitle">{{ plural(n_questions, "question") }}, so each item makes {{ plural(n_questions, "task") }}</p>
+        </div>
         <div class="box-body">
           <ol class="question-list">
             {% for question in project.questions %}
-            <li>{{ question.question }}</li>
+            <li>{{ question.question }} <span class="text-muted">· {{ "Multiple choice" if question.answer_type.value == "mcq" else "Free text" }}</span></li>
             {% else %}
-            <li class="text-muted">No questions yet.</li>
+            <li class="text-muted">No questions yet. Add them on the project's Questions and settings page.</li>
             {% endfor %}
           </ol>
-          <p class="text-muted" style="margin: 12px 0 0;">
-            Tasks = items × questions. With {{ plural(project.questions|length, "question") }}, 100 items make
-            {{ plural(100 * project.questions|length, "task") }}.
-          </p>
+        </div>
+        <div class="box-footer task-sum">
+          <span class="text-muted">This project now</span>
+          <strong>{{ plural(n_items, "item") }} × {{ plural(n_questions, "question") }} = {{ plural(n_items * n_questions, "task") }}</strong>
         </div>
       </div>
     </div>

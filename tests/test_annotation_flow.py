@@ -329,3 +329,46 @@ def test_zip_that_unpacks_too_large_is_skipped(app, admin_client):
     )
     assert b"unpacks to more than 2 MB" in resp.data
     assert ProjectImage.query.filter_by(project_id=project.id).count() == 0
+
+
+def test_member_overview_opens_the_next_task_directly(app, admin_client, group_with_members):
+    group, members = group_with_members
+    project = _create_project(admin_client)
+    _upload(admin_client, project, {"a.png": b"x", "b.png": b"y"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+
+    annotator = members[0]
+    mine = (TaskAssignment.query.filter_by(user_id=annotator.id).join(AnnotationTask)
+            .order_by(AnnotationTask.image_id, AnnotationTask.question_id).all())
+    client = app.test_client()
+    login(client, annotator.email)
+
+    page = client.get("/user/dashboard").data.decode()
+    assert "Up next" in page and f'href="/user/annotation-task/{mine[0].id}"' in page
+    assert mine[0].task.question.question in page
+
+    for a in mine:
+        client.post(f"/user/annotation-task/{a.id}", data={"answer": "x"})
+    page = client.get("/user/dashboard").data.decode()
+    assert "Up next" not in page and "You are all caught up" in page
+
+
+def test_task_page_shows_where_the_member_is(app, admin_client, group_with_members):
+    group, members = group_with_members
+    project = _create_project(admin_client)
+    _upload(admin_client, project, {"a.png": b"x"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+
+    annotator = members[0]
+    mine = TaskAssignment.query.filter_by(user_id=annotator.id).all()
+    client = app.test_client()
+    login(client, annotator.email)
+
+    page = client.get(f"/user/annotation-task/{mine[0].id}").data.decode()
+    from application.jinja_utils import plural
+    assert f"Task 1 of {len(mine)}" in page and f"0 of {plural(len(mine), 'task')} done" in page
+    assert 'src="/static/js/answer.js"' in page  # keyboard shortcuts, from our own file (CSP)
+
+    client.post(f"/user/annotation-task/{mine[0].id}", data={"answer": "x"})
+    page = client.get(f"/user/annotation-task/{mine[0].id}").data.decode()
+    assert "You have already answered this one" in page and "<textarea" not in page

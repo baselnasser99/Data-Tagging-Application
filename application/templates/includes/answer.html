@@ -1,0 +1,75 @@
+{#
+  The pieces of a member's answering screen, shared by the one-question page
+  (user/annotation_task.html) and the per-item page (user/annotate_image.html).
+
+    {% from "includes/answer.html" import answer_top, item_stage, answer_field, about_project %}
+    {{ answer_top(project, done, total, "Task 7 of 9") }}      progress strip and the way back
+    {{ item_stage(project, image) }}                           the item, framed by the selection corners
+    {{ answer_field(question, "answer", "answer") }}           choices or a text box
+    {{ about_project(project) }}                               the project's description, folded away
+
+  Choices are numbered so they can be picked with the keyboard (static/js/answer.js);
+  autofocus only reaches a text box, so no choice looks picked before the member picks it.
+#}
+{% from "includes/media.html" import media_item %}
+
+{% macro answer_top(project, done, total, heading) -%}
+<section class="content-header answer-top">
+  <a class="answer-back" href="{{ url_for('annotation.annotation_tasks', project_id=project.id) }}">
+    <i class="fa fa-arrow-left" aria-hidden="true"></i> My tasks · {{ project.name }}
+  </a>
+  <div class="answer-progress">
+    <h1>{{ heading }}</h1>
+    {% if total %}
+    <span class="answer-count">{{ done }} of {{ plural(total, "task") }} done</span>
+    <div class="progress" role="progressbar" aria-label="Your progress in {{ project.name }}"
+         aria-valuenow="{{ done }}" aria-valuemin="0" aria-valuemax="{{ total }}">
+      <div class="progress-bar" style="width: {{ (done / total * 100)|round(1) }}%"></div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{%- endmacro %}
+
+{% macro item_stage(project, image) -%}
+<figure class="item-stage{% if image.is_audio %} is-audio{% endif %}">
+  <div class="item-frame">
+    <span class="corners" aria-hidden="true"></span>
+    {{ media_item(project, image, img_class="item-media") }}
+  </div>
+  <figcaption>{{ 'Audio clip' if image.is_audio else 'Picture' }} · {{ image.original_filename }}</figcaption>
+</figure>
+{%- endmacro %}
+
+{% macro answer_field(question, name, field_id, autofocus=False) -%}
+  {% if question.answer_type.name == 'MCQ' %}
+  <fieldset class="choices" data-choices>
+    <legend class="sr-only">{{ question.question }}</legend>
+    {% set n = namespace(i=0) %}
+    {% for i in range(1, question.number_of_options + 1) %}
+      {% set option_value = getattr_safe(question, 'option' + i|string) %}
+      {% if option_value %}
+      {% set n.i = n.i + 1 %}
+      <label class="choice">
+        <input type="radio" name="{{ name }}" value="{{ option_value }}" required>
+        <span class="choice-key" aria-hidden="true">{{ n.i if n.i < 10 else '' }}</span>
+        <span class="choice-text">{{ option_value }}</span>
+      </label>
+      {% endif %}
+    {% endfor %}
+  </fieldset>
+  {% else %}
+  <label class="sr-only" for="{{ field_id }}">Your answer</label>
+  <textarea class="form-control answer-text" id="{{ field_id }}" name="{{ name }}" rows="4"
+            placeholder="Type your answer" required{% if autofocus %} autofocus{% endif %}></textarea>
+  {% endif %}
+{%- endmacro %}
+
+{% macro about_project(project) -%}
+  {% if project.desc %}
+  <details class="about-project">
+    <summary>About this project</summary>
+    <p>{{ project.desc }}</p>
+  </details>
+  {% endif %}
+{%- endmacro %}

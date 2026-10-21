@@ -216,3 +216,33 @@ def test_csv_cell_leaves_ordinary_values_alone():
     assert csv_cell("Bicycle") == "Bicycle"
     assert csv_cell(3) == 3
     assert csv_cell("@SUM(A1)") == "'@SUM(A1)"
+
+
+def test_results_per_question_match_the_export(db, answered_project):
+    """The Progress and results page uses the export's own numbers (export.question_results)."""
+    from application.export import build_project_export, question_results
+
+    # One disagreement: the second person calls the first image "Night".
+    first = (QuestionAnswer.query.join(Question).filter(Question.answer_type == AnswerType.MCQ)
+             .order_by(QuestionAnswer.id).all())[1]
+    first.answer = "Night"
+    db.session.commit()
+
+    data = build_project_export(answered_project)
+    mcq, text = question_results(data)
+    assert mcq["question"] == "Day or night?" and mcq["answers"] == 4
+    assert [(d["answer"], d["count"]) for d in mcq["distribution"]] == [("Day", 3), ("Night", 1)]  # in the question's order
+    assert (mcq["compared"], mcq["agreed"]) == (2, 1)
+    assert len(mcq["disagreements"]) == 1
+    assert sorted(a["answer"] for a in mcq["disagreements"][0]["answers"]) == ["Day", "Night"]
+    assert mcq["fleiss_kappa"] == next(q for q in data["questions"] if q["type"] == "multiple_choice")["fleiss_kappa"]
+
+    # Short free text is compared after normalising: "Bicycle" and "bicycle!" agree.
+    assert [(d["answer"], d["count"]) for d in text["distribution"]] == [("bicycle", 4)]
+    assert (text["compared"], text["agreed"]) == (2, 2) and not text["disagreements"]
+
+
+def test_progress_page_shows_results(admin_client, answered_project):
+    page = admin_client.get(f"/admin/view-annotation-project/{answered_project.id}").data.decode()
+    assert "Results" in page and "How often each answer was given" in page
+    assert "Most common short answers" in page and "have the same answer from everyone" in page

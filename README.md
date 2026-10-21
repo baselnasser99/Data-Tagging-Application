@@ -24,16 +24,20 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
   </tr>
 </table>
 
-![Admin dashboard: projects, people, answers per week and progress per group](docs/screenshots/admin-dashboard.png)
+![Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group](docs/screenshots/admin-dashboard.png)
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/project-overview.png" alt="A project's overview: tasks done, progress and actions"><br><sub><b>Project overview:</b> progress, items, hand-out and settings</sub></td>
-    <td width="50%"><img src="docs/screenshots/member-task.png" alt="A member answering a multiple-choice question about a picture"><br><sub><b>Member's task:</b> one item, one question</sub></td>
+    <td width="50%"><img src="docs/screenshots/progress-results.png" alt="Progress and results: agreement per question as Fleiss' kappa, how often each answer was given, and the items people disagreed on"><br><sub><b>Results:</b> agreement per question, answer counts, and where people disagreed</sub></td>
+    <td width="50%"><img src="docs/screenshots/project-overview.png" alt="A project's page: tasks done, answers given, each person's share of the tasks, questions and settings"><br><sub><b>Project:</b> progress, work balance, questions and settings</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/member-task.png" alt="A member answering a multiple-choice question about a picture, with numbered choices"><br><sub><b>Member's task:</b> one item, one question, keyboard shortcuts</sub></td>
+    <td><img src="docs/screenshots/member-overview.png" alt="A member's overview with their next task one click away"><br><sub><b>Member's overview:</b> the next task, one click away</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/hand-out-tasks.png" alt="Handing out tasks, with a preview of how many tasks each person will get"><br><sub><b>Hand out tasks:</b> each person's share, shown before anything is handed out</sub></td>
     <td><img src="docs/screenshots/users.png" alt="Searchable list of people with groups, projects and answers"><br><sub><b>People:</b> search, groups, edit and remove</sub></td>
-    <td><img src="docs/screenshots/all-projects.png" alt="Project cards with status and progress"><br><sub><b>Projects:</b> status and progress at a glance</sub></td>
   </tr>
 </table>
 
@@ -47,7 +51,7 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
 | **Fair hand-out** | Every *item × question* becomes a task. Each task goes to the person with the lightest open workload, never twice to the same person, up to a per-person cap. Optionally, several people can answer each task. |
 | **People come and go** | When someone leaves a group, their unfinished tasks are handed to the rest; when someone joins, workloads are rebalanced. Finished answers are never lost. |
 | **Three roles** | **Admin** (everything), **Manager** (runs their own projects), **Member** (answers their tasks). Each role gets its own home page. |
-| **Progress** | Status and progress on every project card, answers per week, progress per group, and a side-panel summary for each role. |
+| **Progress and results** | Status and progress for every project, each person's share of the work, answers per week and progress per group. Each project's results page shows agreement per question (Fleiss' kappa), how often each answer was given, and the items people disagreed on. |
 | **Export** | CSV or JSON per project, with who answered what and when, the majority answer, and **Fleiss' kappa** for inter-annotator agreement. Every export is logged. |
 | **People admin** | Add people one at a time or from a CSV file, search and filter them, edit details, and remove people safely: their open work is handed on and their answers are kept. |
 | **Surveys** | A simpler mode in which every member answers every question. |

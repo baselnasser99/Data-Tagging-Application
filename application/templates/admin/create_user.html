@@ -63,9 +63,16 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="box-body">
           <div class="form-group">
-            <label for="csv_file">CSV file</label>
-            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
-            <p class="help-block">Columns: <code>full_name</code>, <code>email</code>, <code>password</code>. Everyone is added as a member.
+            <div class="dropzone" data-dropzone>
+              <input type="file" id="csv_file" name="csv_file" accept=".csv" required aria-describedby="csv-columns">
+              <span class="dropzone-icon" aria-hidden="true"><i class="fa fa-file-text-o"></i></span>
+              <label for="csv_file" class="dropzone-title">Drop a CSV file here, or click to choose</label>
+            </div>
+            <div class="upload-chosen" data-upload-list hidden>
+              <p class="upload-summary" data-upload-summary></p>
+              <ul data-upload-files></ul>
+            </div>
+            <p class="help-block" id="csv-columns">Columns: <code>full_name</code>, <code>email</code>, <code>password</code>. Everyone is added as a member.
               A missing or too-short password is replaced by a temporary one, shown to you after the import.</p>
           </div>
           <div class="row">
@@ -99,4 +106,8 @@
     </div>
     {% endif %}
   </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
 {% endblock %}

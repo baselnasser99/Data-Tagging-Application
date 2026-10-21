@@ -1,25 +1,36 @@
 {% extends "base.html" %}
 
-{% block title %}Upload Items - {{ project.name }}{% endblock %}
+{% block title %}Upload items – {{ project.name }}{% endblock %}
 
 {% block content %}
-<section class="content-header">
-  <h1>{{ project.name }}</h1>
-  <p class="text-muted page-subtitle">Upload items</p>
+<section class="content-header page-heading">
+  <div>
+    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}"><i class="fa fa-arrow-left" aria-hidden="true"></i> {{ project.name }}</a>
+    <h1>Upload items</h1>
+    <p class="page-lede">{{ plural(project.images|length, "item") }} in this project so far</p>
+  </div>
 </section>
 
 <section class="content">
   <div class="row task-grid">
     <div class="col-md-8 col-xs-12">
       <div class="box">
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" class="upload-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
-            <div class="form-group">
-              <label for="image_zip">Images, audio clips or ZIP files (you can pick several)</label>
-              <input type="file" class="form-control" id="image_zip" name="image_zip" multiple required
-                     accept=".zip,.png,.jpg,.jpeg,.gif,.bmp,.webp,.mp3,.wav,.ogg,.m4a,.flac">
-              <p class="help-block">Images: PNG, JPG, JPEG, GIF, BMP, WEBP. Audio: MP3, WAV, OGG, M4A, FLAC.</p>
+            {# The real file input covers the whole zone, so clicking and dropping work without JavaScript;
+               static/js/upload.js only adds the highlight and the list of chosen files. #}
+            <div class="dropzone" data-dropzone data-questions="{{ project.questions|length }}">
+              <input type="file" id="image_zip" name="image_zip" multiple required
+                     accept=".zip,.png,.jpg,.jpeg,.gif,.bmp,.webp,.mp3,.wav,.ogg,.m4a,.flac"
+                     aria-describedby="upload-types">
+              <span class="dropzone-icon" aria-hidden="true"><i class="fa fa-cloud-upload"></i></span>
+              <label for="image_zip" class="dropzone-title">Drop files here, or click to choose</label>
+              <span class="dropzone-hint" id="upload-types">Images (PNG, JPG, GIF, BMP, WEBP), audio (MP3, WAV, OGG, M4A, FLAC), or ZIP files of them</span>
+            </div>
+            <div class="upload-chosen" data-upload-list hidden>
+              <p class="upload-summary" data-upload-summary></p>
+              <ul data-upload-files></ul>
             </div>
             <details class="how-it-works">
               <summary>What happens to the files</summary>
@@ -32,8 +43,8 @@
             </details>
           </div>
           <div class="box-footer quick-actions">
-            <button type="submit" class="btn btn-primary"><i class="fa fa-upload"></i> Upload</button>
-            <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-default"><i class="fa fa-arrow-left"></i> Back to project</a>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-upload" aria-hidden="true"></i> Upload</button>
+            <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-default">Cancel</a>
           </div>
         </form>
       </div>
@@ -59,4 +70,8 @@
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
 {% endblock %}

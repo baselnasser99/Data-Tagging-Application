@@ -948,3 +948,16 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .upload-summary { margin: 0 0 6px; font-weight: 700; }
 .upload-chosen ul { margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 14px; max-height: 180px; overflow: auto; }
 .share-preview { margin-top: 10px; padding: 10px 14px; border-left: 4px solid var(--accent); border-radius: 2px; background: var(--accent-soft); font-weight: 700; }
+.task-sum { display: grid; gap: 2px; }
+.task-sum strong { font-size: 17px; font-variant-numeric: tabular-nums; }
+
+/* Numbered steps on a form's side card; the current one is marked like the selected tile */
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; display: grid; gap: 14px; }
+.steps > li { position: relative; padding-left: 40px; counter-increment: step; }
+.steps > li::before {
+  content: counter(step); position: absolute; left: 0; top: 0; width: 26px; height: 26px; display: grid; place-items: center;
+  font-size: 13px; font-weight: 700; color: var(--muted); background: var(--canvas); border-radius: 50%;
+}
+.steps > li.is-current::before { background: var(--marker); color: var(--ink); }
+.steps > li > strong { display: block; }
+.steps > li > span { display: block; color: var(--muted); font-size: 14px; }

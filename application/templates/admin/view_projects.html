@@ -1,27 +1,21 @@
 {% extends "base.html" %}
 
+{% block title %}Projects – {{ app_name }}{% endblock %}
+
 {% block content %}
-<!-- Content Header (Page header) -->
-<section class="content-header">
-	<h1>
-		Projects
-	</h1>
-	<ol class="breadcrumb">
-		<li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
-		<li>Projects</li>
-		<li class="active">View</li>
-	</ol>
-</section>
-<section>
+<section class="content-header page-heading">
+	<div>
+		<h1>Projects</h1>
+		{% set surveys = projects|rejectattr("is_annotation_project")|list|length %}
+		<p class="page-lede">{{ plural(projects|length - surveys, "project") }} · {{ plural(surveys, "survey") }}</p>
+	</div>
+	<div class="page-actions">
+		<a class="btn btn-default" href="{{ url_for('admin.full_download') }}"><i class="fa fa-download" aria-hidden="true"></i> Export all answers</a>
+		<a class="btn btn-primary" href="{{ url_for('annotation_admin.create_annotation_project') }}"><i class="fa fa-plus" aria-hidden="true"></i> New project</a>
+	</div>
 </section>
 
 <section class="content">
-	<p>
-		<a class="btn btn-default" href="{{ url_for('admin.full_download') }}">
-			<i class="fa fa-download" aria-hidden="true"></i> Export all answers
-		</a>
-	</p>
-
 	{% if projects %}
 	<div class="row task-grid">
 		{% for project in projects %}

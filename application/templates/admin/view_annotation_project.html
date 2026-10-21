@@ -1,69 +1,115 @@
 {% extends "base.html" %}
 {% from "includes/media.html" import media_item %}
 
-{% block title %}{{ project.name }} - Project{% endblock %}
+{% block title %}Progress and results – {{ project.name }}{% endblock %}
 
 {% block content %}
-<section class="content-header">
-  <h1>{{ project.name }}</h1>
-  <p class="text-muted page-subtitle">Progress and results</p>
+<section class="content-header page-heading">
+  <div>
+    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}"><i class="fa fa-arrow-left" aria-hidden="true"></i> {{ project.name }}</a>
+    <h1>Progress and results</h1>
+    <p class="page-lede">{{ plural(stats.total_images, "item") }} · {{ plural(stats.total_questions, "question") }} · {{ plural(project.answers_per_task, "answer") }} per task</p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-primary"><i class="fa fa-download" aria-hidden="true"></i> Download CSV</a>
+    <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default"><i class="fa fa-download" aria-hidden="true"></i> JSON</a>
+  </div>
 </section>
 
 <section class="content">
   <div class="figures">
     <div class="figure">
-      <span class="figure-value">{{ stats.total_images }}</span>
-      <span class="figure-label">Items{% if stats.total_audio %} ({{ stats.total_audio }} audio){% endif %}</span>
-    </div>
-    <div class="figure">
-      <span class="figure-value">{{ stats.completed_tasks }} of {{ stats.total_tasks }}</span>
+      <span class="figure-value">{{ stats.completed_tasks }}<small> of {{ stats.total_tasks }}</small></span>
       <span class="figure-label">Tasks done</span>
+      {% if stats.total_tasks %}
+      <div class="progress figure-bar{% if stats.completed_tasks == stats.total_tasks %} is-done{% endif %}" aria-hidden="true"><div class="progress-bar" style="width: {{ stats.completion_percentage }}%"></div></div>
+      {% endif %}
     </div>
     {% if project.answers_per_task > 1 %}
     <div class="figure">
-      <span class="figure-value">{{ stats.completed_assignments }} of {{ stats.total_assignments }}</span>
+      <span class="figure-value">{{ stats.completed_assignments }}<small> of {{ stats.total_assignments }}</small></span>
       <span class="figure-label">Answers given</span>
     </div>
     {% endif %}
+    <div class="figure">
+      <span class="figure-value">{{ stats.total_images }}</span>
+      <span class="figure-label">Items{% if stats.total_audio %} ({{ stats.total_audio }} audio){% endif %}</span>
+    </div>
     <div class="figure">
       <span class="figure-value">{{ stats.unique_users }}</span>
       <span class="figure-label">{{ "Person" if stats.unique_users == 1 else "People" }} with tasks</span>
     </div>
   </div>
 
-  {% if stats.total_tasks %}
-  <div class="box">
-    <div class="box-body">
-      <div class="progress-label">
-        <h4>Progress</h4>
-        <span class="text-muted">{{ stats.completion_percentage }}% of tasks done</span>
+  {# What the answers say, from the same data as the downloads (export.question_results). #}
+  <h2 class="section-title">Results</h2>
+  <div class="results-grid">
+    {% for r in results %}
+    <div class="box result">
+      <div class="box-header with-border">
+        <h3 class="box-title">{{ r.question }}</h3>
+        <p class="text-muted box-subtitle">{{ "Multiple choice" if r.type == "multiple_choice" else "Free text" }} · {{ plural(r.answers, "answer") }}</p>
       </div>
-      <div class="progress" role="progressbar" aria-label="Tasks done"
-           aria-valuenow="{{ stats.completion_percentage }}" aria-valuemin="0" aria-valuemax="100">
-        <div class="progress-bar" style="width: {{ stats.completion_percentage }}%"></div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
+      <div class="box-body">
+        {% if r.type == "multiple_choice" %}
+        {% set k = r.fleiss_kappa %}
+        <div class="agreement">
+          <div class="agreement-head">
+            <span>Agreement</span>
+            {% if k is not none %}
+            <strong>{{ r.agreement|capitalize }}</strong>
+            <span class="text-muted">Fleiss' κ = {{ "%.2f"|format(k) }}</span>
+            {% else %}
+            <span class="text-muted">Not enough data yet: it needs tasks with at least two answers.</span>
+            {% endif %}
+          </div>
+          {% if k is not none %}
+          <div class="kappa-scale" role="img" aria-label="Fleiss' kappa {{ '%.2f'|format(k) }} on a scale from 0 to 1">
+            {% for limit in (0.2, 0.4, 0.6, 0.8, 1.0) %}<span></span>{% endfor %}
+            <i style="left: {{ ([[k, 0]|max, 1]|min * 100)|round(1) }}%"></i>
+          </div>
+          <div class="kappa-labels" aria-hidden="true"><span>slight</span><span>fair</span><span>moderate</span><span>substantial</span><span>almost perfect</span></div>
+          {% endif %}
+        </div>
+        {% endif %}
 
-  <div class="box">
-    <div class="box-body quick-actions">
-      <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-primary">
-        <i class="fa fa-download"></i> Download results (CSV)
-      </a>
-      <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default">
-        <i class="fa fa-download"></i> Download results (JSON)
-      </a>
-      <a href="{{ url_for('annotation_admin.upload_images', project_id=project.id) }}" class="btn btn-default">
-        <i class="fa fa-upload"></i> Upload items
-      </a>
-      <a href="{{ url_for('annotation_admin.generate_annotation_tasks', project_id=project.id) }}" class="btn btn-default">
-        <i class="fa fa-tasks"></i> Hand out tasks
-      </a>
-      <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-default">
-        <i class="fa fa-arrow-left"></i> Back to project
-      </a>
+        {% if r.distribution %}
+        <p class="result-label">{{ "How often each answer was given" if r.type == "multiple_choice" else "Most common short answers" }}</p>
+        <ul class="answer-bars">
+          {% for d in r.distribution %}
+          <li>
+            <span class="answer-bars-label">{{ d.answer }}</span>
+            <span class="answer-bars-track" aria-hidden="true"><span style="width: {{ (d.share * 100)|round(1) }}%"></span></span>
+            <span class="answer-bars-count">{{ d.count }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% elif r.type != "multiple_choice" %}
+        <p class="text-muted">{{ "No answers yet." if not r.answers else "Answers are longer than a few words, so they are not counted here; see the download." }}</p>
+        {% endif %}
+
+        {% if r.compared %}
+        <p class="result-label">Tasks answered by more than one person</p>
+        <p class="result-agreed"><strong>{{ r.agreed }} of {{ r.compared }}</strong> have the same answer from everyone{% if r.disagreements %}; people disagreed on these:{% else %}.{% endif %}</p>
+        {% if r.disagreements %}
+        <ul class="disagreements">
+          {% for d in r.disagreements %}
+          <li>
+            {% if items[d.image_id] %}{{ media_item(project, items[d.image_id], thumbnail=True, img_class="disagreement-thumb") }}{% endif %}
+            <span class="disagreement-text">
+              <span class="text-muted">{{ d.file_name }}</span>
+              {% for a in d.answers %}<span class="answer-chip"><b>{{ a.annotator_name.split(' ')[0] }}</b> {{ a.answer }}</span>{% endfor %}
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% endif %}
+      </div>
     </div>
+    {% else %}
+    <div class="box"><div class="empty-state"><strong>No questions yet</strong>Add questions on the project's Questions and settings page.</div></div>
+    {% endfor %}
   </div>
 
   {% if workload %}
@@ -103,41 +149,21 @@
   </div>
   {% endif %}
 
-  <div class="row task-grid">
-    <div class="col-md-6 col-xs-12">
-      <div class="box">
-        <div class="box-header with-border">
-          <h3 class="box-title">Settings</h3>
-        </div>
-        <div class="box-body">
-          <dl class="settings-list">
-            <dt>Items</dt>
-            <dd>{{ 'Images and audio' if stats.total_audio and stats.total_audio < stats.total_images else ('Audio' if stats.total_audio else 'Images') }}</dd>
-            <dt>Max tasks per person</dt>
-            <dd>{{ project.max_questions_per_user }}</dd>
-            <dt>Answers per task</dt>
-            <dd>{{ project.answers_per_task }}</dd>
-            <dt>Hand out work</dt>
-            <dd>{{ "All of an item's questions to one person" if project.hand_out_per_item else "Each question on its own" }}</dd>
-          </dl>
-        </div>
-      </div>
+  <div class="box">
+    <div class="box-header with-border">
+      <h3 class="box-title">Settings</h3>
     </div>
-    <div class="col-md-6 col-xs-12">
-      <div class="box">
-        <div class="box-header with-border">
-          <h3 class="box-title">Questions</h3>
-        </div>
-        <div class="box-body">
-          <ol class="question-list">
-            {% for question in questions %}
-            <li>{{ question.question }}</li>
-            {% else %}
-            <li class="text-muted">No questions yet.</li>
-            {% endfor %}
-          </ol>
-        </div>
-      </div>
+    <div class="box-body">
+      <dl class="settings-list">
+        <dt>Items</dt>
+        <dd>{{ 'Images and audio' if stats.total_audio and stats.total_audio < stats.total_images else ('Audio' if stats.total_audio else 'Images') }}</dd>
+        <dt>Max tasks per person</dt>
+        <dd>{{ project.max_questions_per_user }}</dd>
+        <dt>Answers per task</dt>
+        <dd>{{ project.answers_per_task }}</dd>
+        <dt>Hand out work</dt>
+        <dd>{{ "All of an item's questions to one person" if project.hand_out_per_item else "Each question on its own" }}</dd>
+      </dl>
     </div>
   </div>
 

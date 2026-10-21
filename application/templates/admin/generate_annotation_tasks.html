@@ -1,11 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Hand out tasks - {{ project.name }}{% endblock %}
+{% block title %}Hand out tasks – {{ project.name }}{% endblock %}
 
 {% block content %}
-<section class="content-header">
-  <h1>{{ project.name }}</h1>
-  <p class="text-muted page-subtitle">Hand out tasks</p>
+<section class="content-header page-heading">
+  <div>
+    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}"><i class="fa fa-arrow-left" aria-hidden="true"></i> {{ project.name }}</a>
+    <h1>Hand out tasks</h1>
+    <p class="page-lede">{{ plural(images|length * questions|length, "task") }}, each answered by {{ plural(project.answers_per_task, "person", "different people") }}</p>
+  </div>
 </section>
 
 <section class="content">
@@ -23,10 +26,13 @@
 
             <div class="form-group">
               <label for="group_id">Group that will do the work</label>
-              <select class="form-control" id="group_id" name="group_id" required data-needed="{{ project.answers_per_task }}">
+              {% set current = groups|selectattr("id", "in", assigned_group_ids)|map(attribute="members")|sum(start=[])|map(attribute="user_id")|unique|list %}
+              <select class="form-control" id="group_id" name="group_id" required data-needed="{{ project.answers_per_task }}"
+                      data-current="{{ current|join(',') }}" data-tasks="{{ images|length * questions|length }}"
+                      data-cap="{{ project.max_questions_per_user }}">
                 <option value="">Choose a group...</option>
                 {% for group in groups %}
-                <option value="{{ group.id }}" data-size="{{ group.members|length }}"
+                <option value="{{ group.id }}" data-size="{{ group.members|length }}" data-members="{{ group.members|map(attribute='user_id')|join(',') }}"
                         {% if group.id == default_group_id %}selected{% endif %}>
                   {{ group.name }} ({{ plural(group.members|length, "person", "people") }}){% if group.id in assigned_group_ids %} - already working on this project{% endif %}
                 </option>
@@ -38,8 +44,10 @@
               {% if not groups %}
               <p class="help-block">No groups yet. <a href="{{ url_for('groups.create_group') }}">Create a group</a> first.</p>
               {% endif %}
+              {# Filled in by static/js/hand-out.js: who will share the work, and about how much each person gets. #}
+              <div class="share-preview" id="share-preview" role="status" hidden></div>
               <p class="alert alert-warning" id="size-warning" role="status" hidden style="margin-top: 10px;">
-                This group has fewer people than the {{ project.answers_per_task }} answers needed per task, so tasks can't be marked complete.
+                Fewer people would share this project than the {{ project.answers_per_task }} answers needed per task, so tasks can't be marked complete.
                 Lower "Answers per task" in the project settings or choose a bigger group.
               </p>
             </div>
@@ -58,7 +66,7 @@
           </div>
           <div class="box-footer quick-actions">
             <button type="submit" class="btn btn-primary"><i class="fa fa-tasks"></i> Hand out tasks</button>
-            <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-default"><i class="fa fa-arrow-left"></i> Back to project</a>
+            <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-default">Cancel</a>
           </div>
         </form>
       </div>

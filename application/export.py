@@ -175,6 +175,52 @@ def build_project_export(project: Project) -> dict:
     }
 
 
+def question_results(data: dict, disagreements_shown: int = 6) -> list[dict]:
+    """What the answers say, per question, for the Progress and results page.
+
+    Built from build_project_export() so the page and the downloads agree.
+    For each question: the agreement (Fleiss' kappa for multiple choice), how
+    often each answer was given, how many tasks with two or more answers
+    agree completely, and a few tasks where people disagreed.
+    """
+    results = []
+    for summary in data["questions"]:
+        pairs = [(image, q) for image in data["images"] for q in image["questions"]
+                 if q["question_id"] == summary["question_id"]]
+        tasks = [task for _, task in pairs]
+        kind = summary["type"]
+        counts: Counter = Counter()
+        compared = agreed = 0
+        disagreements = []
+        for image, task in pairs:
+            values = [a["answer"] for a in task["answers"]]
+            if kind == "multiple_choice":
+                counts.update(values)
+            elif values and all(len(v.split()) <= SHORT_TEXT_MAX_WORDS for v in values):
+                counts.update(normalise(v) for v in values)
+            if len(values) >= 2:
+                compared += 1
+                if task["summary"].get("majority_share") == 1:
+                    agreed += 1
+                elif len(disagreements) < disagreements_shown:
+                    disagreements.append({"image_id": image["image_id"], "file_name": image["file_name"],
+                                          "answers": task["answers"]})
+        options = (tasks[0]["options"] if tasks and tasks[0]["options"] else []) if kind == "multiple_choice" else []
+        # Choices in the order the question lists them, then anything else people answered.
+        order = options + [v for v, _ in counts.most_common() if v not in options]
+        top = order if kind == "multiple_choice" else [v for v, _ in counts.most_common(5)]
+        total = sum(counts.values())
+        results.append({
+            **summary,
+            "answers": sum(len(t["answers"]) for t in tasks),
+            "distribution": [{"answer": v, "count": counts[v], "share": counts[v] / total if total else 0} for v in top],
+            "compared": compared,
+            "agreed": agreed,
+            "disagreements": disagreements,
+        })
+    return results
+
+
 CSV_COLUMNS = [
     "image_id", "file_name", "media_type", "question_id", "question", "question_type",
     "annotator", "annotator_name", "answer", "submitted_at", "task_majority_answer", "task_majority_share",

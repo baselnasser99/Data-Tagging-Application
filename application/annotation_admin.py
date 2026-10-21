@@ -305,9 +305,13 @@ def view_annotation_project(project_id):
         'user_assignments': user_assignments
     }
 
+    data = dataset_export.build_project_export(project)
+    items = {img.id: img for img in images}
     return render_template("admin/view_annotation_project.html",
                          project=project,
                          stats=stats,
+                         results=dataset_export.question_results(data),
+                         items=items,
                          workload=distribution.workload_summary(project),
                          exports=ExportLog.query.filter_by(project_id=project.id).order_by(ExportLog.id.desc()).limit(10).all(),
                          images=images[:10],  # Show first 10 images as preview

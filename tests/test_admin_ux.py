@@ -312,3 +312,20 @@ def test_manager_home_and_project_page_show_answers_and_work_balance(app, db, ad
     assert "1<small> of 4</small>" in page and "Answers given" in page  # ...and the answers they need
     assert "Work balance" in page and all(m.full_name in page for m in members)
     assert "Progress and results" in page and "Manage" in page
+
+
+def test_upload_and_hand_out_pages_explain_before_acting(admin_client, db, make_user):
+    group = UserGroup(name="Crew")
+    db.session.add(group)
+    db.session.commit()
+    people = [make_user() for _ in range(3)]
+    db.session.add_all([UserGroupMembership(user_id=p.id, group_id=group.id) for p in people])
+    db.session.commit()
+    project = _create_project(admin_client)
+
+    upload = admin_client.get(f"/admin/upload-images/{project.id}").data.decode()
+    assert "data-dropzone" in upload and 'name="image_zip"' in upload and "js/upload.js" in upload
+
+    hand_out = admin_client.get(f"/admin/generate-annotation-tasks/{project.id}").data.decode()
+    assert 'id="share-preview"' in hand_out and "js/hand-out.js" in hand_out
+    assert f'data-members="{",".join(str(p.id) for p in people)}"' in hand_out  # the preview counts each person once

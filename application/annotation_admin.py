@@ -45,8 +45,6 @@ def create_annotation_project():
             is_annotation_project=True,
             max_questions_per_user=max_questions_per_user,
             answers_per_task=answers_per_task,
-            questions_per_image=total_questions, # Set questions_per_image based on total_questions from form
-            hand_out_per_item=request.form.get("hand_out") == "item",
         )
         db.session.add(project)
         db.session.flush() # Get the project ID
@@ -301,7 +299,6 @@ def view_annotation_project(project_id):
         'unique_users': len(unique_users),
         'avg_answers_per_task': round(total_assignments / total_tasks if total_tasks > 0 else 0, 1),
         'image_completion': image_completion,
-        'questions_per_image': project.questions_per_image,
         'user_assignments': user_assignments
     }
 

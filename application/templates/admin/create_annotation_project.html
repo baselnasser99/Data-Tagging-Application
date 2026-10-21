@@ -97,7 +97,7 @@
             </template>
 
             <div class="row">
-              <div class="col-sm-4">
+              <div class="col-sm-6">
                 <div class="form-group">
                   <label for="max_questions_per_user">Max tasks per person</label>
                   <input type="number" class="form-control" id="max_questions_per_user"
@@ -106,23 +106,12 @@
                 </div>
               </div>
 
-              <div class="col-sm-4">
+              <div class="col-sm-6">
                 <div class="form-group">
                   <label for="answers_per_task">Answers per task</label>
                   <input type="number" class="form-control" id="answers_per_task"
                          name="answers_per_task" value="1" min="1" max="50" required>
                   <p class="help-block">1 for simple labelling; 3 or more to measure agreement.</p>
-                </div>
-              </div>
-
-              <div class="col-sm-4">
-                <div class="form-group">
-                  <label for="hand_out">Hand out work</label>
-                  <select class="form-control" id="hand_out" name="hand_out">
-                    <option value="question" selected>Each question on its own (default)</option>
-                    <option value="item">All of an item's questions to one person</option>
-                  </select>
-                  <p class="help-block">One item's questions to one person suits long audio clips.</p>
                 </div>
               </div>
             </div>

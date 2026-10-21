@@ -12,7 +12,7 @@
 | Data integrity | 4.x, 6.2 | Unique (project, item, question); no duplicate work | No such constraint | Unique (project, item, question) on tasks and unique (task, person) on assignments; older databases upgraded on start |
 | Media types | 1, 6.5 | Text, image and audio labelling | Images only | Images and audio, as loose files or ZIPs; a built-in audio player |
 | Export | 6.5.7 | Auditable JSON/CSV export | A plain text file per project and a CSV per person | CSV and JSON per project, with names, times, media type, the majority answer and **Fleiss' kappa**; every export logged |
-| Testing | 7 | About 85% test coverage with pytest | No automated tests (one empty test file) | 250+ tests, ~92% line coverage, run by GitHub Actions on Python 3.11 and 3.12 |
+| Testing | 7 | About 85% test coverage with pytest | No automated tests (one empty test file) | 230+ tests, ~92% line coverage, run by GitHub Actions on Python 3.11 and 3.12 |
 | Security | 6.5.1 | Flask-Login, CSRF, secure cookies | Secret key and a default admin with password `123` written in the code; no CSRF protection | CSRF on every form, HTTP-only SameSite cookies with idle timeout, `Cache-Control: no-store`, audit log, no default accounts; see also the fixes below |
 | Code structure | 6.1 | Blueprints for auth, admin, user, group, manager | One 1,850-line `admin.py` | Blueprints `auth`, `admin`, `groups`, `manager`, `annotation_admin`, `annotation`, plus shared `distribution`, `export`, `permissions` |
 | Logging and errors | 6.5 | Error pages, rotating logs, audit log | No custom error pages or logs | Custom error pages, rotating application log, audit log of sign-ins |

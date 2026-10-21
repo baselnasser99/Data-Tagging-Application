@@ -11,7 +11,7 @@
 
 **A web app that shares labelling work fairly across a team.** An admin uploads images or audio clips and writes the questions. The app splits the work into tasks and hands them out so everyone carries the same load, even while people join or leave mid-project. The answers come back as a CSV or JSON dataset, with an agreement score showing how consistently people labelled.
 
-Built as my diploma thesis at the University of Pécs, then rebuilt to production standards: security fixes, a fairness algorithm verified with measurements, 250+ automated tests, and a redesigned interface. [See what changed since the graded version →](docs/thesis/COMPARISON.md)
+Built as my diploma thesis at the University of Pécs, then rebuilt to production standards: security fixes, a fairness algorithm verified with measurements, 230+ automated tests, and a redesigned interface. [See what changed since the graded version →](docs/thesis/COMPARISON.md)
 
 **[What it does](#what-it-does)** · **[How it stays fair](#how-the-hand-out-stays-fair)** · **[Measurements](#measured-not-assumed)** · **[Run it](#run-it)** · **[Docs](#documentation)**
 
@@ -19,7 +19,7 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
   <tr>
     <td align="center" width="25%"><h3>1 task</h3><sub>most minus fewest open tasks per person, after people join</sub></td>
     <td align="center" width="25%"><h3>0 lost</h3><sub>finished answers lost across 25 benchmark runs</sub></td>
-    <td align="center" width="25%"><h3>250+</h3><sub>automated tests, ~92% line coverage</sub></td>
+    <td align="center" width="25%"><h3>230+</h3><sub>automated tests, ~92% line coverage</sub></td>
     <td align="center" width="25%"><h3>294 ms</h3><sub>median response, 20 people answering at once, 0 errors</sub></td>
   </tr>
 </table>

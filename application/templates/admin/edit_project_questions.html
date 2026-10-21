@@ -58,24 +58,6 @@
             <p class="help-block">How many different people answer each task.</p>
           </div>
         </div>
-        <div class="row">
-          <div class="col-sm-6 form-group">
-            <label for="hand_out">Hand out work</label>
-            <select class="form-control" id="hand_out" name="hand_out">
-              <option value="question"{% if not project.hand_out_per_item %} selected{% endif %}>Each question on its own (default)</option>
-              <option value="item"{% if project.hand_out_per_item %} selected{% endif %}>All of an item's questions to one person</option>
-            </select>
-            <p class="help-block">Applies to work handed out from now on; current tasks stay.</p>
-          </div>
-          {% if project.hand_out_per_item %}
-          <div class="col-sm-6 form-group">
-            <label for="questions_per_image">Questions per page</label>
-            <input type="number" class="form-control" id="questions_per_image" name="questions_per_image"
-                   value="{{ project.questions_per_image }}" min="1" max="20">
-            <p class="help-block">How many of an item's questions a person sees at once.</p>
-          </div>
-          {% endif %}
-        </div>
         {% endif %}
       </div>
       <div class="box-footer">

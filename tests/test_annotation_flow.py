@@ -177,7 +177,8 @@ def test_export_for_user_without_answers(admin_client, end_user):
     assert b"No answers found" in resp.data
 
 
-def test_annotate_image_batch_view(app, admin_client, group_with_members):
+def test_old_one_page_per_item_links_open_the_next_task(app, admin_client, group_with_members):
+    """The combined screen is gone; a bookmarked link opens that item's next task instead."""
     group, members = group_with_members
     project = _create_project(admin_client)
     _upload(admin_client, project, {"a.png": b"x"})
@@ -185,58 +186,22 @@ def test_annotate_image_batch_view(app, admin_client, group_with_members):
 
     annotator = members[0]
     mine = TaskAssignment.query.filter_by(user_id=annotator.id).all()
-    image_id = mine[0].task.image_id
+    assert len(mine) == 1  # 1 item x 2 questions, 2 people: one task each
     client = app.test_client()
     login(client, annotator.email)
-    assert client.get(f"/user/annotate-image/{image_id}/{project.id}").status_code == 200
+    resp = client.get(f"/user/annotate-image/{mine[0].task.image_id}/{project.id}")
+    assert resp.headers["Location"].endswith(f"/user/annotation-task/{mine[0].id}")
 
-    data = {f"answer_{a.id}": f"answer {a.id}" for a in mine}
-    client.post(f"/user/annotate-image/{image_id}/{project.id}", data=data)
-    assert all(a.is_completed for a in mine)
-
-
-def test_answering_an_image_in_several_batches_skips_nothing(app, db, admin_client, group_with_members):
-    """Regression: page 2 used to skip questions because answered ones dropped out of the list."""
-    group, members = group_with_members
-    resp = admin_client.post("/admin/create-annotation-project", data={
-        "project_name": "Batches", "project_desc": "d", "answers_per_task": "1",
-        "max_questions_per_user": "100", "total_questions": "3", "hand_out": "item",
-        "question_1": "A?", "question_2": "B?", "question_3": "C?",
-    })
-    project = Project.query.filter_by(name="Batches").one()
-    project.questions_per_image = 1  # one question per page
-    db.session.commit()
-    _upload(admin_client, project, {"one.png": b"x"})
-    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
-
-    mine = TaskAssignment.query.all()
-    owner = mine[0].user
-    assert all(a.user_id == owner.id for a in mine)  # one image -> one person
-    client = app.test_client()
-    login(client, owner.email)
-    image_id = mine[0].task.image_id
-    base = f"/user/annotate-image/{image_id}/{project.id}"
-    for step in range(3):
-        page = client.get(f"/user/annotate-image/{image_id}/{project.id}")
-        open_ids = [a.id for a in TaskAssignment.query.filter_by(is_completed=False)]
-        resp = client.post(f"/user/annotate-image/{image_id}/{project.id}", data={f"answer_{open_ids[0]}": "x"})
-        # next batch is the start of what is left, never "page 2"
-        if step < 2:
-            assert resp.headers["Location"].endswith(base)
-    assert all(a.is_completed for a in TaskAssignment.query.all())
-    assert b"Done" in client.get("/user/annotation-tasks").data
+    client.post(f"/user/annotation-task/{mine[0].id}", data={"answer": "x"})
+    resp = client.get(f"/user/annotate-image/{mine[0].task.image_id}/{project.id}")
+    assert resp.headers["Location"].endswith(f"/user/annotation-tasks?project_id={project.id}")
 
 
-def test_hand_out_setting_from_the_forms(admin_client):
+def test_project_forms_offer_no_whole_item_hand_out(admin_client):
     project = _create_project(admin_client)
-    assert project.hand_out_per_item is False  # default: each question on its own
-    admin_client.post(f"/admin/project/{project.id}/edit-questions", data={
-        "action": "update_project_settings", "hand_out": "item",
-        "answers_per_task": "1", "max_questions_per_user": "100", "questions_per_image": "2",
-    })
-    assert project.hand_out_per_item is True
-    assert b"All of an item&#39;s questions to one person" in admin_client.get(
-        f"/admin/view-annotation-project/{project.id}").data
+    for page in (admin_client.get("/admin/create-annotation-project").data,
+                 admin_client.get(f"/admin/project/{project.id}/edit-questions").data):
+        assert b'name="hand_out"' not in page and b"questions to one person" not in page
 
 
 def test_annotator_gets_one_card_per_task_and_moves_to_the_next(app, admin_client, group_with_members):

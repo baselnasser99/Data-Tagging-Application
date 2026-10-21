@@ -158,9 +158,9 @@ def test_update_annotation_settings(admin_client, annotation_project):
     project, _, _ = annotation_project
     admin_client.post(
         f"/admin/project/{project.id}/edit-questions",
-        data={"action": "update_project_settings", "questions_per_image": "3", "max_questions_per_user": "7", "answers_per_task": "2"},
+        data={"action": "update_project_settings", "max_questions_per_user": "7", "answers_per_task": "2"},
     )
-    assert (project.questions_per_image, project.max_questions_per_user, project.answers_per_task) == (3, 7, 2)
+    assert (project.max_questions_per_user, project.answers_per_task) == (7, 2)
 
 
 # ---- assigning annotation projects ------------------------------------------

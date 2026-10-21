@@ -87,11 +87,8 @@ def _next_open_task(user_id):
     if nxt is None:
         return None
     task = nxt.task
-    if task.project.hand_out_per_item:
-        url = url_for("annotation.annotate_image", image_id=task.image_id, project_id=task.project_id)
-    else:
-        url = url_for("annotation.annotation_task", assignment_id=nxt.id)
-    return {"url": url, "project": task.project, "item": task.image, "question": task.question}
+    return {"url": url_for("annotation.annotation_task", assignment_id=nxt.id),
+            "project": task.project, "item": task.image, "question": task.question}
 
 
 def _my_progress(user_id, project_id):
@@ -248,7 +245,7 @@ def view_group_project(group_project_id):
 @annotation.route("/annotation-tasks")
 @user_required
 def annotation_tasks():
-    """View assigned annotation tasks, one card per item; ?project_id= shows one project only."""
+    """View assigned annotation tasks, one card per task; ?project_id= shows one project only."""
     user_id = session["id"]
     project_id = request.args.get("project_id", type=int)
 
@@ -257,31 +254,19 @@ def annotation_tasks():
         query = query.filter(AnnotationTask.project_id == project_id)
     assignments = query.order_by(AnnotationTask.project_id, AnnotationTask.image_id, AnnotationTask.question_id).all()
 
-    # One card per task; per-item projects keep one card per item (answered in one sitting).
-    cards = []
-    for a in assignments:
-        prev = cards[-1][-1] if cards else None
-        if (a.task.project.hand_out_per_item and prev is not None
-                and prev.task.project_id == a.task.project_id and prev.task.image_id == a.task.image_id):
-            cards[-1].append(a)
-        else:
-            cards.append([a])
-
     # Name the project only from the user's own assignments, so other projects' names never leak.
     project = assignments[0].task.project if project_id and assignments else None
-    return render_template("user/annotation_tasks.html", cards=cards,
+    return render_template("user/annotation_tasks.html", assignments=assignments,
                            project=project, filtered=bool(project_id))
 
 
 def _next_item(user_id, project_id):
-    """After a task (or a per-item project's item) is done, open the user's next unanswered one."""
+    """After a task is done, open the user's next unanswered one in the project."""
     nxt = TaskAssignment.query.join(AnnotationTask).filter(
         TaskAssignment.user_id == user_id,
         AnnotationTask.project_id == project_id,
         TaskAssignment.is_completed == False,
     ).order_by(AnnotationTask.image_id, AnnotationTask.question_id).first()
-    if nxt and nxt.task.project.hand_out_per_item:
-        return redirect(url_for("annotation.annotate_image", image_id=nxt.task.image_id, project_id=project_id))
     if nxt:
         return redirect(url_for("annotation.annotation_task", assignment_id=nxt.id))
     flash("You have finished all your tasks in this project.", "success")
@@ -340,59 +325,20 @@ def annotation_task(assignment_id):
                          total=total)
 
 
-@annotation.route("/annotate-image/<int:image_id>/<int:project_id>", methods=["GET", "POST"])
-@annotation.route("/annotate-image/<int:image_id>/<int:project_id>/<int:batch_index>", methods=["GET", "POST"])
+@annotation.route("/annotate-image/<int:image_id>/<int:project_id>")
+@annotation.route("/annotate-image/<int:image_id>/<int:project_id>/<int:batch_index>")
 @user_required
 def annotate_image(image_id, project_id, batch_index=0):
-    """Per-item projects: answer an item's questions on one page, a few at a time."""
-    user_id = session["id"]
-    image = db.get_or_404(ProjectImage, image_id)
-    project = db.get_or_404(Project, project_id)
-    batch_size = project.questions_per_image if project.questions_per_image > 0 else 5
+    """Old links to the removed one-page-per-item screen: open the member's next task for that item.
 
-    open_assignments = TaskAssignment.query.join(AnnotationTask).filter(
-        TaskAssignment.user_id == user_id,
+    Every task is answered on its own page (thesis ch. 3: one task is one item and one question).
+    """
+    nxt = TaskAssignment.query.join(AnnotationTask).filter(
+        TaskAssignment.user_id == session["id"],
         AnnotationTask.image_id == image_id,
         AnnotationTask.project_id == project_id,
         TaskAssignment.is_completed == False,
-    ).order_by(AnnotationTask.question_id).all()
-    total_uncompleted_questions = len(open_assignments)
-    current_batch_assignments = open_assignments[batch_index * batch_size:(batch_index + 1) * batch_size]
-
-    if not current_batch_assignments:
-        if total_uncompleted_questions or batch_index > 0:
-            flash("All questions for this image have been answered!", "success")
-        else:
-            flash("No new tasks found for this image!", "info")
-        return redirect(url_for("annotation.annotation_tasks"))
-
-    if request.method == "POST":
-        answered = 0
-        for assignment in current_batch_assignments:
-            text = (request.form.get(f"answer_{assignment.id}") or "").strip()
-            if text:
-                _save_answer(assignment, text)
-                answered += 1
-        db.session.commit()
-
-        if answered:
-            flash(f"Successfully submitted {answered} answers for this batch!", "success")
-        else:
-            flash("No new answers were submitted in this batch.", "warning")
-
-        # Answered questions drop out of the open list, so the next batch
-        # always starts at the beginning of what is left.
-        if total_uncompleted_questions - answered > 0:
-            return redirect(url_for("annotation.annotate_image", image_id=image.id, project_id=project.id))
-        return _next_item(user_id, project.id)
-
-    done, total = _my_progress(user_id, project.id)
-    return render_template("user/annotate_image.html",
-                         image=image,
-                         project=project,
-                         assignments=current_batch_assignments, # Pass only the current batch
-                         batch_index=batch_index,
-                         total_uncompleted_questions=total_uncompleted_questions,
-                         batch_size=batch_size,
-                         done=done,
-                         total=total)
+    ).order_by(AnnotationTask.question_id).first()
+    if nxt:
+        return redirect(url_for("annotation.annotation_task", assignment_id=nxt.id))
+    return redirect(url_for("annotation.annotation_tasks", project_id=project_id))

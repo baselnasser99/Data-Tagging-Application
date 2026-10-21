@@ -73,11 +73,7 @@ def test_audio_tasks_are_generated_and_shown_with_a_player(app, admin_client, db
 
     client = app.test_client()
     login(client, annotator.email)
-    for url in (
-        "/user/annotation-tasks",
-        f"/user/annotation-task/{mine[0].id}",
-        f"/user/annotate-image/{clip.id}/{project.id}",
-    ):
+    for url in ("/user/annotation-tasks", f"/user/annotation-task/{mine[0].id}"):
         page = client.get(url)
         assert page.status_code == 200, url
         assert b"<audio" in page.data, url
@@ -85,8 +81,8 @@ def test_audio_tasks_are_generated_and_shown_with_a_player(app, admin_client, db
         assert b'<img src="' + b"/files/images/" not in page.data, url
 
     # Answer both questions, then export: the clip is marked as audio.
-    data = {f"answer_{a.id}": "a bird" for a in mine}
-    client.post(f"/user/annotate-image/{clip.id}/{project.id}", data=data)
+    for a in mine:
+        client.post(f"/user/annotation-task/{a.id}", data={"answer": "a bird"})
     assert all(a.is_completed for a in mine)
 
     exported = json.loads(admin_client.get(f"/admin/project/{project.id}/export.json").data)

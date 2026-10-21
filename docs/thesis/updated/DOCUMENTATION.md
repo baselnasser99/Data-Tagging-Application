@@ -42,7 +42,7 @@ People are added by the admin one at a time (with a role, optionally straight in
 |---|---|
 | `User` | Name, email (unique), password hash, role, `active` (false once removed by an admin) |
 | `UserGroup`, `UserGroupMembership` | Groups and who is in them |
-| `Project` | Name, description, type (`is_annotation_project`), answers per task, max tasks per person, hand-out mode (`hand_out_per_item`) |
+| `Project` | Name, description, type (`is_annotation_project`), answers per task, max tasks per person |
 | `GroupProject` | Which groups work on which project |
 | `ProjectAdmin` | Which manager runs which project, and who assigned them |
 | `Question` | Text, answer type (free text or multiple choice, 2–6 options) |
@@ -57,7 +57,7 @@ People are added by the admin one at a time (with a role, optionally straight in
 
 **Terms.** A *task* is one item and one question. An *assignment* is a task given to one person. A person's *load* is their number of unfinished assignments in the project.
 
-**Settings.** *Answers per task* (default 1) is how many different people answer each task. *Max tasks per person* is a cap. *Hand-out mode* is either each question on its own (default) or all of an item's questions to one person (useful for long audio clips).
+**Settings.** *Answers per task* (default 1) is how many different people answer each task. *Max tasks per person* is a cap. Every task is handed out on its own, so one person may get one question about an item and someone else another.
 
 ```
 distribute(project):
@@ -89,7 +89,7 @@ If the least busy person can't take the busiest person's work (they already hold
 **Guarantees, each proven by a test:**
 - Every task has as many different people as it needs.
 - Nobody holds the same task twice.
-- Loads differ by at most one task (one item's worth in per-item mode).
+- Loads differ by at most one task.
 - Finished work is never moved or deleted.
 - Results are deterministic, because ties end on the lowest id.
 

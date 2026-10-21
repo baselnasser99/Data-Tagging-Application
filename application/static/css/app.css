@@ -777,9 +777,8 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .item-strip > li > span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Task cards: long file names end with an ellipsis; the question reads as text, not as a control */
 .task-card-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 96px); }
-.task-questions { margin: 12px 0 0; }
-.task-questions > li { padding: 3px 0; font-weight: 600; overflow-wrap: anywhere; }
-.task-questions > li.text-muted { font-weight: 400; }
+.task-question { margin: 12px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.task-question.text-muted { font-weight: 400; }
 /* Form pages read best at a comfortable width, not stretched across a wide screen */
 .form-page { max-width: 680px; }  /* a form reads best at about one line of text wide */
 .content.form-page { margin-left: 0; margin-right: 0; }  /* AdminLTE centres .content; keep forms in line with the title */
@@ -801,7 +800,7 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 
 .answer-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 24px; align-items: start; }
 
-.item-stage { margin: 0; position: sticky; top: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
+.item-stage { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
 .item-frame {
   position: relative; display: flex; align-items: center; justify-content: center;
   min-height: 320px; padding: 18px; border-radius: 4px;
@@ -823,7 +822,6 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 
 .answer-panel { display: grid; gap: 16px; }
 .answer-form { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
-.answer-block + .answer-block { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
 .answer-kind { margin: 0 0 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
 .answer-question { margin: 0 0 16px; font-size: 22px; font-weight: 700; line-height: 1.25; color: var(--ink); }
 
@@ -855,7 +853,7 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 
 @media (max-width: 991px) {
   .answer-layout { grid-template-columns: 1fr; }
-  .item-stage { position: static; padding: 16px; }
+  .item-stage { padding: 16px; }
   .item-frame { min-height: 220px; }
   .item-media { height: min(42vh, 360px); }
 }

@@ -190,7 +190,9 @@ def assign_open_slots(project: Project, users: list[User] | None = None) -> Dist
 
     By default each task is handed out on its own. In per-item projects a person
     who receives an item gets every question for it that still needs an answer,
-    so they answer all of it in one sitting. Work with the most missing answers
+    so they answer all of it in one sitting; a question added later goes to
+    whoever is still working on that item, unless the cap stops it, so an item's
+    open questions stay with one person. Work with the most missing answers
     is served first; within an item, the starting question rotates from item to
     item so nobody always ends up with the same question.
     """
@@ -207,14 +209,18 @@ def assign_open_slots(project: Project, users: list[User] | None = None) -> Dist
     tasks = AnnotationTask.query.filter_by(project_id=project.id).order_by(AnnotationTask.id).all()
     holders: dict[int, set[int]] = {t.id: set() for t in tasks}
     seen: Counter = Counter()  # (user, question) -> times that user got that question
-    for task_id, user_id, question_id in (
-        db.session.query(TaskAssignment.task_id, TaskAssignment.user_id, AnnotationTask.question_id)
+    working_on: dict[int, set[int]] = {}  # item -> people with an unfinished question about it
+    for task_id, user_id, question_id, image_id, done in (
+        db.session.query(TaskAssignment.task_id, TaskAssignment.user_id, AnnotationTask.question_id,
+                         AnnotationTask.image_id, TaskAssignment.is_completed)
         .join(AnnotationTask)
         .filter(AnnotationTask.project_id == project.id)
         .all()
     ):
         holders[task_id].add(user_id)
         seen[user_id, question_id] += 1
+        if not done:
+            working_on.setdefault(image_id, set()).add(user_id)
 
     def missing(task):
         return max(0, (task.required_answers or 1) - len(holders[task.id]))
@@ -253,7 +259,8 @@ def assign_open_slots(project: Project, users: list[User] | None = None) -> Dist
                 result.unfilled_slots += unit_missing(unit_tasks)
                 break
             if per_item:
-                uid = min(candidates, key=lambda i: (open_load[i], total[i], i))
+                busy = working_on.get(unit_tasks[0].image_id, set())
+                uid = min(candidates, key=lambda i: (i not in busy, open_load[i], total[i], i))
             else:
                 question_id = unit_tasks[0].question_id
                 uid = min(candidates, key=lambda i: (open_load[i], seen[i, question_id], total[i], i))
@@ -261,6 +268,7 @@ def assign_open_slots(project: Project, users: list[User] | None = None) -> Dist
                 if missing(task) and uid not in holders[task.id] and total[uid] < cap:
                     new_assignments.append(dict(task_id=task.id, user_id=uid))
                     holders[task.id].add(uid)
+                    working_on.setdefault(task.image_id, set()).add(uid)
                     seen[uid, task.question_id] += 1
                     open_load[uid] += 1
                     total[uid] += 1

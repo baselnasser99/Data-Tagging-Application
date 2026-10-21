@@ -1,54 +1,67 @@
 {% extends "base.html" %}
 {% from "includes/tiles.html" import tile %}
+{% from "includes/overview.html" import projects_panel, balance_panel %}
+{% from "includes/activity.html" import weekly_chart, group_progress %}
 
-{% block title %}My Projects{% endblock %}
+{% block title %}My projects – {{ app_name }}{% endblock %}
 
+{# A manager's home: the admin dashboard's layout, for the projects they manage. #}
 {% block content %}
-<section class="content-header">
-	<h1>Hello, {{ current_user.full_name }}</h1>
-	<p class="text-muted page-subtitle">You manage {{ plural(figures.projects, "project") }}.</p>
+<section class="content-header page-heading">
+	<div>
+		<h1>Hello, {{ current_user.full_name.split(' ')[0] }}</h1>
+		<p class="page-lede">
+			{{ today.strftime('%A') }}, {{ today.day }} {{ today.strftime('%B') }} · you manage {{ plural(figures.projects, "project") }}
+		</p>
+	</div>
+	<a class="btn btn-primary" href="{{ url_for('annotation_admin.create_annotation_project') }}"><i class="fa fa-plus" aria-hidden="true"></i> New project</a>
 </section>
 
 <section class="content">
 	<div class="figures">
 		<div class="figure">
-			<span class="figure-value">{{ figures.projects }}</span>
-			<span class="figure-label">{{ "Project" if figures.projects == 1 else "Projects" }}</span>
+			<span class="figure-value">{{ figures.done }}{% if figures.total %}<small> of {{ figures.total }}</small>{% endif %}</span>
+			<span class="figure-label">Answers given</span>
+			{% if figures.total %}
+			<div class="progress figure-bar" aria-hidden="true"><div class="progress-bar" style="width: {{ (figures.done / figures.total * 100)|round(1) }}%"></div></div>
+			{% endif %}
 		</div>
 		<div class="figure">
-			<span class="figure-value">{{ figures.done }} of {{ figures.total }}</span>
-			<span class="figure-label">Tasks and questions done</span>
-		</div>
-		<div class="figure">
-			<span class="figure-value">{{ figures.people }}</span>
-			<span class="figure-label">People working on them</span>
+			<span class="figure-value">{{ figures.total - figures.done }}</span>
+			<span class="figure-label">Answers still open</span>
 		</div>
 		<div class="figure">
 			<span class="figure-value">{{ figures.recent }}</span>
 			<span class="figure-label">Answers in the last 7 days</span>
+			{% if figures.recent > figures.week_before %}
+			<span class="figure-note">{{ figures.recent - figures.week_before }} more than the week before</span>
+			{% elif figures.recent < figures.week_before %}
+			<span class="figure-note">{{ figures.week_before - figures.recent }} fewer than the week before</span>
+			{% endif %}
+		</div>
+		<div class="figure">
+			<span class="figure-value">{{ figures.people }}</span>
+			<span class="figure-label">{{ "Person" if figures.people == 1 else "People" }} in {{ plural(figures.groups, "group") }}</span>
 		</div>
 	</div>
 
+	<div class="row">
+		<div class="col-lg-7">
+			{{ projects_panel(projects, progress,
+			                  empty_text='Create one with "New project" above, or ask an admin to make you the manager of an existing one.') }}
+			{{ weekly_chart(weeks_data) }}
+		</div>
+		<div class="col-lg-5">
+			{{ balance_panel(balance) }}
+			{{ group_progress(group_stats, "No groups work on your projects yet.") }}
+		</div>
+	</div>
+
+	<h2 class="section-title">Shortcuts</h2>
 	<div class="action-tiles">
 		{{ tile(url_for('annotation_admin.create_annotation_project'), "picture-o", "New project", "Images or audio, shared across a team", primary=True) }}
 		{{ tile(url_for('admin.create_project'), "list-ul", "New survey", "Everyone answers every question", tone="violet") }}
 		{{ tile(url_for('groups.assign_project_to_group'), "share", "Assign to a group", "Give one of your projects to a group", tone="amber") }}
 	</div>
-
-	{% with empty_groups_text="No groups work on your projects yet." %}{% include "includes/activity_row.html" %}{% endwith %}
-
-	<h2 class="section-title">Your projects</h2>
-	{% if projects %}
-	<div class="row task-grid">
-		{% for project in projects %}
-		{% include "includes/project_card.html" %}
-		{% endfor %}
-	</div>
-	{% else %}
-	<div class="box"><div class="empty-state">
-		<strong>No projects yet</strong>
-		Create one with "New project" above, or ask an admin to make you the manager of an existing one.
-	</div></div>
-	{% endif %}
 </section>
 {% endblock %}

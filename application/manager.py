@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session
 
 from . import distribution
-from .admin import group_stats_for, save_attachment, weekly_answers
+from .admin import group_stats_for, save_attachment, weekly_answers, workload_balance
 from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
 from .feedback import flash_distribution
@@ -23,7 +23,7 @@ manager = Blueprint("manager", __name__, url_prefix="/admin")
 @manager.route("/my-projects")
 @project_admin_access_required
 def my_projects():
-    """A manager's home: figures for their projects, shortcuts, and the project cards."""
+    """A manager's home: the admin dashboard's layout, for the projects they manage."""
     projects = [pa.project for pa in ProjectAdmin.query.filter_by(user_id=session['id']) if pa.project]
     progress = {p.id: project_progress(p) for p in projects}
     project_ids = [p.id for p in projects]
@@ -31,16 +31,24 @@ def my_projects():
     week_ago = datetime.now() - timedelta(days=7)
     recent = QuestionAnswer.query.join(Question).filter(
         Question.project_id.in_(project_ids), QuestionAnswer.submitted_date >= week_ago).count() if project_ids else 0
+    groups = {gp.group.id: gp.group for p in projects for gp in p.assigned_groups if gp.group}
+    weeks_data = weekly_answers(project_ids)
+    # Answers, as on the admin dashboard: a project's tasks need answers_per_task answers each,
+    # a survey's questions one answer per member (project_progress already counts those).
+    held = TaskAssignment.query.join(AnnotationTask).filter(AnnotationTask.project_id.in_(project_ids))
+    surveys = [p for p in projects if not p.is_annotation_project]
     figures = {
         "projects": len(projects),
-        "done": sum(d for d, _ in progress.values()),
-        "total": sum(t for _, t in progress.values()),
+        "done": held.filter(TaskAssignment.is_completed.is_(True)).count() + sum(progress[p.id][0] for p in surveys),
+        "total": held.count() + sum(progress[p.id][1] for p in surveys),
         "people": len(people),
+        "groups": len(groups),
         "recent": recent,
+        "week_before": weeks_data[-2]['answers'] if len(weeks_data) > 1 else 0,
     }
-    groups = {gp.group.id: gp.group for p in projects for gp in p.assigned_groups if gp.group}
+    balance = [b for b in (workload_balance(p) for p in projects if p.is_annotation_project) if b['open']]
     return render_template("admin/my_projects.html", projects=projects, progress=progress, figures=figures,
-                           weeks_data=weekly_answers(project_ids),
+                           weeks_data=weeks_data, balance=balance, today=datetime.now(),
                            group_stats=group_stats_for(groups.values(), set(project_ids)))
 
 @manager.route("/project/<int:project_id>/dashboard")
@@ -79,17 +87,22 @@ def project_dashboard(project_id):
     
     # Get assigned groups
     assigned_groups = [gp.group for gp in project.assigned_groups]
-    
+    people = {m.user_id for g in assigned_groups if g for m in g.members}
+
     # Get project admins
     project_admins = ProjectAdmin.query.filter_by(project_id=project_id).all()
-    
+
+    balance = workload_balance(project) if project.is_annotation_project else None
     return render_template(
         "admin/project_dashboard.html",
         project=project,
         questions_count=questions_count,
         annotation_stats=annotation_stats,
         assigned_groups=assigned_groups,
-        project_admins=project_admins
+        people_count=len(people),
+        project_admins=project_admins,
+        balance=[balance] if balance and balance['people'] and balance['share_max'] else [],
+        survey_progress=None if project.is_annotation_project else project_progress(project),
     )
 
 @manager.route("/project/<int:project_id>/admins")

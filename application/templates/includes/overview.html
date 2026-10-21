@@ -1,0 +1,87 @@
+{#
+  Panels shared by the overview pages: the admin dashboard, a manager's home
+  and a project's own page.
+
+    {% from "includes/overview.html" import projects_panel, balance_panel %}
+    {{ projects_panel(projects, progress, see_all_url=url_for('admin.view_projects')) }}
+    {{ balance_panel(balance) }}                       one block per project
+    {{ balance_panel([b], per_project=False) }}        a single project's page: no project names, everyone listed
+
+  projects/progress: Project rows and project_progress() results by id (application/groups.py).
+  balance: workload_balance() results (application/admin.py).
+#}
+{% from "includes/project_status.html" import project_status %}
+
+{% macro projects_panel(projects, progress, see_all_url=None, empty_text="Create one, upload images or audio, and the app hands the work out to your groups.") -%}
+      <div class="box">
+        <div class="box-header with-border box-header-split">
+          <h2 class="box-title">Projects</h2>
+          {% if see_all_url %}<a href="{{ see_all_url }}">See all</a>{% endif %}
+        </div>
+        {% if projects %}
+        <ul class="project-list">
+          {% for project in projects %}
+          <li>
+            <a class="project-list-name" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ project.name }}</a>
+            <span class="project-list-meta">
+              {{ 'Project' if project.is_annotation_project else 'Survey' }}
+              · {{ plural(project.questions | length, "question") }}
+              {% if project.is_annotation_project %}· {{ plural(project.images | length, "item") }}{% endif %}
+            </span>
+            {{ project_status(project, *progress[project.id]) }}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty-state">
+          <strong>No projects yet</strong>
+          {{ empty_text }}
+        </div>
+        {% endif %}
+      </div>
+{%- endmacro %}
+
+{% macro balance_panel(balance, per_project=True) -%}
+      <div class="box">
+        <div class="box-header with-border">
+          <h2 class="box-title">Work balance</h2>
+          <p class="text-muted box-subtitle">Each person's share of the tasks. New tasks go to whoever has the fewest open.</p>
+        </div>
+        {% for b in balance %}
+        {% set shown = b.people[:8] if per_project else b.people %}
+        <div class="balance">
+          <div class="balance-head">
+            {% if per_project %}<strong>{{ b.project.name }}</strong>{% endif %}
+            {% if b.share_min == b.share_max %}
+            <span class="balance-gap is-even">Everyone holds {{ plural(b.share_max, "task") }}</span>
+            {% else %}
+            <span class="balance-gap{% if b.share_max - b.share_min <= 1 %} is-even{% endif %}">Shares: {{ b.share_min }} to {{ b.share_max }} tasks</span>
+            {% endif %}
+          </div>
+          <ul class="balance-people">
+            {% for p in shown %}
+            <li>
+              <span class="balance-name">{{ p.name }}</span>
+              <span class="balance-bar" aria-hidden="true">
+                <span class="is-open" style="width: {{ (p.open / b.share_max * 100)|round(1) if b.share_max else 0 }}%"></span><span class="is-done" style="width: {{ (p.done / b.share_max * 100)|round(1) if b.share_max else 0 }}%"></span>
+              </span>
+              <span class="balance-count"><b>{{ p.open }}</b> open</span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% if b.people|length > shown|length %}<p class="balance-more">and {{ b.people|length - shown|length }} more</p>{% endif %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <strong>No open work right now</strong>
+          When a project's tasks are handed out, each person's share shows here.
+        </div>
+        {% endfor %}
+        {% if balance %}
+        <div class="box-footer balance-key">
+          <span><i class="key-open"></i>open</span>
+          <span><i class="key-done"></i>done</span>
+        </div>
+        {% endif %}
+      </div>
+{%- endmacro %}

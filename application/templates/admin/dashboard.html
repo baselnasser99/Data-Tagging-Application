@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "includes/tiles.html" import tile %}
-{% from "includes/project_status.html" import project_status %}
+{% from "includes/overview.html" import projects_panel, balance_panel %}
 {% from "includes/activity.html" import weekly_chart, group_progress %}
 
 {% block title %}Dashboard – {{ app_name }}{% endblock %}
@@ -20,14 +20,14 @@
   <div class="figures">
     <div class="figure">
       <span class="figure-value">{{ tasks_done }}<small> of {{ tasks_total }}</small></span>
-      <span class="figure-label">Tasks done</span>
+      <span class="figure-label">Answers given</span>
       {% if tasks_total %}
       <div class="progress figure-bar" aria-hidden="true"><div class="progress-bar" style="width: {{ (tasks_done / tasks_total * 100)|round(1) }}%"></div></div>
       {% endif %}
     </div>
     <div class="figure">
       <span class="figure-value">{{ tasks_total - tasks_done }}</span>
-      <span class="figure-label">Tasks still open</span>
+      <span class="figure-label">Answers still open</span>
     </div>
     <div class="figure">
       <span class="figure-value">{{ this_week }}</span>
@@ -46,77 +46,12 @@
 
   <div class="row">
     <div class="col-lg-7">
-      <div class="box">
-        <div class="box-header with-border box-header-split">
-          <h2 class="box-title">Projects</h2>
-          <a href="{{ url_for('admin.view_projects') }}">See all</a>
-        </div>
-        {% if projects %}
-        <ul class="project-list">
-          {% for project in projects %}
-          <li>
-            <a class="project-list-name" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ project.name }}</a>
-            <span class="project-list-meta">
-              {{ 'Project' if project.is_annotation_project else 'Survey' }}
-              · {{ plural(project.questions | length, "question") }}
-              {% if project.is_annotation_project %}· {{ plural(project.images | length, "item") }}{% endif %}
-            </span>
-            {{ project_status(project, *progress[project.id]) }}
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="empty-state">
-          <strong>No projects yet</strong>
-          Create one, upload images or audio, and the app hands the work out to your groups.
-        </div>
-        {% endif %}
-      </div>
+      {{ projects_panel(projects, progress, see_all_url=url_for('admin.view_projects')) }}
       {{ weekly_chart(weeks_data) }}
     </div>
 
     <div class="col-lg-5">
-      <div class="box">
-        <div class="box-header with-border">
-          <h2 class="box-title">Work balance</h2>
-          <p class="text-muted box-subtitle">Each person's share of the tasks. New tasks go to whoever has the fewest open.</p>
-        </div>
-        {% for b in balance %}
-        <div class="balance">
-          <div class="balance-head">
-            <strong>{{ b.project.name }}</strong>
-            {% if b.share_min == b.share_max %}
-            <span class="balance-gap is-even">Everyone holds {{ plural(b.share_max, "task") }}</span>
-            {% else %}
-            <span class="balance-gap{% if b.share_max - b.share_min <= 1 %} is-even{% endif %}">Shares: {{ b.share_min }} to {{ b.share_max }} tasks</span>
-            {% endif %}
-          </div>
-          <ul class="balance-people">
-            {% for p in b.people[:8] %}
-            <li>
-              <span class="balance-name">{{ p.name }}</span>
-              <span class="balance-bar" aria-hidden="true">
-                <span class="is-open" style="width: {{ (p.open / b.share_max * 100)|round(1) }}%"></span><span class="is-done" style="width: {{ (p.done / b.share_max * 100)|round(1) }}%"></span>
-              </span>
-              <span class="balance-count"><b>{{ p.open }}</b> open</span>
-            </li>
-            {% endfor %}
-          </ul>
-          {% if b.people|length > 8 %}<p class="balance-more">and {{ b.people|length - 8 }} more</p>{% endif %}
-        </div>
-        {% else %}
-        <div class="empty-state">
-          <strong>No open work right now</strong>
-          When a project's tasks are handed out, each person's share shows here.
-        </div>
-        {% endfor %}
-        {% if balance %}
-        <div class="box-footer balance-key">
-          <span><i class="key-open"></i>open</span>
-          <span><i class="key-done"></i>done</span>
-        </div>
-        {% endif %}
-      </div>
+      {{ balance_panel(balance) }}
       {{ group_progress(group_stats) }}
     </div>
   </div>

@@ -38,5 +38,6 @@ def sidebar_summary(user):
         title = "Your projects this week"
     else:
         title = "This week"
+    # Admins and managers count answers: a task (item x question) may need several.
     return {"title": title, "done": 0, "total": 0,
-            "lines": [("Answers in 7 days", answers.count()), ("Tasks still open", open_tasks.count())]}
+            "lines": [("Answers in 7 days", answers.count()), ("Answers still open", open_tasks.count())]}

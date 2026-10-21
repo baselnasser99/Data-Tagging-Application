@@ -497,6 +497,7 @@ select.form-control { padding-top: 6px; padding-bottom: 6px; }
 .page-heading h1 { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; color: var(--ink); }
 .page-heading .page-lede { margin: 6px 0 0; color: var(--muted); }
 .page-heading .btn { margin-bottom: 4px; }
+.page-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .box-header-split { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .box-header-split::before, .box-header-split::after { content: none; }  /* AdminLTE clearfix; would count as flex items */

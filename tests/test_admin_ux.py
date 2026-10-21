@@ -284,3 +284,31 @@ def test_dashboard_shows_projects_and_each_persons_share(admin_client, db, make_
     assert "Street scenes" in page and "Work balance" in page
     assert "Everyone holds 2 tasks" in page
     assert "1<small> of 4</small>" in page  # tasks done, in the figures row
+
+
+def test_manager_home_and_project_page_show_answers_and_work_balance(app, db, admin_client, make_user, make_project_admin):
+    group = UserGroup(name="Team")
+    db.session.add(group)
+    db.session.commit()
+    members = [make_user() for _ in range(2)]
+    db.session.add_all([UserGroupMembership(user_id=m.id, group_id=group.id) for m in members])
+    db.session.commit()
+    project = _create_project(admin_client, answers_per_task=2)
+    _upload(admin_client, project, {"a.png": b"a"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+    first = TaskAssignment.query.first()
+    first.is_completed = True
+    db.session.commit()  # 2 tasks x 2 answers: 1 of 4 answers given, no task done yet
+
+    client = app.test_client()
+    login(client, make_project_admin(project).email)
+    home = client.get("/admin/my-projects").data.decode()
+    assert "1<small> of 4</small>" in home and "Answers given" in home and "Answers still open" in home
+    assert "Work balance" in home and "Everyone holds 2 tasks" in home
+    assert "0 of 2 tasks done" in home  # the project panel counts tasks (item x question)
+
+    page = client.get(f"/admin/project/{project.id}/dashboard").data.decode()
+    assert "0<small> of 2</small>" in page and "Tasks done" in page  # tasks...
+    assert "1<small> of 4</small>" in page and "Answers given" in page  # ...and the answers they need
+    assert "Work balance" in page and all(m.full_name in page for m in members)
+    assert "Progress and results" in page and "Manage" in page

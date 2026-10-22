@@ -145,3 +145,51 @@ def test_refused_pages_and_account_changes_are_audited(caplog, admin_client, use
     events = [r.getMessage() for r in caplog.records if r.name == "audit"]
     assert any(e.startswith("ACCESS_DENIED") and "path=/admin/users" in e for e in events)
     assert any(e.startswith("USER_CREATED") for e in events)
+
+
+def test_people_page_counts_projects_reached_every_way(admin_client, db, make_user):
+    """A person's project count joins survey questions, groups and tasks, counting each project once."""
+    from flask import template_rendered
+
+    from application.models import (AnnotationTask, GroupProject, Project, ProjectImage, Question,
+                                    QuestionAnswer, TaskAssignment, UserGroup, UserGroupMembership,
+                                    UserQuestionAssignment)
+
+    busy, idle = make_user(name="Busy"), make_user(name="Idle")
+    survey, via_group, labelled, both = (Project(name=n, desc="") for n in ("S", "G", "L", "B"))
+    db.session.add_all([survey, via_group, labelled, both])
+    db.session.flush()
+    survey_q = Question(question="Why?", project_id=survey.id)
+    both_q = Question(question="What?", project_id=both.id)
+    image = ProjectImage(project_id=labelled.id, filename="a.png", original_filename="a.png", file_path="a.png")
+    group_a, group_b = UserGroup(name="A"), UserGroup(name="B")
+    db.session.add_all([survey_q, both_q, image, group_a, group_b])
+    db.session.flush()
+    task = AnnotationTask(project_id=labelled.id, image_id=image.id, question_id=both_q.id)
+    db.session.add(task)
+    db.session.flush()
+    db.session.add_all([
+        UserQuestionAssignment(user_id=busy.id, question_id=survey_q.id, group_project_id="imported"),
+        UserQuestionAssignment(user_id=busy.id, question_id=both_q.id, group_project_id="imported"),
+        UserGroupMembership(user_id=busy.id, group_id=group_b.id),
+        UserGroupMembership(user_id=busy.id, group_id=group_a.id),
+        GroupProject(group_id=group_a.id, project_id=via_group.id),
+        GroupProject(group_id=group_b.id, project_id=both.id),
+        TaskAssignment(task_id=task.id, user_id=busy.id),
+        QuestionAnswer(user_id=busy.id, question_id=survey_q.id, answer="x"),
+        QuestionAnswer(user_id=busy.id, question_id=both_q.id, answer="y"),
+    ])
+    db.session.commit()
+
+    seen = []
+
+    def record(sender, template, context, **extra):
+        seen.append(context)
+
+    with template_rendered.connected_to(record, admin_client.application):
+        assert admin_client.get("/admin/users").status_code == 200
+    rows = {d["user"].full_name: d for d in seen[0]["users_data"]}
+    assert rows["Busy"]["assigned_projects_count"] == 4
+    assert rows["Busy"]["answer_count"] == 2
+    assert sorted(g.name for g in rows["Busy"]["assigned_groups"]) == ["A", "B"]
+    assert (rows["Idle"]["assigned_projects_count"], rows["Idle"]["answer_count"], rows["Idle"]["assigned_groups"]) == (0, 0, [])

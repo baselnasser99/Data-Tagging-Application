@@ -1,9 +1,31 @@
+# Only what the app needs to run goes into the image.
+
+# Secrets and local environments
+.env
 venv/
+.venv/
+
+# History: it still holds the graded version's fixed SECRET_KEY and admin password (SECURITY.md)
+.git/
+.github/
+
+# Local data: databases, uploads and logs live in Docker volumes
+*.db
+*.sqlite3
+instance/
+logs/
+application/static/uploads/
+
+# Tests, docs and their leftovers
+tests/
+docs/
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.db
-*.sqlite3
-.env
 .DS_Store

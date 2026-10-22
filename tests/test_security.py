@@ -212,6 +212,24 @@ def test_docker_compose_publishes_the_app_on_localhost_only():
     assert '"5000:5000"' not in compose
 
 
+def test_docker_image_leaves_out_history_tests_and_local_files():
+    # The git history holds the graded version's fixed SECRET_KEY and admin password (SECURITY.md);
+    # .venv is a local (often Windows) environment; the rest isn't needed to run the app.
+    with open(".dockerignore", encoding="utf-8") as f:
+        ignored = {line.strip().rstrip("/") for line in f if line.strip() and not line.startswith("#")}
+    wanted = {".git", ".github", ".venv", "tests", "docs", "logs", "instance", "application/static/uploads",
+              ".coverage", "coverage.xml", "htmlcov", ".pytest_cache"}
+    assert wanted <= ignored, sorted(wanted - ignored)
+
+
+def test_database_container_gets_only_its_own_settings():
+    # env_file would hand it SECRET_KEY and ADMIN_PASSWORD too; it needs only the MYSQL_* values.
+    with open("docker-compose.yml", encoding="utf-8") as f:
+        database = f.read().split("\n  web:")[0]
+    assert "env_file:" not in database
+    assert "MYSQL_ROOT_PASSWORD:" in database
+
+
 @pytest.mark.parametrize("path", ["/admin/delete-project/1", "/admin/delete-group/1"])
 def test_destructive_actions_do_not_accept_get(admin_client, path):
     assert admin_client.get(path).status_code == 405

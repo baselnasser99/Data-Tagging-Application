@@ -3,11 +3,12 @@ import io
 import logging
 import os
 import secrets
+from collections import defaultdict
 from datetime import datetime
 
 from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, send_file, session, url_for
 from flask_login import current_user
-from sqlalchemy import delete
+from sqlalchemy import delete, func
 
 from . import distribution
 from .auth import MIN_PASSWORD_LENGTH
@@ -61,41 +62,33 @@ def dashboard():
 @admin.route("/users")
 @admin_required
 def users():
-    users_data = []
-    end_users = User.query.filter_by(role='end-user').all()
+    """Every member with their groups, how many projects they reach and how many answers they gave."""
+    # A project is reached through a survey question, a group or an annotation task; each counts once.
+    reached = (
+        db.session.query(UserQuestionAssignment.user_id, Question.project_id)
+        .join(Question, Question.id == UserQuestionAssignment.question_id)
+        .join(Project, Project.id == Question.project_id)
+        .union(db.session.query(UserGroupMembership.user_id, GroupProject.project_id)
+               .join(GroupProject, GroupProject.group_id == UserGroupMembership.group_id)
+               .join(Project, Project.id == GroupProject.project_id))
+        .union(db.session.query(TaskAssignment.user_id, AnnotationTask.project_id)
+               .join(AnnotationTask, AnnotationTask.id == TaskAssignment.task_id)
+               .join(Project, Project.id == AnnotationTask.project_id))
+    )
+    projects = defaultdict(set)
+    for user_id, project_id in reached:
+        projects[user_id].add(project_id)
+    answers = dict(db.session.query(QuestionAnswer.user_id, func.count()).group_by(QuestionAnswer.user_id))
+    groups_of = defaultdict(list)
+    for membership in UserGroupMembership.query.order_by(UserGroupMembership.group_id):
+        if membership.group:
+            groups_of[membership.user_id].append(membership.group)
 
-    for user in end_users:
-        assigned_projects = set()
-
-        # 1. Get projects directly assigned to the user (if applicable)
-        # This part might be for non-annotation projects or older assignments
-        direct_project_assignments = UserQuestionAssignment.query.filter_by(user_id=user.id).all()
-        for assignment in direct_project_assignments:
-            question = db.session.get(Question, assignment.question_id)
-            if question and question.belongs_to:
-                assigned_projects.add(question.belongs_to.id)
-        
-        # 2. Get projects assigned through groups
-        user_group_memberships = UserGroupMembership.query.filter_by(user_id=user.id).all()
-        for membership in user_group_memberships:
-            group_projects = GroupProject.query.filter_by(group_id=membership.group_id).all()
-            for gp in group_projects:
-                if gp.project:
-                    assigned_projects.add(gp.project.id)
-        
-        # 3. Get projects assigned through TaskAssignment for annotation projects
-        # This is crucial for annotation projects since tasks are assigned, not questions directly
-        annotation_task_assignments = TaskAssignment.query.filter_by(user_id=user.id).all()
-        for task_assign in annotation_task_assignments:
-            if task_assign.task and task_assign.task.project:
-                assigned_projects.add(task_assign.task.project.id)
-
-        users_data.append({
-            'user': user,
-            'assigned_projects_count': len(assigned_projects),
-            'answer_count': QuestionAnswer.query.filter_by(user_id=user.id).count(),
-            'assigned_groups': [m.group for m in user_group_memberships if m.group]
-        })
+    users_data = [{'user': user,
+                   'assigned_projects_count': len(projects[user.id]),
+                   'answer_count': answers.get(user.id, 0),
+                   'assigned_groups': groups_of[user.id]}
+                  for user in User.query.filter_by(role='end-user')]
     users_data.sort(key=lambda d: (not d['user'].active, d['user'].full_name.lower()))
     groups = UserGroup.query.order_by(UserGroup.name).all()
     return render_template('admin/users.html', users_data=users_data, groups=groups)
@@ -196,14 +189,15 @@ def create_user():
         full_name = (request.form.get('full_name') or '').strip()
         email = (request.form.get('email') or '').strip()
         password = request.form.get('password') or ''
+        error = None
         if not full_name or not email:
-            flash('Please enter a name and an email address.', 'danger')
-            return render_template('admin/create_user.html', groups=groups, form=request.form, tab='one')
-        if User.query.filter_by(email=email).first():
-            flash(f'A user with the email {email} already exists.', 'danger')
-            return render_template('admin/create_user.html', groups=groups, form=request.form, tab='one')
-        if password and len(password) < MIN_PASSWORD_LENGTH:
-            flash(f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.', 'danger')
+            error = 'Please enter a name and an email address.'
+        elif User.query.filter_by(email=email).first():
+            error = f'A user with the email {email} already exists.'
+        elif password and len(password) < MIN_PASSWORD_LENGTH:
+            error = f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.'
+        if error:
+            flash(error, 'danger')
             return render_template('admin/create_user.html', groups=groups, form=request.form, tab='one')
 
         temporary = not password
@@ -247,22 +241,23 @@ def import_users():
     if request.method == 'GET':
         return redirect(url_for('admin.create_user', tab='csv'))  # the form lives on the Add users page
 
+    back = redirect(url_for('admin.create_user', tab='csv'))
     csv_file = request.files.get('csv_file')
     if csv_file is None:
         flash('No file part', 'danger')
-        return redirect(url_for('admin.create_user', tab='csv'))
+        return back
     if csv_file.filename == '':
         flash('No selected file', 'danger')
-        return redirect(url_for('admin.create_user', tab='csv'))
+        return back
     if not csv_file.filename.lower().endswith('.csv'):
         flash('Invalid file type. Please upload a CSV file.', 'danger')
-        return redirect(url_for('admin.create_user', tab='csv'))
+        return back
 
     rows = list(csv.reader(io.StringIO(csv_file.stream.read().decode("UTF8"))))
     header = rows[0] if rows else None
     if not header or not all(col in header for col in ['full_name', 'email', 'password']):
         flash('CSV must contain "full_name", "email", and "password" columns.', 'danger')
-        return redirect(url_for('admin.create_user', tab='csv'))
+        return back
 
     users, created, duplicates, invalid, messages = _create_users_from_rows(header, rows[1:])
     audit.info("USERS_IMPORTED created=%s by=%s", created, current_user.id)
@@ -477,7 +472,7 @@ def delete_project(project_id):
                 try:
                     if os.path.exists(image.file_path):
                         os.remove(image.file_path)
-                except:
+                except OSError:
                     pass  # Continue even if file deletion fails
                 db.session.delete(image)
 
@@ -520,41 +515,36 @@ def delete_project(project_id):
     return redirect(url_for("admin.view_projects"))
 
 
-@admin.route("/download-files/<int:project_id>")
-@project_admin_required
-def download_files(project_id):
-    project = db.session.get(Project, project_id)
-    if project:
-        output = io.StringIO()
+def _answers_report(projects):
+    """Plain-text report: each project's questions, attachment links and everyone's answers."""
+    output = io.StringIO()
+    for project in projects:
         output.write(f"Project Name: {project.name}\n")
         output.write(f"Project Description: {project.desc}\n\n")
 
         for question in project.questions:
             output.write(f"  Question: {question.question}\n")
-            file_path = "No File"
-            if question.file_path:
-                file_path = public_file_url(question.file_path)
+            file_path = public_file_url(question.file_path) if question.file_path else "No File"
             output.write(f"  Question File: {file_path}\n")
 
-            question_answers = QuestionAnswer.query.filter_by(question_id=question.id)
             output.write("  User Answers:\n")
-            for q_a in question_answers:
+            for q_a in QuestionAnswer.query.filter_by(question_id=question.id):
                 output.write(f"    {q_a.user.full_name}: {q_a.answer}\n")
             output.write("\n")
 
         output.write("=" * 40 + "\n\n")  # Separator between projects
+    return io.BytesIO(output.getvalue().encode())
 
-        # Convert StringIO to BytesIO for send_file
-        mem = io.BytesIO()
-        mem.write(output.getvalue().encode())
-        mem.seek(0)
 
-        response = make_response(send_file(
-            mem, as_attachment=True, download_name='project-answers.txt', mimetype='text/plain'))
-        return response
-    else:
+@admin.route("/download-files/<int:project_id>")
+@project_admin_required
+def download_files(project_id):
+    project = db.session.get(Project, project_id)
+    if not project:
         flash('Project not found', 'danger')
         return redirect(url_for('admin.view_projects'))
+    return make_response(send_file(
+        _answers_report([project]), as_attachment=True, download_name='project-answers.txt', mimetype='text/plain'))
 
 
 # Download answers per user
@@ -685,44 +675,12 @@ def admin_profile():
         return redirect(url_for('admin.admin_profile'))
 
     return render_template('admin/profile.html', admin=admin_user)
-    
-#Download answers per projects by user
+
+
+# Download answers per projects by user
 @admin.route("/download-full")
 @admin_required
 def full_download():
-    projects = Project.query.all()
-    output = io.StringIO()
-
-    for p in projects:
-        output.write(f"Project Name: {p.name}\n")
-        output.write(f"Project Description: {p.desc}\n\n")
-
-        for question in p.questions:
-            output.write(f"  Question: {question.question}\n")
-            file_path = "No File"
-            if question.file_path:
-                file_path = public_file_url(question.file_path)
-            output.write(f"  Question File: {file_path}\n")
-
-            question_answers = QuestionAnswer.query.filter_by(question_id=question.id)
-            output.write("  User Answers:\n")
-            for q_a in question_answers:
-                output.write(f"    {q_a.user.full_name}: {q_a.answer}\n")
-            output.write("\n")
-
-        output.write("=" * 40 + "\n\n")  # Separator between projects
-
-    output.seek(0)
-
-    # Convert StringIO to BytesIO for send_file
-    mem = io.BytesIO()
-    mem.write(output.getvalue().encode())
-    mem.seek(0)
-
-    response = make_response(send_file(
-        mem,
-        as_attachment=True,
-        download_name='user_answers.txt',
-        mimetype='text/plain'
-    ))
-    return response
+    return make_response(send_file(
+        _answers_report(Project.query.all()), as_attachment=True, download_name='user_answers.txt',
+        mimetype='text/plain'))

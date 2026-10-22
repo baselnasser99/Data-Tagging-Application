@@ -275,7 +275,7 @@ def _update_questions(project):
     for key, value in form.items():
         if key.startswith('question-'):
             question = db.session.get(Question, int(key.split('-')[1]))
-            if question:
+            if question and question.project_id == project.id:  # the form's ids are the sender's to choose
                 _update_question(question, value, form, files)
 
     db.session.commit()

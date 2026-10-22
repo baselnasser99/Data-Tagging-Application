@@ -2,12 +2,12 @@ import logging
 from datetime import datetime, timedelta
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort
-from .models import Project, Question, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer
-from .extns import db
+from flask_login import current_user
 
-from .permissions import user_required
 from .auth import MIN_PASSWORD_LENGTH
-from werkzeug.security import generate_password_hash, check_password_hash
+from .extns import db
+from .models import Project, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer
+from .permissions import user_required
 
 # Annotators' pages (on screen: members). The URLs keep their original /user prefix.
 annotation = Blueprint('annotation', __name__, url_prefix='/user')
@@ -15,62 +15,31 @@ annotation = Blueprint('annotation', __name__, url_prefix='/user')
 @annotation.route("/dashboard")
 @user_required
 def dashboard():
-    if 'id' in session:
-        user_id = session['id']
-        user = db.session.get(User, user_id)
-        if user:
-            # Count group memberships
-            group_memberships = len(user.group_memberships)
+    user_id = current_user.id
 
-            # Count group projects assigned (both survey and annotation)
-            group_projects_count = 0
-            for membership in user.group_memberships:
-                group_projects_count += len(membership.group.assigned_projects)
+    # Group projects assigned (both survey and annotation)
+    group_projects_count = sum(len(m.group.assigned_projects) for m in current_user.group_memberships)
 
-            # Count total assigned tasks (survey questions + annotation tasks)
-            survey_questions = UserQuestionAssignment.query.filter_by(user_id=user_id).count()
-            annotation_tasks = TaskAssignment.query.filter_by(user_id=user_id).count()
-            total_assigned_tasks = survey_questions + annotation_tasks
+    # Total assigned tasks (survey questions + annotation tasks)
+    total_assigned_tasks = (UserQuestionAssignment.query.filter_by(user_id=user_id).count()
+                            + TaskAssignment.query.filter_by(user_id=user_id).count())
+    # Every answer counts: survey answers and annotation answers alike
+    total_solved = QuestionAnswer.query.filter_by(user_id=user_id).count()
 
-            # Count solved questions/tasks
-            survey_answers = QuestionAnswer.query.filter_by(user_id=user_id).filter(
-                QuestionAnswer.task_assignment_id.is_(None)
-            ).count()
-            annotation_answers = QuestionAnswer.query.filter_by(user_id=user_id).filter(
-                QuestionAnswer.task_assignment_id.isnot(None)
-            ).count()
-            total_solved = survey_answers + annotation_answers
+    answered_this_week = QuestionAnswer.query.filter(
+        QuestionAnswer.user_id == user_id,
+        QuestionAnswer.submitted_date >= datetime.now() - timedelta(days=7)).count()
 
-            # Calculate unanswered (ensure it's not negative)
-            unanswered_questions = max(0, total_assigned_tasks - total_solved)
-
-            # Count available projects (projects with pending tasks)
-            available_projects = 0
-            if total_assigned_tasks > total_solved:
-                available_projects = group_projects_count
-
-            answered_this_week = QuestionAnswer.query.filter(
-                QuestionAnswer.user_id == user_id,
-                QuestionAnswer.submitted_date >= datetime.now() - timedelta(days=7)).count()
-
-            return render_template('end-user/dashboard.html',
-                                   group_projects=_my_group_projects(user_id),
-                                   assigned_projects=group_projects_count,
-                                   group_memberships=group_memberships,
-                                   solved_questions=total_solved,
-                                   unanswered_questions=unanswered_questions,
-                                   available_projects=available_projects,
-                                   answered_this_week=answered_this_week,
-                                   next_up=_next_open_task(user_id))
-        else:
-            flash('User not found', 'danger')
-            return redirect(url_for('annotation.my_projects'))
-    else:
-        flash('No active session', 'warning')
-        return redirect(url_for('annotation.my_projects'))
-
-
-# Individual project assignments removed - only group assignments supported
+    return render_template('end-user/dashboard.html',
+                           group_projects=_my_group_projects(user_id),
+                           assigned_projects=group_projects_count,
+                           group_memberships=len(current_user.group_memberships),
+                           solved_questions=total_solved,
+                           unanswered_questions=max(0, total_assigned_tasks - total_solved),
+                           # projects with pending tasks
+                           available_projects=group_projects_count if total_assigned_tasks > total_solved else 0,
+                           answered_this_week=answered_this_week,
+                           next_up=_next_open_task(user_id))
 
 
 @annotation.route("/my-projects")
@@ -144,16 +113,10 @@ def change_password():
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
-
-        user_id = session['id']
-        user = db.session.get(User, user_id)
-
-        if not user:
-            flash('User not found', 'danger')
-            return redirect(url_for('annotation.profile'))
+        user = current_user
 
         # Verify current password
-        if not check_password_hash(user.password_hash, current_password):
+        if not user.check_password(current_password):
             flash('Current password is incorrect', 'danger')
             return redirect(url_for('annotation.change_password'))
 
@@ -166,8 +129,7 @@ def change_password():
             flash(f'Password must be at least {MIN_PASSWORD_LENGTH} characters long', 'danger')
             return redirect(url_for('annotation.change_password'))
 
-        # Update password
-        user.password_hash = generate_password_hash(new_password)
+        user.set_password(new_password)
         db.session.commit()
         logging.getLogger("audit").info("PASSWORD_CHANGED user_id=%s", user.id)
         flash('Password changed successfully', 'success')
@@ -210,20 +172,12 @@ def view_group_project(group_project_id):
                 ).first()
 
                 if assignment:
-                    question = db.session.get(Question, question_id)
-                    user = db.session.get(User, user_id)
-                    answer = value
-
-                    # Check if answer already exists
-                    existing_answer = QuestionAnswer.query.filter_by(
-                        user_id=user.id, question_id=question.id).first()
-
+                    # Re-submitting replaces the earlier answer
+                    existing_answer = QuestionAnswer.query.filter_by(user_id=user_id, question_id=question_id).first()
                     if existing_answer:
-                        existing_answer.answer = answer
+                        existing_answer.answer = value
                     else:
-                        qa = QuestionAnswer(user_id=user.id, question_id=question.id, answer=answer)
-                        db.session.add(qa)
-
+                        db.session.add(QuestionAnswer(user_id=user_id, question_id=question_id, answer=value))
                     db.session.commit()
 
         flash('Answers submitted successfully', 'success')

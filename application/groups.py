@@ -45,54 +45,57 @@ def create_group():
     # Handle GET request: render the group creation form
     return render_template('admin/create_group.html')
 
+def _change_membership(group, added_message, removed_message, warn_idle=False):
+    """Add or remove the member named in the posted form, then hand out or release their work."""
+    action = request.form.get('action')
+    if action not in ('add_user', 'remove_user'):
+        return
+    user_id = request.form.get('user_id')
+    user = db.session.get(User, user_id)
+
+    if action == 'add_user':
+        if not user:
+            flash('User not found', 'danger')
+        elif UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).first():
+            flash('User is already in this group', 'warning')
+        else:
+            db.session.add(UserGroupMembership(user_id=user.id, group_id=group.id))
+            db.session.commit()
+            flash_distribution(assign_questions_to_new_group_member(user, group), added_message)
+            if warn_idle:
+                for project in distribution.projects_for_group(group.id):
+                    warn_idle_members(project, [user])
+
+    elif action == 'remove_user':
+        membership = UserGroupMembership.query.filter_by(user_id=user_id, group_id=group.id).first()
+        if membership and user:
+            db.session.delete(membership)
+            db.session.commit()
+            flash_distribution(remove_pending_assignments_from_removed_group_member(user, group), removed_message)
+        else:
+            flash('User not found in group or user object not found', 'danger')
+
+
+def _available_users(group):
+    """Active members who are not in the group yet (removed people can't be given work)."""
+    current_member_ids = [m.user_id for m in group.members]
+    return User.query.filter(
+        User.role == 'end-user', User.active.is_(True), ~User.id.in_(current_member_ids)
+    ).all()
+
+
 @groups.route("/manage-group/<int:group_id>", methods=['GET', 'POST'])
 @admin_required
 def manage_group(group_id):
     group = db.get_or_404(UserGroup, group_id)
 
     if request.method == 'POST':
-        action = request.form.get('action')
-
-        if action == 'add_user':
-            user_id = request.form.get('user_id')
-            user = db.session.get(User, user_id)
-
-            if user:
-                existing = UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).first()
-                if existing:
-                    flash('User is already in this group', 'warning')
-                else:
-                    membership = UserGroupMembership(user_id=user.id, group_id=group.id)
-                    db.session.add(membership)
-                    db.session.commit()
-                    result = assign_questions_to_new_group_member(user, group)
-                    flash_distribution(result, 'User added to group successfully!')
-                    for project in distribution.projects_for_group(group.id):
-                        warn_idle_members(project, [user])
-            else:
-                flash('User not found', 'danger')
-
-        elif action == 'remove_user':
-            user_id = request.form.get('user_id')
-            user = db.session.get(User, user_id)
-            membership = UserGroupMembership.query.filter_by(user_id=user_id, group_id=group.id).first()
-            if membership and user:
-                db.session.delete(membership)
-                db.session.commit()
-                result = remove_pending_assignments_from_removed_group_member(user, group)
-                flash_distribution(result, 'User removed from group successfully!')
-            else:
-                flash('User not found in group or user object not found', 'danger')
-
+        _change_membership(group, 'User added to group successfully!', 'User removed from group successfully!',
+                           warn_idle=True)
         return redirect(url_for("groups.manage_group", group_id=group_id))
 
-    current_member_ids = [m.user_id for m in group.members]
-    available_users = User.query.filter(
-        User.role == 'end-user', User.active.is_(True),  # removed people can't be given work
-        ~User.id.in_(current_member_ids)
-    ).all()
+    return render_template("admin/manage_group.html", group=group, available_users=_available_users(group))
 
-    return render_template("admin/manage_group.html", group=group, available_users=available_users)
 
 @groups.route("/project/<int:project_id>/manage-group/<int:group_id>", methods=['GET', 'POST'])
 @project_admin_required
@@ -113,46 +116,11 @@ def manage_group_for_project(project_id, group_id):
     if request.method == 'POST':
         if other_projects:
             abort(403)
-        action = request.form.get('action')
-
-        if action == 'add_user':
-            user_id = request.form.get('user_id')
-            user = db.session.get(User, user_id)
-
-            if user:
-                existing = UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).first()
-                if existing:
-                    flash('User is already in this group', 'warning')
-                else:
-                    membership = UserGroupMembership(user_id=user.id, group_id=group.id)
-                    db.session.add(membership)
-                    db.session.commit()
-                    result = assign_questions_to_new_group_member(user, group)
-                    flash_distribution(result, 'User added to group successfully and assignments updated')
-            else:
-                flash('User not found', 'danger')
-
-        elif action == 'remove_user':
-            user_id = request.form.get('user_id')
-            user = db.session.get(User, user_id)
-            membership = UserGroupMembership.query.filter_by(user_id=user_id, group_id=group.id).first()
-            if membership and user:
-                db.session.delete(membership)
-                db.session.commit()
-                result = remove_pending_assignments_from_removed_group_member(user, group)
-                flash_distribution(result, 'User removed from group; their unfinished tasks were handed to the rest of the team')
-            else:
-                flash('User not found in group or user object not found', 'danger')
-
+        _change_membership(group, 'User added to group successfully and assignments updated',
+                           'User removed from group; their unfinished tasks were handed to the rest of the team')
         return redirect(url_for("groups.manage_group_for_project", project_id=project_id, group_id=group_id))
 
-    current_member_ids = [m.user_id for m in group.members]
-    available_users = User.query.filter(
-        User.role == 'end-user', User.active.is_(True),  # removed people can't be given work
-        ~User.id.in_(current_member_ids)
-    ).all()
-
-    return render_template("admin/manage_group.html", group=group, available_users=available_users,
+    return render_template("admin/manage_group.html", group=group, available_users=_available_users(group),
                            project_id=project_id, other_projects=other_projects)
 
 

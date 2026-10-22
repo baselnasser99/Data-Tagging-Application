@@ -1,64 +1,32 @@
-from datetime import datetime, timedelta
-from flask import send_file, make_response
 import csv
-import logging
 import io
+import logging
 import os
-import uuid
 import secrets
+from datetime import datetime
 
-from flask import Blueprint, abort, request, redirect, url_for, flash, render_template, session
+from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, send_file, session, url_for
 from flask_login import current_user
 from sqlalchemy import delete
-from werkzeug.utils import secure_filename
 
-from .extns import db
-from .models import is_attachment, Project, Question, User, AnswerType, QuestionAnswer, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, AnnotationTask, TaskAssignment, ExportLog
-from .auth import MIN_PASSWORD_LENGTH
-from .jinja_utils import plural
 from . import distribution
+from .auth import MIN_PASSWORD_LENGTH
 from .export import csv_cell
+from .extns import db
 from .feedback import flash_distribution, warn_idle_members
-from .groups import (assign_questions_to_new_group_member, group_progress, project_progress,
-                     remove_pending_assignments_from_removed_group_member, set_up_new_project)
+from .groups import (assign_questions_to_new_group_member, remove_pending_assignments_from_removed_group_member,
+                     set_up_new_project)
+from .jinja_utils import plural
+from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, Question, QuestionAnswer,
+                     TaskAssignment, User, UserGroup, UserGroupMembership, UserQuestionAssignment)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
+from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
+from .uploads import public_file_url, save_attachment
 
 audit = logging.getLogger("audit")
 log = logging.getLogger(__name__)
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
-
-def upload_dir(*parts):
-    """Create (if needed) and return a folder inside the upload root.
-
-    The upload root is ``static/uploads`` unless UPLOAD_ROOT is configured.
-    """
-    from flask import current_app
-    root = current_app.config.get("UPLOAD_ROOT") or os.path.join(current_app.static_folder, "uploads")
-    path = os.path.join(root, *parts)
-    os.makedirs(path, exist_ok=True)
-    return path
-
-
-def upload_path(filename):
-    """Absolute path for a file stored directly in the upload root."""
-    return os.path.join(upload_dir(), filename)
-
-
-def save_attachment(upload):
-    """Store a survey question's picture, audio or video and return its stored name (None if nothing was saved)."""
-    if not upload or not upload.filename:
-        return None
-    if not is_attachment(upload.filename):
-        flash(f'"{upload.filename}" was not attached: question files must be a picture, audio or video.', 'warning')
-        return None
-    filename = f"{uuid.uuid4()}{secure_filename(upload.filename)[-64:]}"  # Question.file_path holds 100 characters
-    upload.save(upload_path(filename))
-    return filename
-
-
-def public_file_url(filename):
-    return url_for("uploaded_file", name=filename, _external=True)
 
 
 @admin.route("/dashboard")
@@ -88,55 +56,6 @@ def dashboard():
                          group_stats=group_stats,
                          balance=balance,
                          today=datetime.now())
-
-
-def workload_balance(project):
-    """Open and finished tasks per member of the project's groups, most still open first.
-
-    A person's share is every task they hold, open or done: that is what the
-    hand-out keeps even (application/distribution.py). Open counts drift apart
-    as people answer at different speeds.
-    """
-    members = {m.user for gp in project.assigned_groups for m in gp.group.members if m.user.active}
-    counts = {u.id: {'name': u.full_name, 'open': 0, 'done': 0} for u in members}
-    held = TaskAssignment.query.join(AnnotationTask).filter(
-        AnnotationTask.project_id == project.id, TaskAssignment.user_id.in_(counts))
-    for a in held:
-        counts[a.user_id]['done' if a.is_completed else 'open'] += 1
-    people = sorted(counts.values(), key=lambda p: (-p['open'], -p['done'], p['name']))
-    shares = [p['open'] + p['done'] for p in people]
-    return {'project': project, 'people': people, 'open': sum(p['open'] for p in people),
-            'share_min': min(shares, default=0), 'share_max': max(shares, default=0)}
-
-def weekly_answers(project_ids=None):
-    """Answers submitted per week over the last 12 weeks, oldest first; only these projects if given."""
-    now = datetime.now()
-    weeks = []
-    for i in range(11, -1, -1):
-        start, end = now - timedelta(weeks=i + 1), now - timedelta(weeks=i)
-        query = QuestionAnswer.query.filter(QuestionAnswer.submitted_date >= start, QuestionAnswer.submitted_date < end)
-        if project_ids is not None:
-            query = query.join(Question).filter(Question.project_id.in_(project_ids))
-        weeks.append({'week': f"{start.day} {start:%b}",  # the week's first day, e.g. "3 Aug"
-                      'answers': query.count()})
-    return weeks
-
-
-def group_stats_for(groups, project_ids=None):
-    """Each group's share of finished work, counting only these projects if given.
-
-    Annotation work counts finished task assignments, survey work answered questions.
-    """
-    stats = []
-    for group in groups:
-        ids = [gp.project_id for gp in group.assigned_projects
-               if project_ids is None or gp.project_id in project_ids]
-        if project_ids is not None and not ids:
-            continue
-        done, total = group_progress(group, ids)
-        stats.append({'name': group.name, 'members': len(group.members), 'projects': len(ids),
-                      'completion_rate': round(done / total * 100, 1) if total else 0})
-    return stats
 
 
 @admin.route("/users")
@@ -494,7 +413,6 @@ def create_project():
         if total_questions_str and int(total_questions_str) > 0:
             total_questions = int(total_questions_str)
             for i in range(1, total_questions + 1):
-                file_key = f'question-{i}-file'
                 question_text = request.form.get(f"question-{i}")
                 filename = save_attachment(request.files.get(f"question-{i}-file"))
 

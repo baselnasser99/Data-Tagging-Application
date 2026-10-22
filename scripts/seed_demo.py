@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # the repo root
 
 from application import create_app, distribution  # noqa: E402
-from application.admin import upload_dir  # noqa: E402
+from application.uploads import upload_dir  # noqa: E402
 from application.extns import db  # noqa: E402
 from application.models import (AnswerType, GroupProject, Project, ProjectAdmin, ProjectImage,  # noqa: E402
                                 Question, QuestionAnswer, TaskAssignment, User, UserGroup, UserGroupMembership)

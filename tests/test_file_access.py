@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from application.admin import upload_dir, upload_path
+from application.uploads import upload_dir, upload_path
 from application.models import GroupProject, Project, Question, UserGroup, UserGroupMembership
 from tests.conftest import login
 

@@ -31,13 +31,14 @@ def create_app(config_object=None):
     login_manager.init_app(app)
     csrf.init_app(app)
 
-    from .admin import admin, upload_dir
+    from .admin import admin
     from .auth import MIN_PASSWORD_LENGTH, auth
     from .annotation import annotation
     from .groups import groups
     from .manager import manager
     from .annotation_admin import annotation_admin
     from .permissions import can_open_upload
+    from .uploads import upload_dir
     from .jinja_utils import getattr_safe, plural, sidebar_summary
 
     app.register_blueprint(auth)

@@ -6,14 +6,15 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session
 
 from . import distribution
-from .admin import group_stats_for, save_attachment, weekly_answers, workload_balance
 from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
 from .feedback import flash_distribution
-from .groups import distribute_questions_to_group, project_progress
+from .groups import distribute_questions_to_group
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
                      QuestionAnswer, TaskAssignment, User, UserQuestionAssignment)
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
+from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
+from .uploads import save_attachment
 
 audit = logging.getLogger("audit")
 

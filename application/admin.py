@@ -6,7 +6,7 @@ import secrets
 from collections import defaultdict
 from datetime import datetime
 
-from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, send_file, session, url_for
+from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, send_file, url_for
 from flask_login import current_user
 from sqlalchemy import delete, func
 
@@ -629,7 +629,7 @@ def download_answers(user_id):
 @admin.route("/profile", methods=['GET', 'POST'])
 @project_admin_access_required  # admins and managers; each edits only their own account
 def admin_profile():
-    admin_user = db.session.get(User, session['id'])
+    admin_user = db.session.get(User, current_user.id)
 
     if request.method == 'POST':
         action = request.form.get('action')

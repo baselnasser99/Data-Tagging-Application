@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 
-from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort
+from flask import Blueprint, request, redirect, url_for, flash, render_template, abort
 from flask_login import current_user
 
 from .auth import MIN_PASSWORD_LENGTH
@@ -45,7 +45,7 @@ def dashboard():
 @annotation.route("/my-projects")
 @user_required
 def my_projects():
-    return render_template('end-user/my_projects.html', group_projects=_my_group_projects(session['id']))
+    return render_template('end-user/my_projects.html', group_projects=_my_group_projects(current_user.id))
 
 
 def _next_open_task(user_id):
@@ -141,7 +141,7 @@ def change_password():
 @annotation.route("/group-project/<group_project_id>", methods=['GET', 'POST'])
 @user_required
 def view_group_project(group_project_id):
-    user_id = session['id']
+    user_id = current_user.id
 
     # Get questions assigned to this user for this group project
     assigned_questions = UserQuestionAssignment.query.filter_by(
@@ -203,7 +203,7 @@ def view_group_project(group_project_id):
 @user_required
 def annotation_tasks():
     """View assigned annotation tasks, one card per item; ?project_id= shows one project only."""
-    user_id = session["id"]
+    user_id = current_user.id
     project_id = request.args.get("project_id", type=int)
 
     query = TaskAssignment.query.filter_by(user_id=user_id).join(AnnotationTask)
@@ -260,7 +260,7 @@ def annotation_task(assignment_id):
     assignment = db.get_or_404(TaskAssignment, assignment_id)
 
     # Verify this assignment belongs to the current user
-    if assignment.user_id != session["id"]:
+    if assignment.user_id != current_user.id:
         abort(403)
 
     task = assignment.task
@@ -279,11 +279,11 @@ def annotation_task(assignment_id):
             _save_answer(assignment, answer_text)
             db.session.commit()
             flash("Answer submitted successfully!", "success")
-            return _next_item(session["id"], project.id)
+            return _next_item(current_user.id, project.id)
         else:
             flash("Please provide an answer!", "error")
 
-    done, total = _my_progress(session["id"], project.id)
+    done, total = _my_progress(current_user.id, project.id)
     return render_template("user/annotation_task.html",
                          assignment=assignment,
                          task=task,
@@ -299,7 +299,7 @@ def annotation_task(assignment_id):
 @user_required
 def annotate_image(image_id, project_id, batch_index=0):
     """Per-item projects: answer an item's questions on one page, a few at a time."""
-    user_id = session["id"]
+    user_id = current_user.id
     image = db.get_or_404(ProjectImage, image_id)
     project = db.get_or_404(Project, project_id)
     batch_size = project.questions_per_image if project.questions_per_image > 0 else 5

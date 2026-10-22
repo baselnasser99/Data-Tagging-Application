@@ -78,11 +78,6 @@ def login():
         session.clear()
         login_user(user)
         session.permanent = True  # enables the idle timeout
-        # Kept for templates that display the signed-in user's details.
-        session["id"] = user.id
-        session["role"] = user.role
-        session["name"] = user.full_name
-        session["email"] = user.email
         audit.info("LOGIN_OK user_id=%s email=%s ip=%s", user.id, user.email, request.remote_addr)
 
         return redirect(_safe_next(request.args.get("next"), user) or _home_for(user))

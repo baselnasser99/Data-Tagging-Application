@@ -136,6 +136,82 @@ def test_session_cookie_is_http_only_and_same_site(client, admin_user):
     assert "Expires=" in cookie  # permanent session -> idle timeout applies
 
 
+def _settings(config):
+    app = create_app(config)
+    with app.app_context():
+        _close_database()
+    return app.config
+
+
+@pytest.mark.parametrize("debug, secure", [(False, True), (True, False)])
+def test_cookies_are_secure_unless_on_the_debug_server(debug, secure):
+    # Cookies sent over plain http can be read by anyone on the network.
+    class Config(TestingConfig):
+        SESSION_COOKIE_SECURE = None  # SESSION_COOKIE_SECURE not set in the environment
+        DEBUG = debug
+
+    settings = _settings(Config)
+    assert settings["SESSION_COOKIE_SECURE"] is secure
+    assert settings["REMEMBER_COOKIE_SECURE"] is secure
+
+
+def test_secure_cookie_flag_can_still_be_switched_off():
+    class Config(TestingConfig):
+        SESSION_COOKIE_SECURE = False
+
+    assert _settings(Config)["SESSION_COOKIE_SECURE"] is False
+
+
+def test_login_cookie_is_marked_secure():
+    class Config(TestingConfig):
+        SESSION_COOKIE_SECURE = None
+
+    app = create_app(Config)
+    with app.app_context():
+        try:
+            admin = User(full_name="A", email="secure@example.com", role="admin")
+            admin.set_password("password123")
+            _db.session.add(admin)
+            _db.session.commit()
+            resp = app.test_client().post("/login", data={"email": "secure@example.com", "password": "password123"})
+            assert "; Secure" in resp.headers.get("Set-Cookie", "")
+        finally:
+            _close_database()
+
+
+def _audited_ip(app, caplog, **environ):
+    caplog.set_level("INFO", logger="audit")
+    with app.app_context():
+        try:
+            app.test_client().post("/login", data={"email": "nobody@example.com", "password": "x"}, **environ)
+        finally:
+            _close_database()
+    return [r.getMessage() for r in caplog.records if "LOGIN_FAILED" in r.getMessage()][0]
+
+
+def test_trusted_proxy_gives_the_visitors_address(caplog):
+    class Config(TestingConfig):
+        TRUSTED_PROXIES = 1
+
+    line = _audited_ip(create_app(Config), caplog, headers={"X-Forwarded-For": "203.0.113.9"},
+                       environ_base={"REMOTE_ADDR": "172.18.0.1"})
+    assert "ip=203.0.113.9" in line
+
+
+def test_forwarded_headers_are_ignored_without_a_trusted_proxy(caplog):
+    line = _audited_ip(create_app(TestingConfig), caplog, headers={"X-Forwarded-For": "203.0.113.9"},
+                       environ_base={"REMOTE_ADDR": "198.51.100.7"})
+    assert "ip=198.51.100.7" in line  # a visitor can't pick the address the audit log records
+
+
+def test_docker_compose_publishes_the_app_on_localhost_only():
+    # Browsers should reach Gunicorn only through an HTTPS reverse proxy on the same machine.
+    with open("docker-compose.yml", encoding="utf-8") as f:
+        compose = f.read()
+    assert '"127.0.0.1:5000:5000"' in compose
+    assert '"5000:5000"' not in compose
+
+
 @pytest.mark.parametrize("path", ["/admin/delete-project/1", "/admin/delete-group/1"])
 def test_destructive_actions_do_not_accept_get(admin_client, path):
     assert admin_client.get(path).status_code == 405

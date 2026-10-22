@@ -33,9 +33,9 @@ class Config:
     # Session cookie hardening (thesis section 6.5.1)
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
-    SESSION_COOKIE_SECURE = _bool("SESSION_COOKIE_SECURE", False)  # True behind HTTPS
+    # None (not set) means HTTPS only, except on the debug server (create_app decides).
+    SESSION_COOKIE_SECURE = _bool("SESSION_COOKIE_SECURE") if os.environ.get("SESSION_COOKIE_SECURE") else None
     REMEMBER_COOKIE_HTTPONLY = True
-    REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
     # Idle timeout: the session expires after this many minutes without a request.
     PERMANENT_SESSION_LIFETIME = timedelta(
         minutes=int(os.environ.get("SESSION_IDLE_MINUTES", "60"))
@@ -53,6 +53,10 @@ class Config:
     ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
     ADMIN_NAME = os.environ.get("ADMIN_NAME", "Administrator")
+
+    # Reverse proxies in front of the app whose X-Forwarded-For/-Proto headers are believed.
+    # 0 when browsers connect directly: anyone could send those headers.
+    TRUSTED_PROXIES = int(os.environ.get("TRUSTED_PROXIES", "0"))
 
     LOG_DIR = os.environ.get("LOG_DIR", "logs")
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")

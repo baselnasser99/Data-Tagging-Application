@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timedelta
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session
+from flask_login import current_user
 
 from . import distribution
 from .auth import MIN_PASSWORD_LENGTH
@@ -12,7 +13,7 @@ from .feedback import flash_distribution
 from .groups import distribute_questions_to_group
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
                      QuestionAnswer, TaskAssignment, User, UserQuestionAssignment)
-from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
+from .permissions import admin_required, project_admin_access_required, project_admin_required
 from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
 from .uploads import save_attachment
 
@@ -144,11 +145,6 @@ def manager_candidates():
 @project_admin_required
 def add_project_admin(project_id):
     project = db.get_or_404(Project, project_id)
-    current_user = db.session.get(User, session['id'])
-    # Only system admins or this project's managers can add a manager
-    if not (current_user.role == 'admin' or is_project_admin(project_id)):
-        flash('You do not have permission to add project managers.', 'danger')
-        return redirect(url_for('manager.project_admins', project_id=project_id))
     flash(*add_manager(project, _chosen_user(request.form)))
     return redirect(url_for('manager.project_admins', project_id=project_id))
 
@@ -176,9 +172,7 @@ def add_manager_anywhere():
 @project_admin_required
 def remove_project_admin(project_id, admin_id):
     project_admin = db.get_or_404(ProjectAdmin, admin_id)
-    current_user_id = session['id']
-    current_user = db.session.get(User, current_user_id)
-    
+
     # Ensure the project admin being removed is for the current project
     if project_admin.project_id != project_id:
         flash('Invalid project admin.', 'danger')
@@ -189,33 +183,26 @@ def remove_project_admin(project_id, admin_id):
     # Project admins can only remove project admins they assigned or other project admins (but not themselves)
     if current_user.role != 'admin':
         # Project admins can't remove themselves
-        if project_admin.user_id == current_user_id:
+        if project_admin.user_id == current_user.id:
             flash('You cannot remove yourself as a project admin.', 'danger')
             return redirect(url_for('manager.project_admins', project_id=project_id))
-        
+
         # Project admins can only remove project admins they assigned or other project admins
         # (System admins can remove any project admin)
-        if project_admin.assigned_by != current_user_id:
-            # Check if the user being removed was assigned by a system admin
-            assigner = db.session.get(User, project_admin.assigned_by)
-            if assigner and assigner.role == 'admin':
-                flash('You cannot remove a project admin assigned by a system admin.', 'danger')
-                return redirect(url_for('manager.project_admins', project_id=project_id))
-    
-    # Get the user whose project admin role is being removed
-    user = db.session.get(User, project_admin.user_id)
-    
-    # Remove the specific project admin assignment
+        assigner = project_admin.assigner  # None if that account was deleted since
+        if project_admin.assigned_by != current_user.id and assigner and assigner.role == 'admin':
+            flash('You cannot remove a project admin assigned by a system admin.', 'danger')
+            return redirect(url_for('manager.project_admins', project_id=project_id))
+
+    user = project_admin.user  # whose project admin role is being removed
     db.session.delete(project_admin)
     db.session.commit()
 
-    # Check if the user is still a project admin for any other project
-    remaining_project_roles = ProjectAdmin.query.filter_by(user_id=user.id).first()
-    if user and not remaining_project_roles and user.role == 'project-admin':
-        # If no other project roles, change role back to end-user
+    # With no other project roles, a manager goes back to being a member
+    if user.role == 'project-admin' and not ProjectAdmin.query.filter_by(user_id=user.id).first():
         user.role = 'end-user'
         db.session.commit()
-    
+
     flash('Project admin removed successfully.', 'success')
     return redirect(url_for('manager.project_admins', project_id=project_id))
 
@@ -224,16 +211,7 @@ def remove_project_admin(project_id, admin_id):
 def create_project_admin(project_id):
     """Create a new user and assign them as a project admin"""
     project = db.get_or_404(Project, project_id)
-    
-    # Verify the current user is either a system admin or a project admin for this project
-    current_user_id = session['id']
-    current_user = db.session.get(User, current_user_id)
-    
-    # Only system admins or project admins for this project can add other project admins
-    if not (current_user.role == 'admin' or is_project_admin(project_id)):
-        flash('You do not have permission to add project admins.', 'danger')
-        return redirect(url_for('manager.project_admins', project_id=project_id))
-    
+
     if request.method == 'POST':
         fullname = (request.form.get('fullname') or '').strip()
         email = (request.form.get('email') or '').strip()
@@ -258,8 +236,8 @@ def create_project_admin(project_id):
 
         # Create new user and assign as project admin
         new_user = User()
-        new_user.register_project_admin(fullname, email, password, project_id, current_user_id)
-        audit.info("USER_CREATED user_id=%s role=%s by=%s", new_user.id, new_user.role, current_user_id)
+        new_user.register_project_admin(fullname, email, password, project_id, current_user.id)
+        audit.info("USER_CREATED user_id=%s role=%s by=%s", new_user.id, new_user.role, current_user.id)
 
         flash('New project admin created successfully.', 'success')
         return redirect(url_for('manager.project_admins', project_id=project_id))

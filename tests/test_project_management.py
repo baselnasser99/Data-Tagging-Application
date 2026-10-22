@@ -331,3 +331,23 @@ def test_question_files_must_be_pictures_audio_or_video(admin_client, survey):
         "question-1-file": (io.BytesIO(b"<svg onload=alert(1)>"), "x.svg")})
     assert b"was not attached" in resp.data
     assert Project.query.filter_by(name="Svg test").one().questions[0].file_path is None
+
+
+def test_manager_may_remove_only_managers_not_placed_by_a_system_admin(app, db, survey, make_user, admin_user,
+                                                                      make_project_admin):
+    me = make_project_admin(survey)
+    by_admin, by_me, by_deleted = make_user(role="project-admin"), make_user(role="project-admin"), make_user(role="project-admin")
+    rows = {who: ProjectAdmin(user_id=who.id, project_id=survey.id, assigned_by=assigner)
+            for who, assigner in ((by_admin, admin_user.id), (by_me, me.id), (by_deleted, 9999))}
+    db.session.add_all(rows.values())
+    db.session.commit()
+    client = app.test_client()
+    login(client, me.email)
+
+    resp = client.post(f"/admin/project/{survey.id}/admins/{rows[by_admin].id}/remove", follow_redirects=True)
+    assert b"assigned by a system admin" in resp.data
+    for who in (by_me, by_deleted):  # placed by me, or by an account that no longer exists
+        client.post(f"/admin/project/{survey.id}/admins/{rows[who].id}/remove")
+        assert not ProjectAdmin.query.filter_by(user_id=who.id).first()
+        assert who.role == "end-user"
+    assert ProjectAdmin.query.filter_by(user_id=by_admin.id).first()

@@ -150,7 +150,7 @@ def upload_images(project_id):
                 try:
                     with zipfile.ZipFile(upload, 'r') as zip_ref:
                         # A small ZIP can unpack to gigabytes ("ZIP bomb"); zipfile never reads past file_size.
-                        limit = current_app.config.get('MAX_CONTENT_LENGTH')
+                        limit = current_app.config.get('MAX_UPLOAD_LENGTH')
                         if limit and sum(i.file_size for i in zip_ref.infolist()) > 2 * limit:
                             flash(f"{upload.filename} unpacks to more than {2 * limit // (1024 * 1024)} MB, so it was skipped.", "error")
                             continue

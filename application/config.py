@@ -46,8 +46,10 @@ class Config:
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None  # token valid for the whole session
 
-    # Uploads
-    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_UPLOAD_MB", "512")) * 1024 * 1024
+    # Request size. Every request, signing in included, may send at most MAX_REQUEST_MB; only
+    # the upload pages, for admins and managers, accept up to MAX_UPLOAD_MB (see create_app).
+    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_REQUEST_MB", "2")) * 1024 * 1024
+    MAX_UPLOAD_LENGTH = int(os.environ.get("MAX_UPLOAD_MB", "512")) * 1024 * 1024
 
     # Optional first administrator, created on startup if no admin exists yet.
     ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")

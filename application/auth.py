@@ -91,6 +91,8 @@ def login():
 def logout():
     if current_user.is_authenticated:
         audit.info("LOGOUT user_id=%s", current_user.id)
+        current_user.end_all_sessions()  # a copied cookie stops working too (on every device)
+        db.session.commit()
         logout_user()
         session.clear()
         flash("Logged out!", "warning")

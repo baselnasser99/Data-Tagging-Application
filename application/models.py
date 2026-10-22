@@ -17,6 +17,8 @@ class User(UserMixin, db.Model):
     # Kept in the database (not in memory) so the limit holds across Gunicorn workers and restarts.
     failed_logins = Column(Integer, nullable=False, default=0, server_default="0")
     locked_until = Column(db.DateTime, nullable=True)  # UTC; no sign-in before this time
+    # Part of the id in the session cookie: raising it ends every session, copies included.
+    session_version = Column(Integer, nullable=False, default=0, server_default="0")
 
     question_answers = db.relationship(
         "QuestionAnswer", backref="user", lazy=True)
@@ -39,8 +41,16 @@ class User(UserMixin, db.Model):
     def is_active(self):  # Flask-Login: removed people cannot sign in
         return self.active
 
+    def get_id(self):  # Flask-Login keeps this in the session cookie; see load_user
+        return f"{self.id}:{self.session_version or 0}"
+
+    def end_all_sessions(self):
+        """Every session cookie issued so far stops working, wherever it is."""
+        self.session_version = (self.session_version or 0) + 1
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+        self.end_all_sessions()  # whoever knew the old password is signed out
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)

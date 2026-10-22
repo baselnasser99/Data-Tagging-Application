@@ -111,6 +111,36 @@ def test_admin_group_page_reports_unknown_people(admin_client, team):
                                                            follow_redirects=True).data
 
 
+# ---- only active members can join a group ----
+
+@pytest.fixture
+def not_members(db, make_user, admin_user):
+    """Accounts that the add-member list never offers: an admin, a manager and a removed member."""
+    removed = make_user(name="Gone G")
+    removed.active = False
+    db.session.commit()
+    return [admin_user, make_user(role="project-admin"), removed]
+
+
+def test_manager_cannot_add_admins_managers_or_removed_people_to_their_group(
+        app, db, admin_client, make_project_admin, team, photo_project, not_members):
+    group, _ = team
+    admin_client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": photo_project.id})
+    client = _manager_client(app, make_project_admin, photo_project)
+    url = f"/admin/project/{photo_project.id}/manage-group/{group.id}"
+    for account in not_members:
+        resp = client.post(url, data={"action": "add_user", "user_id": account.id}, follow_redirects=True)
+        assert b"Only active members can join a group" in resp.data
+    assert UserGroupMembership.query.filter_by(group_id=group.id).count() == 2
+
+
+def test_admin_cannot_add_admins_managers_or_removed_people_to_a_group(admin_client, team, not_members):
+    group, _ = team
+    for account in not_members:
+        admin_client.post(f"/admin/manage-group/{group.id}", data={"action": "add_user", "user_id": account.id})
+    assert UserGroupMembership.query.filter_by(group_id=group.id).count() == 2
+
+
 # ---- survey projects ----
 
 def test_survey_questions_follow_members_in_and_out(admin_client, db, make_user, team, survey):

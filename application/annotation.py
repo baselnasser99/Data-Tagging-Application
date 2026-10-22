@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, abort
-from flask_login import current_user
+from flask_login import current_user, login_user
 
 from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
@@ -113,7 +113,7 @@ def change_password():
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
-        user = current_user
+        user = current_user._get_current_object()  # the User itself: login_user below can't take the proxy
 
         # Verify current password
         if not user.check_password(current_password):
@@ -129,8 +129,9 @@ def change_password():
             flash(f'Password must be at least {MIN_PASSWORD_LENGTH} characters long', 'danger')
             return redirect(url_for('annotation.change_password'))
 
-        user.set_password(new_password)
+        user.set_password(new_password)  # ends every session, this one included
         db.session.commit()
+        login_user(user)  # so sign this browser back in
         logging.getLogger("audit").info("PASSWORD_CHANGED user_id=%s", user.id)
         flash('Password changed successfully', 'success')
         return redirect(url_for('annotation.profile'))

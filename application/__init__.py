@@ -101,8 +101,15 @@ def create_app(config_object=None):
 
 @login_manager.user_loader
 def load_user(user_id):
-    user = db.session.get(User, int(user_id))
-    return user if user and user.active else None  # a removed person is signed out at once
+    # "<id>:<session version>" (User.get_id). Cookies holding an older version, or the
+    # bare id stored before versions existed, no longer sign anyone in.
+    uid, _, version = user_id.partition(":")
+    if not uid.isdigit() or not version.isdigit():
+        return None
+    user = db.session.get(User, int(uid))
+    if not user or not user.active or user.session_version != int(version):
+        return None  # a removed person is signed out at once
+    return user
 
 
 # Columns added after the first release. ``db.create_all()`` creates missing
@@ -115,6 +122,7 @@ _ADDED_COLUMNS = [
     ("user", "active", "BOOLEAN NOT NULL DEFAULT 1"),
     ("user", "failed_logins", "INTEGER NOT NULL DEFAULT 0"),
     ("user", "locked_until", "DATETIME NULL"),
+    ("user", "session_version", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 

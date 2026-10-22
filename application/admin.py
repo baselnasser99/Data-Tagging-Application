@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import datetime
 
 from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, send_file, url_for
-from flask_login import current_user
+from flask_login import current_user, login_user
 from sqlalchemy import delete, func
 
 from . import distribution
@@ -667,8 +667,9 @@ def admin_profile():
                 flash(f'Password must be at least {MIN_PASSWORD_LENGTH} characters long', 'danger')
                 return redirect(url_for('admin.admin_profile'))
 
-            admin_user.set_password(new_password)
+            admin_user.set_password(new_password)  # ends every session, this one included
             db.session.commit()
+            login_user(admin_user)  # so sign this browser back in
             audit.info("PASSWORD_CHANGED user_id=%s", admin_user.id)
             flash('Password updated successfully', 'success')
 

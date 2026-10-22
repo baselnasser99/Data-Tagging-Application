@@ -1,4 +1,5 @@
 import re
+import secrets
 
 import pytest
 
@@ -85,6 +86,46 @@ def test_initial_admin_comes_from_configuration(tmp_path):
             assert admin.check_password("a-long-password")
         finally:
             _close_database()
+
+
+class _Production(TestingConfig):
+    TESTING = False  # the SECRET_KEY check is skipped in tests, which use a short fixed key
+
+
+@pytest.mark.parametrize("key", ["change-me", "CHANGE-ME", "short-but-not-a-placeholder"])
+def test_placeholder_or_short_secret_key_stops_start_up(key):
+    # Anyone who knows the key can sign a session cookie for any account.
+    class Config(_Production):
+        SECRET_KEY = key
+
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        create_app(Config)
+
+
+def test_long_random_secret_key_is_accepted():
+    class Config(_Production):
+        SECRET_KEY = secrets.token_hex(32)
+
+    app = create_app(Config)
+    with app.app_context():
+        _close_database()
+
+
+@pytest.mark.parametrize("password", ["choose-a-strong-password", "short"])
+def test_placeholder_or_short_admin_password_stops_start_up(password):
+    class Config(TestingConfig):
+        ADMIN_EMAIL = "owner@example.com"
+        ADMIN_PASSWORD = password
+
+    with pytest.raises(RuntimeError, match="ADMIN_PASSWORD"):
+        create_app(Config)
+
+
+def test_env_example_ships_no_secrets():
+    with open(".env.example", encoding="utf-8") as f:
+        values = dict(line.strip().split("=", 1) for line in f if "=" in line and not line.startswith("#"))
+    for name in ("SECRET_KEY", "ADMIN_PASSWORD", "MYSQL_PASSWORD", "MYSQL_ROOT_PASSWORD"):
+        assert values[name] == "", f"{name} must be left for the operator to fill in"
 
 
 def test_session_cookie_is_http_only_and_same_site(client, admin_user):

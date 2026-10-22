@@ -24,6 +24,7 @@ from .models import User  # noqa: E402
 def create_app(config_object=None):
     app = Flask(__name__)
     app.config.from_object(config_object or Config)
+    _refuse_known_secrets(app)
 
     _configure_logging(app)
 
@@ -97,6 +98,33 @@ def create_app(config_object=None):
         )
 
     return app
+
+
+# Example values from .env.example and its older versions: anyone can read them.
+_PLACEHOLDERS = {"change-me", "change-me-too", "changeme", "secret", "choose-a-strong-password", "password"}
+MIN_SECRET_KEY_LENGTH = 32
+
+
+def _refuse_known_secrets(app):
+    """Stop at start-up instead of running with a key or password others know.
+
+    With a known SECRET_KEY anyone can sign a session cookie for any account.
+    Tests use a short fixed key, so the key is checked only outside testing.
+    """
+    from .auth import MIN_PASSWORD_LENGTH
+
+    key = app.config.get("SECRET_KEY") or ""
+    if not app.testing and not app.config.get("SECRET_KEY_IS_GENERATED") and (
+            key.lower() in _PLACEHOLDERS or len(key) < MIN_SECRET_KEY_LENGTH):
+        raise RuntimeError(
+            f"SECRET_KEY is an example value or shorter than {MIN_SECRET_KEY_LENGTH} characters. "
+            'Generate one with: python -c "import secrets; print(secrets.token_hex(32))"')
+
+    password = app.config.get("ADMIN_PASSWORD")
+    if password and (password.lower() in _PLACEHOLDERS or len(password) < MIN_PASSWORD_LENGTH):
+        raise RuntimeError(
+            f"ADMIN_PASSWORD is an example value or shorter than {MIN_PASSWORD_LENGTH} characters. "
+            "Choose another one, or leave it empty once the first administrator exists.")
 
 
 @login_manager.user_loader

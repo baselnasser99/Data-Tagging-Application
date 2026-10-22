@@ -22,8 +22,9 @@ class Config:
 
     # A random key is generated when SECRET_KEY is not set. That is safe, but
     # every restart logs everyone out, so production must set SECRET_KEY.
+    # Example values and keys under 32 characters are refused (see create_app).
     SECRET_KEY = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
-    SECRET_KEY_IS_GENERATED = "SECRET_KEY" not in os.environ
+    SECRET_KEY_IS_GENERATED = not os.environ.get("SECRET_KEY")  # unset or empty
 
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///database.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False

@@ -55,14 +55,16 @@ def login():
         password = request.form.get("password") or ""
         user = User.query.filter_by(email=email).first()
         now = datetime.now(timezone.utc).replace(tzinfo=None)
+        # Only a real account is named: what was typed may be a password typed in the wrong box.
+        who = f"user_id={user.id} email={user.email}" if user else "account=unknown"
 
         if user and user.locked_until and user.locked_until > now:  # checked first: a right guess is refused too
-            audit.info("LOGIN_LOCKED email=%s ip=%s", email, request.remote_addr)
+            audit.info("LOGIN_LOCKED %s ip=%s", who, request.remote_addr)
             flash(f"Too many wrong passwords. Try again in {LOCK_MINUTES} minutes.", "danger")
             return redirect(url_for("auth.login"))
 
         if not user or not user.active or not user.check_password(password):
-            audit.info("LOGIN_FAILED email=%s ip=%s", email, request.remote_addr)
+            audit.info("LOGIN_FAILED %s ip=%s", who, request.remote_addr)
             if user:
                 user.failed_logins = (user.failed_logins or 0) + 1
                 if user.failed_logins >= MAX_FAILED_LOGINS:

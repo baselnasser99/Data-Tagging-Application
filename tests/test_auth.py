@@ -183,3 +183,41 @@ def test_cookies_from_before_session_versions_are_refused(app, end_user):
         sess["_user_id"] = str(end_user.id)
         sess["_fresh"] = True
     assert old.get("/user/dashboard").status_code == 302
+
+
+# ---- the audit log keeps one line per event -------------------------------
+
+def _audit_lines(caplog):
+    return [r.getMessage() for r in caplog.records if r.name == "audit"]
+
+
+def test_a_line_break_in_the_email_cannot_add_a_fake_audit_line(caplog, client, end_user):
+    caplog.set_level("INFO", logger="audit")
+    forged = "\n2026-10-22 09:00:00 LOGIN_OK user_id=1 email=admin@example.com ip=10.0.0.1"
+    login(client, end_user.email + forged, password="wrong")
+    login(client, "nobody@example.com" + forged, password="wrong")
+    assert _audit_lines(caplog) and all("\n" not in line and "\r" not in line for line in _audit_lines(caplog))
+
+
+def test_every_audit_message_stays_on_one_line(app, caplog):
+    # Whatever value is logged later, a line break in it is written as \r\n, not as a new line.
+    import logging
+
+    caplog.set_level("INFO", logger="audit")
+    logging.getLogger("audit").info("EVENT value=%s", "a\r\n2026-10-22 09:00:00 LOGIN_OK user_id=1")
+    assert _audit_lines(caplog) == ["EVENT value=a\\r\\n2026-10-22 09:00:00 LOGIN_OK user_id=1"]
+
+
+def test_text_typed_as_an_unknown_email_is_not_logged(caplog, client):
+    # People sometimes type their password into the email box.
+    caplog.set_level("INFO", logger="audit")
+    login(client, "MyS3cretPassw0rd", password="whatever")
+    lines = _audit_lines(caplog)
+    assert any("LOGIN_FAILED" in line for line in lines)
+    assert not any("MyS3cretPassw0rd" in line for line in lines)
+
+
+def test_failed_sign_in_to_a_real_account_names_the_account(caplog, client, end_user):
+    caplog.set_level("INFO", logger="audit")
+    login(client, end_user.email, password="wrong")
+    assert any(f"user_id={end_user.id}" in line and end_user.email in line for line in _audit_lines(caplog))

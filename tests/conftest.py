@@ -28,12 +28,14 @@ def app(tmp_path):
     # The tests keep one app context open so they can query the database
     # between requests. Flask reuses that context (and its ``g``) for every
     # request, so Flask-Login's per-request user cache must be cleared to keep
-    # several logged-in test clients independent.
-    @app.before_request
+    # several logged-in test clients independent. It runs first, before the
+    # app's own before_request hooks, since some of them read current_user.
     def _reset_login_cache():
         from flask import g
 
         g.pop("_login_user", None)
+
+    app.before_request_funcs.setdefault(None, []).insert(0, _reset_login_cache)
 
     with app.app_context():
         yield app

@@ -3,8 +3,8 @@ import os
 from logging.handlers import RotatingFileHandler
 
 import pymysql
-from flask import Flask, abort, render_template, request, send_from_directory
-from flask_login import login_required
+from flask import Flask, abort, flash, redirect, render_template, request, send_from_directory, url_for
+from flask_login import current_user, login_required
 from flask_wtf.csrf import CSRFError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -64,6 +64,17 @@ def create_app(config_object=None):
         # Uploads live under static/ but are served only to signed-in people, below.
         if request.endpoint == "static" and (request.view_args or {}).get("filename", "").startswith("uploads/"):
             abort(404)
+
+    @app.before_request
+    def _replace_temporary_password():
+        # An admin saw the temporary password, so its owner chooses their own before anything else.
+        if not (current_user.is_authenticated and current_user.must_change_password):
+            return None
+        page = "annotation.change_password" if current_user.role == "end-user" else "admin.admin_profile"
+        if request.endpoint in (page, "auth.logout", "static"):
+            return None
+        flash("Choose a new password to continue: you signed in with a temporary one.", "warning")
+        return redirect(url_for(page))
 
     @app.route("/files/<path:name>")
     @login_required
@@ -153,6 +164,7 @@ _ADDED_COLUMNS = [
     ("user", "failed_logins", "INTEGER NOT NULL DEFAULT 0"),
     ("user", "locked_until", "DATETIME NULL"),
     ("user", "session_version", "INTEGER NOT NULL DEFAULT 0"),
+    ("user", "must_change_password", "BOOLEAN NOT NULL DEFAULT 0"),
 ]
 
 
@@ -263,8 +275,6 @@ def _configure_logging(app):
 
 
 def _register_error_handlers(app):
-    from flask_login import current_user
-
     audit = logging.getLogger("audit")
 
     def _who():

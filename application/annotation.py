@@ -130,6 +130,7 @@ def change_password():
             return redirect(url_for('annotation.change_password'))
 
         user.set_password(new_password)  # ends every session, this one included
+        user.must_change_password = False
         db.session.commit()
         login_user(user)  # so sign this browser back in
         logging.getLogger("audit").info("PASSWORD_CHANGED user_id=%s", user.id)

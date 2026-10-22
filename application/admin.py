@@ -180,6 +180,17 @@ def restore_user(user_id):
     flash(f'{user.full_name} can sign in again. Add them to a group to give them work.', 'success')
     return redirect(url_for('admin.users'))
 
+def _show_passwords_or(redirect_response, passwords):
+    """Show new temporary passwords [(email, password)] on a page of their own, then go on.
+
+    Never in a flash message: those travel in the session cookie, which is signed but readable.
+    """
+    if not passwords:
+        return redirect_response
+    return render_template('admin/temporary_passwords.html', passwords=passwords,
+                           next_url=redirect_response.location)
+
+
 @admin.route("/create-user", methods=['GET', 'POST'])
 @admin_required
 def create_user():
@@ -206,17 +217,16 @@ def create_user():
         as_manager = request.form.get('role') == 'manager'
         user = User()
         user.register_end_user(full_name, email, password)
+        user.must_change_password = temporary
         if as_manager:
             user.role = 'project-admin'  # no project yet; one can be given on the Managers page
         db.session.commit()
         audit.info("USER_CREATED user_id=%s role=%s by=%s", user.id, user.role, current_user.id)
-        if temporary:
-            flash(f'{email} was given the temporary password {password}. '
-                  'Share it with them and ask them to change it after signing in.', 'warning')
+        passwords = [(email, password)] if temporary else []
 
         if as_manager:
             flash(f'{full_name} was created as a manager. Give them a project on the Managers page.', 'success')
-            return redirect(url_for('manager.managers'))
+            return _show_passwords_or(redirect(url_for('manager.managers')), passwords)
 
         group = db.session.get(UserGroup, request.form.get('group_id', type=int) or 0)
         if group:
@@ -228,7 +238,7 @@ def create_user():
                 warn_idle_members(project, [user])
         else:
             flash(f'{full_name} was created.', 'success')
-        return redirect(url_for('admin.users'))
+        return _show_passwords_or(redirect(url_for('admin.users')), passwords)
 
     return render_template('admin/create_user.html', groups=groups, projects=Project.query.all(),
                            form={'role': request.args.get('role', 'annotator')}, tab=request.args.get('tab'))
@@ -259,7 +269,7 @@ def import_users():
         flash('CSV must contain "full_name", "email", and "password" columns.', 'danger')
         return back
 
-    users, created, duplicates, invalid, messages = _create_users_from_rows(header, rows[1:])
+    users, created, duplicates, invalid, messages, passwords = _create_users_from_rows(header, rows[1:])
     audit.info("USERS_IMPORTED created=%s by=%s", created, current_user.id)
     if request.form.get('user_group_id'):
         _add_imported_to_group(users, request.form['user_group_id'])
@@ -271,16 +281,17 @@ def import_users():
           f"{plural(invalid, 'invalid row')} skipped.", 'info')
     for message in messages:
         flash(message, 'warning')
-    return redirect(url_for('admin.users'))
+    return _show_passwords_or(redirect(url_for('admin.users')), passwords)
 
 
 def _create_users_from_rows(header, rows):
-    """Create a member per row. Returns (people to place, created, duplicates, invalid, messages).
+    """Create a member per row.
 
+    Returns (people to place, created, duplicates, invalid, messages, temporary passwords).
     People who already exist are not created again but are still placed in the group/project.
     """
     name_col, email_col, password_col = (header.index(c) for c in ('full_name', 'email', 'password'))
-    users, messages = [], []
+    users, messages, passwords = [], [], []
     created = duplicates = invalid = 0
     for line, row in enumerate(rows, start=2):  # line 1 is the header
         try:
@@ -306,20 +317,21 @@ def _create_users_from_rows(header, rows):
 
             # Missing or too-short passwords are replaced with a random one.
             # The admin must see it, otherwise the user could never sign in.
-            if not password or len(password) < MIN_PASSWORD_LENGTH:
+            temporary = not password or len(password) < MIN_PASSWORD_LENGTH
+            if temporary:
                 reason = "had no password" if not password else f"had a password shorter than {MIN_PASSWORD_LENGTH} characters"
                 password = secrets.token_urlsafe(8)
-                messages.append(
-                    f"Row {line}: {email} {reason}, so a temporary password was created: {password} "
-                    "Share it with them and ask them to change it after signing in."
-                )
+                messages.append(f"Row {line}: {email} {reason}, so a temporary password was created (shown on this page).")
 
             user = User()
             user.register_end_user(full_name, email, password)
+            user.must_change_password = temporary
             db.session.add(user)
             db.session.flush()  # gives the user an id for the group/project step
             created += 1
             users.append(user)
+            if temporary:
+                passwords.append((email, password))
         except IndexError:
             invalid += 1
             messages.append(f"Row {line}: Malformed row. Skipped.")
@@ -329,7 +341,7 @@ def _create_users_from_rows(header, rows):
             invalid += 1
             messages.append(f"Row {line}: could not be added (the error was logged). Skipped.")
     db.session.commit()
-    return users, created, duplicates, invalid, messages
+    return users, created, duplicates, invalid, messages, passwords
 
 
 def _add_imported_to_group(users, group_id):
@@ -668,6 +680,7 @@ def admin_profile():
                 return redirect(url_for('admin.admin_profile'))
 
             admin_user.set_password(new_password)  # ends every session, this one included
+            admin_user.must_change_password = False
             db.session.commit()
             login_user(admin_user)  # so sign this browser back in
             audit.info("PASSWORD_CHANGED user_id=%s", admin_user.id)

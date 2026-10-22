@@ -19,6 +19,8 @@ class User(UserMixin, db.Model):
     locked_until = Column(db.DateTime, nullable=True)  # UTC; no sign-in before this time
     # Part of the id in the session cookie: raising it ends every session, copies included.
     session_version = Column(Integer, nullable=False, default=0, server_default="0")
+    # True while they still sign in with a temporary password an admin was shown.
+    must_change_password = Column(db.Boolean, nullable=False, default=False, server_default=db.false())
 
     question_answers = db.relationship(
         "QuestionAnswer", backref="user", lazy=True)

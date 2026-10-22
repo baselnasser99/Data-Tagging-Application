@@ -42,6 +42,56 @@ def test_create_user_without_password_shows_a_temporary_one(admin_client):
     assert b"temporary password" in resp.data
 
 
+def _shown_password(resp):
+    import re
+
+    return re.search(rb'<code class="temporary-password">([^<]+)</code>', resp.data).group(1).decode()
+
+
+def _cookie_text(client):
+    """What anyone holding the session cookie can read: it is signed, not encrypted."""
+    with client.session_transaction() as sess:
+        return repr(dict(sess))
+
+
+def test_temporary_password_is_shown_on_the_page_not_kept_in_the_cookie(admin_client):
+    resp = admin_client.post("/admin/create-user", data={"full_name": "Cai", "email": "cai@example.com"})
+    password = _shown_password(resp)
+    assert User.query.filter_by(email="cai@example.com").one().check_password(password)
+    assert password not in _cookie_text(admin_client)
+    assert password.encode() not in b"".join(v.encode() for v in resp.headers.getlist("Set-Cookie"))
+
+
+def test_csv_temporary_passwords_are_not_kept_in_the_cookie(admin_client):
+    data = {"csv_file": (io.BytesIO(b"full_name,email,password\nNo,no@example.com,\n"), "users.csv")}
+    resp = admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data")
+    password = _shown_password(resp)
+    assert User.query.filter_by(email="no@example.com").one().check_password(password)
+    assert password not in _cookie_text(admin_client)
+
+
+def test_temporary_password_must_be_replaced_at_first_sign_in(app, admin_client):
+    password = _shown_password(admin_client.post("/admin/create-user", data={"full_name": "Cai", "email": "cai@example.com"}))
+    member = app.test_client()
+    resp = login(member, "cai@example.com", password, follow=True)
+    assert b"Choose a new password" in resp.data
+    assert member.get("/user/dashboard").headers["Location"].endswith("/user/change-password")
+    member.post("/user/change-password", data={
+        "current_password": password, "new_password": "my-own-password", "confirm_password": "my-own-password"})
+    assert member.get("/user/dashboard").status_code == 200
+
+
+def test_manager_with_temporary_password_replaces_it_on_their_profile(app, admin_client):
+    resp = admin_client.post("/admin/create-user", data={"full_name": "Mo", "email": "mo@example.com", "role": "manager"})
+    password = _shown_password(resp)
+    manager = app.test_client()
+    login(manager, "mo@example.com", password)
+    assert manager.get("/admin/my-projects").headers["Location"].endswith("/admin/profile")
+    manager.post("/admin/profile", data={"action": "update_password", "current_password": password,
+                                         "new_password": "my-own-password", "confirm_password": "my-own-password"})
+    assert manager.get("/admin/my-projects").status_code == 200
+
+
 def test_new_user_who_gets_nothing_is_reported(db, admin_client, make_user):
     """1 photo x 1 question, answered by 1 person: whoever joins later has nothing to do."""
     group = UserGroup(name="Team")

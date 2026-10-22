@@ -8,7 +8,7 @@ import uuid
 import zipfile
 from collections import Counter
 
-from flask import Blueprint, current_app, request, redirect, url_for, flash, render_template, session, abort, send_file
+from flask import Blueprint, current_app, request, redirect, url_for, flash, render_template, abort, send_file
 from flask_login import current_user
 from werkzeug.utils import secure_filename
 
@@ -44,7 +44,7 @@ def create_annotation_project():
         project = Project(
             name=project_name,
             desc=project_desc,
-            user_id=session["id"],
+            user_id=current_user.id,
             is_annotation_project=True,
             max_questions_per_user=max_questions_per_user,
             answers_per_task=answers_per_task,

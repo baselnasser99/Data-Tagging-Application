@@ -3,7 +3,7 @@ groups, results and question editing. System admins can open these pages too."""
 import logging
 from datetime import datetime, timedelta
 
-from flask import Blueprint, request, redirect, url_for, flash, render_template, session
+from flask import Blueprint, request, redirect, url_for, flash, render_template
 from flask_login import current_user
 
 from . import distribution
@@ -26,7 +26,7 @@ manager = Blueprint("manager", __name__, url_prefix="/admin")
 @project_admin_access_required
 def my_projects():
     """A manager's home: the admin dashboard's layout, for the projects they manage."""
-    projects = [pa.project for pa in ProjectAdmin.query.filter_by(user_id=session['id']) if pa.project]
+    projects = [pa.project for pa in ProjectAdmin.query.filter_by(user_id=current_user.id) if pa.project]
     progress = {p.id: project_progress(p) for p in projects}
     project_ids = [p.id for p in projects]
     people = {m.user_id for p in projects for gp in p.assigned_groups if gp.group for m in gp.group.members}
@@ -129,7 +129,7 @@ def add_manager(project, user):
         return 'No user with that email was found. Pick someone from the list, or create a new manager.', 'danger'
     if ProjectAdmin.query.filter_by(project_id=project.id).first():
         return f'"{project.name}" already has a manager. Remove them first; a project has one manager.', 'danger'
-    db.session.add(ProjectAdmin(user_id=user.id, project_id=project.id, assigned_by=session['id']))
+    db.session.add(ProjectAdmin(user_id=user.id, project_id=project.id, assigned_by=current_user.id))
     if user.role not in ('project-admin', 'admin'):
         user.role = 'project-admin'
     db.session.commit()

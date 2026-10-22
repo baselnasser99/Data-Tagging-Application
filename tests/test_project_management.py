@@ -351,3 +351,16 @@ def test_manager_may_remove_only_managers_not_placed_by_a_system_admin(app, db, 
         assert not ProjectAdmin.query.filter_by(user_id=who.id).first()
         assert who.role == "end-user"
     assert ProjectAdmin.query.filter_by(user_id=by_admin.id).first()
+
+
+@pytest.mark.parametrize("path", ["/admin/create-project", "/admin/create-annotation-project"])
+def test_member_made_manager_while_signed_in_manages_the_projects_they_create(path, admin_client, user_client,
+                                                                              end_user, survey):
+    """The role comes from the account, not from what it was at sign-in."""
+    admin_client.post(f"/admin/project/{survey.id}/admins/add", data={"email": end_user.email})
+    assert end_user.role == "project-admin"
+
+    user_client.post(path, data={"project_name": "Mine", "project_desc": "d"})
+    mine = Project.query.filter_by(name="Mine").one()
+    assert ProjectAdmin.query.filter_by(project_id=mine.id, user_id=end_user.id).count() == 1
+    assert user_client.get(f"/admin/project/{mine.id}/dashboard").status_code == 200

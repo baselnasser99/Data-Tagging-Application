@@ -4,7 +4,8 @@ Adding or removing a member hands out or releases work through
 application/distribution.py, so workloads stay balanced.
 """
 
-from flask import Blueprint, request, redirect, url_for, flash, render_template, session, abort
+from flask import Blueprint, request, redirect, url_for, flash, render_template, abort
+from flask_login import current_user
 
 from . import distribution
 from .extns import db
@@ -111,7 +112,7 @@ def manage_group_for_project(project_id, group_id):
     # Membership is group-wide, so it changes the work of every project the group is on.
     # A manager may only change it when all of those projects are theirs.
     other_projects = [gp.project for gp in group.assigned_projects
-                      if session.get('role') != 'admin' and not is_project_admin(gp.project_id)]
+                      if current_user.role != 'admin' and not is_project_admin(gp.project_id)]
 
     if request.method == 'POST':
         if other_projects:
@@ -129,8 +130,8 @@ def set_up_new_project(project, group_id):
 
     Tasks are not handed out here: that happens once items are uploaded.
     """
-    if session.get('role') == 'project-admin':
-        db.session.add(ProjectAdmin(user_id=session['id'], project_id=project.id, assigned_by=session['id']))
+    if current_user.role == 'project-admin':
+        db.session.add(ProjectAdmin(user_id=current_user.id, project_id=project.id, assigned_by=current_user.id))
     group = db.session.get(UserGroup, group_id) if group_id else None
     if group and not GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first():
         db.session.add(GroupProject(group_id=group.id, project_id=project.id))
@@ -188,7 +189,7 @@ def assign_project_to_group():
         group = db.session.get(UserGroup, group_id)
         project = db.session.get(Project, project_id)
 
-        if project and session.get('role') != 'admin' and not is_project_admin(project.id):
+        if project and current_user.role != 'admin' and not is_project_admin(project.id):
             abort(403)  # managers may only attach their own projects
         if group and project:
             # Check if project is already assigned to group
@@ -224,15 +225,12 @@ def assign_project_to_group():
             flash('Invalid selection', 'danger')
 
     groups = UserGroup.query.all()
-    
-    current_user_id = session.get('id')
-    current_user_role = session.get('role')
-    if current_user_role == 'admin':
+    if current_user.role == 'admin':
         # System admins can assign any project
         projects = Project.query.all()
     else:
         # Project admins can only assign projects they manage
-        managed_project_ids = [pa.project_id for pa in ProjectAdmin.query.filter_by(user_id=current_user_id).all()]
+        managed_project_ids = [pa.project_id for pa in ProjectAdmin.query.filter_by(user_id=current_user.id).all()]
         projects = Project.query.filter(Project.id.in_(managed_project_ids)).all()
     # only the projects this person may see; a manager must not see others' progress
     shown_ids = {project.id for project in projects}

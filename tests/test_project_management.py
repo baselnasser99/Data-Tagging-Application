@@ -302,6 +302,35 @@ def test_manager_can_create_projects_they_then_manage(app, survey, make_project_
     assert manager.is_project_admin(mine.id)
 
 
+def test_manager_cannot_edit_another_projects_question_through_their_own_form(app, db, survey, make_project_admin, end_user):
+    """Question ids on the edit form must belong to the project in the address."""
+    mine = Project(name="Mine", desc="d")
+    db.session.add(mine)
+    db.session.commit()
+    manager = make_project_admin(mine)
+    theirs = Question.query.filter_by(project_id=survey.id).one()
+    db.session.add(QuestionAnswer(user_id=end_user.id, question_id=theirs.id, answer="kept"))
+    db.session.commit()
+
+    client = app.test_client()
+    login(client, manager.email)
+    client.post(f"/admin/project/{mine.id}/edit-questions", data={
+        "action": "update_questions",
+        f"question-{theirs.id}": "Hijacked",
+        f"dropdown-{theirs.id}": "mcq",
+        f"confirm_delete_answers_{theirs.id}": "true",
+        f"number_of_options-{theirs.id}": "2",
+        f"questionfile-{theirs.id}": (io.BytesIO(b"\x89PNG"), "planted.png"),
+    }, content_type="multipart/form-data")
+
+    db.session.expire_all()
+    question = db.session.get(Question, theirs.id)
+    assert (question.question, question.answer_type, question.file_path) == ("Original?", AnswerType.TEXT, None)
+    assert QuestionAnswer.query.filter_by(question_id=theirs.id).count() == 1
+    with client.session_transaction() as sess:  # the other project's wording is not shown either
+        assert not any("Original?" in message for _cat, message in sess.get("_flashes", []))
+
+
 # ---- old survey pages outside a group are gone ----------------------------
 
 def test_old_survey_pages_outside_a_group_are_gone(user_client, survey):

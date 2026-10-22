@@ -1,7 +1,9 @@
-from sqlalchemy import Column, String, Integer, Text, ForeignKey, Enum
 import enum
+
 from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Text
+from werkzeug.security import check_password_hash, generate_password_hash
+
 from .extns import db
 
 
@@ -43,45 +45,26 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def register_end_user(self, fullname, email, password):
+    def _register(self, fullname, email, password, role):
         self.full_name = fullname
         self.email = email
         self.set_password(password)
-        self.role = "end-user"
-
+        self.role = role
         db.session.add(self)
+
+    def register_end_user(self, fullname, email, password):
+        self._register(fullname, email, password, "end-user")
         db.session.commit()
 
     def register_admin(self, fullname, email, password):
-        self.full_name = fullname
-        self.email = email
-        self.set_password(password)
-        self.role = "admin"
-
-        db.session.add(self)
+        self._register(fullname, email, password, "admin")
         db.session.commit()
-        
+
     def register_project_admin(self, fullname, email, password, project_id, assigned_by):
-        self.full_name = fullname
-        self.email = email
-        self.set_password(password)
-        self.role = "project-admin"
-
-        db.session.add(self)
+        self._register(fullname, email, password, "project-admin")
         db.session.flush()  # Get the user ID
-        
-        # Create the project admin role
-        project_admin = ProjectAdmin(
-            user_id=self.id,
-            project_id=project_id,
-            assigned_by=assigned_by
-        )
-        
-        db.session.add(project_admin)
+        db.session.add(ProjectAdmin(user_id=self.id, project_id=project_id, assigned_by=assigned_by))
         db.session.commit()
-
-    def is_admin(self):
-        return self.role == "admin"
 
     def is_project_admin(self, project_id=None):
         # If project_id is provided, check if user is a project admin for that specific project
@@ -203,8 +186,7 @@ class UserQuestionAssignment(db.Model):
 # File types accepted inside an annotation project's ZIP upload.
 IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
 AUDIO_EXTENSIONS = ('.mp3', '.wav', '.ogg', '.m4a', '.flac')
-
-
+# Survey question attachments may also be videos.
 VIDEO_EXTENSIONS = ('.mp4', '.webm', '.mov', '.avi', '.wmv')
 
 

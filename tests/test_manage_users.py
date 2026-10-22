@@ -193,3 +193,11 @@ def test_people_page_counts_projects_reached_every_way(admin_client, db, make_us
     assert rows["Busy"]["answer_count"] == 2
     assert sorted(g.name for g in rows["Busy"]["assigned_groups"]) == ["A", "B"]
     assert (rows["Idle"]["assigned_projects_count"], rows["Idle"]["answer_count"], rows["Idle"]["assigned_groups"]) == (0, 0, [])
+
+
+def test_profile_shows_details_an_admin_changed_while_signed_in(admin_client, user_client, end_user):
+    admin_client.post(f"/admin/users/{end_user.id}/edit",
+                      data={"full_name": "Renamed Person", "email": "renamed@example.com", "password": ""})
+    page = user_client.get("/user/profile").data  # the member stayed signed in the whole time
+    assert b"Renamed Person" in page and b"renamed@example.com" in page
+    assert b"annotator@example.com" not in page

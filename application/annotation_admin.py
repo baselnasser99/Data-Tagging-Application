@@ -1,12 +1,15 @@
 """Annotation projects: create one, upload its items, hand out tasks, follow
 progress and export the dataset. (On screen these are simply "projects".)"""
 import io
+import json
 import logging
 import os
 import uuid
 import zipfile
+from collections import Counter
 
 from flask import Blueprint, current_app, request, redirect, url_for, flash, render_template, session, abort, send_file
+from flask_login import current_user
 from werkzeug.utils import secure_filename
 
 from . import distribution
@@ -241,6 +244,11 @@ def generate_annotation_tasks(project_id):
                          default_group_id=default_group_id)
 
 
+def _completion(total, completed):
+    return {'total': total, 'completed': completed,
+            'percentage': round((completed / total * 100) if total else 0, 1)}
+
+
 @annotation_admin.route("/view-annotation-project/<int:project_id>")
 @project_admin_required
 def view_annotation_project(project_id):
@@ -261,32 +269,17 @@ def view_annotation_project(project_id):
     completed_assignments = len([a for a in assignments if a.is_completed])
     unique_users = {a.user_id for a in assignments}
     total_tasks = len(tasks)
-    
+
     completed_tasks = sum(1 for task in tasks if task.is_completed)
 
-    # Per-item completion statistics
-    image_completion = {}
-    for img in images:
-        img_tasks = [t for t in tasks if t.image_id == img.id]
-        total_img = len(img_tasks)
-        completed_img = len([t for t in img_tasks if t.is_completed])
-        image_completion[img.id] = {
-            'total': total_img,
-            'completed': completed_img,
-            'percentage': round((completed_img / total_img * 100) if total_img else 0, 1)
-        }
+    # Per-item and per-person completion, counted in one pass over each list
+    tasks_per_item = Counter(t.image_id for t in tasks)
+    done_per_item = Counter(t.image_id for t in tasks if t.is_completed)
+    image_completion = {img.id: _completion(tasks_per_item[img.id], done_per_item[img.id]) for img in images}
 
-    # Calculate user assignment statistics
-    user_assignments = {}
-    for user_id in unique_users:
-        user_assignments[user_id] = {
-            'total': len([a for a in assignments if a.user_id == user_id]),
-            'completed': len([a for a in assignments if a.user_id == user_id and a.is_completed])
-        }
-        user_assignments[user_id]['percentage'] = round(
-            (user_assignments[user_id]['completed'] / user_assignments[user_id]['total'] * 100)
-            if user_assignments[user_id]['total'] > 0 else 0, 1
-        )
+    held = Counter(a.user_id for a in assignments)
+    answered = Counter(a.user_id for a in assignments if a.is_completed)
+    user_assignments = {user_id: _completion(held[user_id], answered[user_id]) for user_id in unique_users}
 
     stats = {
         'total_images': len(images),
@@ -321,9 +314,6 @@ def view_annotation_project(project_id):
 @project_admin_required
 def export_project(project_id, file_format):
     """Download every answer of an annotation project as CSV or JSON."""
-    import json
-    from flask_login import current_user
-
     project = db.get_or_404(Project, project_id)
     if file_format not in ("csv", "json"):
         abort(404)

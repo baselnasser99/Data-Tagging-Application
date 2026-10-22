@@ -19,6 +19,8 @@ services:
     build: .
     env_file: .env
     environment:
+      # Required: each Gunicorn worker would otherwise make up its own key and reject the others' cookies.
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       DATABASE_URL: mysql+pymysql://${MYSQL_USER:-tagging}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-tagging_db}
     ports:
       - "5000:5000"

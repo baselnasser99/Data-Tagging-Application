@@ -226,7 +226,7 @@ def test_create_a_manager_without_a_project(admin_client):
 
 
 def test_manager_home_has_the_answers_chart_for_their_projects_only(app, db, make_user, make_project_admin):
-    from application.admin import weekly_answers
+    from application.stats import weekly_answers
     from application.models import Project, Question, QuestionAnswer
 
     mine, other = Project(name="Mine", desc="d"), Project(name="Other", desc="d")
@@ -258,7 +258,7 @@ def test_dashboard_without_projects_says_what_to_do(admin_client, db):
 
 
 def test_dashboard_shows_projects_and_each_persons_share(admin_client, db, make_user):
-    from application.admin import workload_balance
+    from application.stats import workload_balance
 
     group = UserGroup(name="Annotators")
     db.session.add(group)

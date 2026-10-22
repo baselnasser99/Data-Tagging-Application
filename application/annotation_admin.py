@@ -11,7 +11,6 @@ from werkzeug.utils import secure_filename
 
 from . import distribution
 from . import export as dataset_export
-from .admin import upload_dir
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
 from .jinja_utils import plural
@@ -19,6 +18,7 @@ from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Projec
                      Question, TaskAssignment, UserGroup, media_type_for)
 from .groups import set_up_new_project
 from .permissions import project_admin_access_required, project_admin_required
+from .uploads import upload_dir
 
 audit = logging.getLogger("audit")
 

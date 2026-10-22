@@ -9,8 +9,9 @@ from flask import Blueprint, request, redirect, url_for, flash, render_template,
 from . import distribution
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
-from .models import AnnotationTask, Project, ProjectAdmin, Question, TaskAssignment, User, UserGroup, UserGroupMembership, GroupProject, UserQuestionAssignment, QuestionAnswer
+from .models import GroupProject, Project, ProjectAdmin, QuestionAnswer, User, UserGroup, UserGroupMembership, UserQuestionAssignment
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
+from .stats import group_progress
 
 groups = Blueprint("groups", __name__, url_prefix="/admin")
 
@@ -155,25 +156,6 @@ def manage_group_for_project(project_id, group_id):
                            project_id=project_id, other_projects=other_projects)
 
 
-def group_progress(group, project_ids):
-    """(done, total) of the work the group's members hold in these projects.
-
-    Annotation work counts finished task assignments; survey work counts
-    answered question assignments.
-    """
-    member_ids = [m.user_id for m in group.members]
-    tasks = TaskAssignment.query.join(AnnotationTask).filter(
-        TaskAssignment.user_id.in_(member_ids), AnnotationTask.project_id.in_(project_ids))
-    survey = UserQuestionAssignment.query.filter(
-        UserQuestionAssignment.user_id.in_(member_ids),
-        UserQuestionAssignment.group_project_id.in_([f"{group.id}-{pid}" for pid in project_ids]))
-    total = tasks.count() + survey.count()
-    done = tasks.filter(TaskAssignment.is_completed.is_(True)).count() + sum(
-        1 for q in survey if QuestionAnswer.query.filter_by(
-            user_id=q.user_id, question_id=q.question_id, task_assignment_id=None).first())
-    return done, total
-
-
 def set_up_new_project(project, group_id):
     """A manager who creates a project manages it; the group chosen on the form (if any) gets it.
 
@@ -184,17 +166,6 @@ def set_up_new_project(project, group_id):
     group = db.session.get(UserGroup, group_id) if group_id else None
     if group and not GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first():
         db.session.add(GroupProject(group_id=group.id, project_id=project.id))
-
-
-def project_progress(project):
-    """(done, total) for a whole project: finished tasks, or answered survey questions."""
-    if project.is_annotation_project:
-        tasks = AnnotationTask.query.filter_by(project_id=project.id)
-        return tasks.filter_by(is_completed=True).count(), tasks.count()
-    assigned = UserQuestionAssignment.query.join(Question).filter(Question.project_id == project.id).all()
-    done = sum(1 for q in assigned if QuestionAnswer.query.filter_by(
-        user_id=q.user_id, question_id=q.question_id, task_assignment_id=None).first())
-    return done, len(assigned)
 
 
 def assign_questions_to_new_group_member(user, group):

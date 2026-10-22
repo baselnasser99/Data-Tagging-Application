@@ -160,7 +160,7 @@ def test_templates_have_no_inline_scripts_or_event_handlers():
 def test_uploaded_files_need_sign_in(app, client, admin_user):
     import os
 
-    from application.admin import upload_dir
+    from application.uploads import upload_dir
     from tests.conftest import login
 
     with open(os.path.join(upload_dir("images", "1"), "photo.png"), "wb") as f:

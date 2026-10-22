@@ -19,7 +19,6 @@ def sidebar_summary(user):
     """
     from datetime import datetime, timedelta
 
-    from .extns import db
     from .models import AnnotationTask, ProjectAdmin, Question, QuestionAnswer, TaskAssignment
 
     week_ago = datetime.now() - timedelta(days=7)

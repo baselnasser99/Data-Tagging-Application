@@ -126,6 +126,8 @@ The same steps, after `python -m venv .venv` and activating it (`source .venv/bi
 
 `cp .env.example .env`, edit the passwords, then `docker compose up --build`.
 
+The app listens on `127.0.0.1:5000` only, over plain http. Put an HTTPS reverse proxy on the same machine in front of it (for example Caddy: `caddy reverse-proxy --from tagging.example.org --to 127.0.0.1:5000`). Sign-in cookies are sent over HTTPS only, so signing in at `http://` fails on purpose.
+
 </details>
 
 <details>
@@ -172,7 +174,7 @@ On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest -
 ## Security
 
 - Passwords are hashed (Werkzeug scrypt); there are no default accounts, and secrets live only in `.env`.
-- Every form has a CSRF token. Cookies are HTTP-only and SameSite, with an idle timeout. Pages are sent with `Cache-Control: no-store`.
+- Every form has a CSRF token. Cookies are HTTP-only, SameSite and sent over HTTPS only (except on the debug server), with an idle timeout. Pages are sent with `Cache-Control: no-store`.
 - Access is checked on every route: managers see only their own projects, and members only their own tasks.
 - All user-written text is escaped, including inside confirm dialogs.
 - After 5 wrong passwords, an account pauses for 15 minutes (stored in the database, so it holds across server processes).

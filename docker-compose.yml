@@ -20,8 +20,10 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: mysql+pymysql://${MYSQL_USER:-tagging}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-tagging_db}
+      # Gunicorn speaks plain http: browsers reach it only through an HTTPS reverse proxy on this machine.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-1}
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     depends_on:
       db:
         condition: service_healthy

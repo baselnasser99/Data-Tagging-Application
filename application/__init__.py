@@ -6,6 +6,7 @@ import pymysql
 from flask import Flask, abort, render_template, request, send_from_directory
 from flask_login import login_required
 from flask_wtf.csrf import CSRFError
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 pymysql.install_as_MySQLdb()
 
@@ -26,6 +27,7 @@ def create_app(config_object=None):
     app.config.from_object(config_object or Config)
 
     _configure_logging(app)
+    _configure_https(app)
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -183,6 +185,16 @@ def _ensure_admin(app):
             "No administrator account exists. Set ADMIN_EMAIL and ADMIN_PASSWORD "
             "and restart, or run: python scripts/admin_manager.py"
         )
+
+
+def _configure_https(app):
+    """Cookies over HTTPS only, and the visitor's address and https from a trusted proxy's headers."""
+    if app.config.get("SESSION_COOKIE_SECURE") is None:  # not set: HTTPS only, except on the debug server
+        app.config["SESSION_COOKIE_SECURE"] = not app.debug
+    app.config["REMEMBER_COOKIE_SECURE"] = app.config["SESSION_COOKIE_SECURE"]
+    proxies = app.config.get("TRUSTED_PROXIES") or 0
+    if proxies:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxies, x_proto=proxies, x_host=proxies)
 
 
 def _configure_logging(app):

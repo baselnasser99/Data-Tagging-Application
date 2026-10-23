@@ -200,6 +200,75 @@ def test_manager_cannot_change_members_of_a_group_shared_with_other_projects(
     assert UserGroupMembership.query.filter_by(group_id=group.id).count() == 2  # unchanged
 
 
+# ---- managers attach only groups that work on nothing but their own projects ----
+
+@pytest.fixture
+def others_group(db, admin_client, make_project_admin, team, survey):
+    """``team`` (Ada A, Ben B) working on a survey that another manager runs."""
+    group, members = team
+    make_project_admin(survey)
+    admin_client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": survey.id})
+    return group
+
+
+def test_manager_cannot_give_their_project_to_another_managers_group(
+        app, make_project_admin, photo_project, others_group):
+    client = _manager_client(app, make_project_admin, photo_project)
+    resp = client.post("/admin/assign-project-to-group", data={"group_id": others_group.id, "project_id": photo_project.id})
+    assert resp.status_code == 403
+    assert not GroupProject.query.filter_by(group_id=others_group.id, project_id=photo_project.id).first()
+
+
+def test_manager_is_not_shown_other_managers_groups_or_their_members(
+        app, make_project_admin, photo_project, others_group):
+    client = _manager_client(app, make_project_admin, photo_project)
+    for url in ("/admin/assign-project-to-group", f"/admin/generate-annotation-tasks/{photo_project.id}",
+                "/admin/create-annotation-project"):
+        page = client.get(url).data
+        assert b"Team (" not in page, url  # not offered: options read "Team (2 members)" or "Team (2 people)"
+        assert b"Ada A" not in page, url
+
+
+def test_manager_cannot_hand_out_tasks_to_another_managers_group(app, make_project_admin, photo_project, others_group):
+    client = _manager_client(app, make_project_admin, photo_project)
+    resp = client.post(f"/admin/generate-annotation-tasks/{photo_project.id}", data={"group_id": others_group.id})
+    assert resp.status_code == 403
+    assert not GroupProject.query.filter_by(group_id=others_group.id, project_id=photo_project.id).first()
+    assert TaskAssignment.query.count() == 0
+
+
+def test_new_project_is_not_given_to_another_managers_group(app, make_project_admin, photo_project, others_group):
+    client = _manager_client(app, make_project_admin, photo_project)
+    resp = client.post("/admin/create-annotation-project", data={
+        "project_name": "Mine", "project_desc": "d", "total_questions": "1", "question_1": "Q?",
+        "assigned_group_id": others_group.id}, follow_redirects=True)
+    mine = Project.query.filter_by(name="Mine").one()  # the project itself is still created
+    assert not GroupProject.query.filter_by(group_id=others_group.id, project_id=mine.id).first()
+    assert b"ask an admin" in resp.data
+
+
+def test_shared_group_page_shows_a_manager_how_many_members_not_who(
+        app, admin_client, make_project_admin, team, photo_project, others_group):
+    # An admin put the group on this manager's project too: they see the size, not names or emails.
+    _, members = team
+    admin_client.post("/admin/assign-project-to-group", data={"group_id": others_group.id, "project_id": photo_project.id})
+    client = _manager_client(app, make_project_admin, photo_project)
+    page = client.get(f"/admin/project/{photo_project.id}/manage-group/{others_group.id}").data
+    assert b"2 members" in page
+    for member in members:
+        assert member.full_name.encode() not in page and member.email.encode() not in page
+
+
+def test_manager_can_still_use_a_group_of_their_own(app, db, make_project_admin, photo_project):
+    group = UserGroup(name="Free")
+    db.session.add(group)
+    db.session.commit()
+    client = _manager_client(app, make_project_admin, photo_project)
+    assert f'value="{group.id}"'.encode() in client.get("/admin/assign-project-to-group").data
+    client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": photo_project.id})
+    assert GroupProject.query.filter_by(group_id=group.id, project_id=photo_project.id).first()
+
+
 def test_groups_page_has_search_and_shows_members_and_projects(admin_client, db, make_user):
     from application.models import GroupProject, Project, UserGroup, UserGroupMembership
     group, empty = UserGroup(name="Radiology"), UserGroup(name="Night shift")

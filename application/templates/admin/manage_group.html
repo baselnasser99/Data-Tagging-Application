@@ -28,23 +28,26 @@
             <h3 class="box-title">Members</h3>
           </div>
           <div class="box-body">
+            {% if locked %}
+            {# Members of other managers' projects: a manager sees how many, not who. #}
+            <p class="text-muted" style="margin: 0;">{{ plural(group.members | length, "member") }}. An admin manages who is in this group.</p>
+            {% else %}
             <ul class="assignment-list">
               {% for membership in group.members %}
               <li class="assignment-row">
                 <span><strong>{{ membership.user.full_name }}</strong><br><span class="text-muted">{{ membership.user.email }}</span></span>
-                {% if not locked %}
                 <form method="POST" data-confirm="Remove this person from the group? Their unfinished tasks go to the others.">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="action" value="remove_user">
                   <input type="hidden" name="user_id" value="{{ membership.user.id }}">
                   <button type="submit" class="btn btn-danger btn-sm" aria-label="Remove {{ membership.user.full_name }}">Remove</button>
                 </form>
-                {% endif %}
               </li>
               {% else %}
               <li class="text-muted">No members yet.</li>
               {% endfor %}
             </ul>
+            {% endif %}
           </div>
         </div>
       </div>

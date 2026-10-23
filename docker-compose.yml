@@ -1,7 +1,7 @@
 services:
   db:
     image: mysql:8.0
-    env_file: .env
+    # Only its own settings, named here: env_file would also hand it SECRET_KEY and ADMIN_PASSWORD.
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-tagging_db}
       MYSQL_USER: ${MYSQL_USER:-tagging}

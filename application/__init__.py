@@ -32,6 +32,7 @@ def create_app(config_object=None):
 
     db.init_app(app)
     login_manager.init_app(app)
+    _allow_big_uploads(app)  # before CSRF: its check reads the form, which must see the larger limit
     csrf.init_app(app)
 
     from .admin import admin
@@ -234,6 +235,23 @@ def _ensure_admin(app):
         )
 
 
+# Pages that take files. Only these, and only for admins and managers, accept up to
+# MAX_UPLOAD_LENGTH; anywhere else a visitor could make the server receive and parse
+# hundreds of MB (CSRF reads the form before any role check).
+UPLOAD_ENDPOINTS = {"admin.create_project", "admin.import_users", "manager.edit_project_questions",
+                    "annotation_admin.upload_images"}
+
+
+def _allow_big_uploads(app):
+    from flask_login import current_user
+
+    @app.before_request
+    def _raise_the_limit_on_upload_pages():
+        if (request.endpoint in UPLOAD_ENDPOINTS and current_user.is_authenticated
+                and current_user.role in ("admin", "project-admin")):
+            request.max_content_length = app.config["MAX_UPLOAD_LENGTH"]
+
+
 def _configure_https(app):
     """Cookies over HTTPS only, and the visitor's address and https from a trusted proxy's headers."""
     if app.config.get("SESSION_COOKIE_SECURE") is None:  # not set: HTTPS only, except on the debug server
@@ -304,6 +322,10 @@ def _register_error_handlers(app):
     @app.errorhandler(404)
     def not_found(error):
         return render_template("errors/404.html"), 404
+
+    @app.errorhandler(413)
+    def too_large(error):
+        return render_template("errors/413.html"), 413
 
     @app.errorhandler(500)
     def server_error(error):

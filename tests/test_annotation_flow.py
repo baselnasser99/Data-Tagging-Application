@@ -316,7 +316,7 @@ def test_members_see_the_project_and_question_not_file_names(app, admin_client, 
 
 def test_zip_that_unpacks_too_large_is_skipped(app, admin_client):
     project = _create_project(admin_client)
-    app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
+    app.config["MAX_UPLOAD_LENGTH"] = 1024 * 1024
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("big.png", b"\0" * (3 * 1024 * 1024))  # compresses to a few KB

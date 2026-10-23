@@ -316,3 +316,88 @@ def test_uploaded_files_need_sign_in(app, client, admin_user):
         assert client.get("/static/css/app.css").status_code == 200
     finally:
         os.remove(static_copy)
+
+
+# ---- request size: big bodies only on the upload pages, for admins and managers ----
+
+def _post_big_file(client, url, field="file", name="big.png", **fields):
+    """POST a 3 MB file (over the 2 MB for ordinary requests), encoded in memory:
+    the test client would otherwise spool it to a temporary file it never closes."""
+    import io
+
+    from werkzeug.datastructures import FileStorage
+    from werkzeug.test import encode_multipart
+
+    upload = FileStorage(io.BytesIO(b"\0" * 3 * 1024 * 1024), filename=name)
+    boundary, body = encode_multipart({**fields, field: upload})
+    return client.post(url, data=body, content_type=f"multipart/form-data; boundary={boundary}")
+
+
+def test_sign_in_page_refuses_a_huge_body(client):
+    # Before signing in, nobody should be able to make the server receive and parse hundreds of MB.
+    resp = _post_big_file(client, "/login", email="a@example.com", password="x")
+    assert resp.status_code == 413
+    assert b"too large" in resp.data
+
+
+def test_member_pages_refuse_a_huge_body(user_client):
+    assert _post_big_file(user_client, "/user/change-password").status_code == 413
+
+
+def test_big_uploads_work_with_csrf_switched_on(tmp_path):
+    # CSRF reads the whole form before the view: the larger limit must be set before that.
+    from application.models import Project, ProjectImage
+
+    class Config(TestingConfig):
+        WTF_CSRF_ENABLED = True
+        UPLOAD_ROOT = str(tmp_path)
+
+    app = create_app(Config)
+    app.test_client_class = BufferedClient
+    with app.app_context():
+        admin = User(full_name="A", email="big@example.com", role="admin")
+        admin.set_password("password123")
+        project = Project(name="Big", desc="d", is_annotation_project=True)
+        _db.session.add_all([admin, project])
+        _db.session.commit()
+        url = f"/admin/upload-images/{project.id}"
+    # Requests outside that context, so each gets a fresh one: Flask-WTF caches the token in g.
+    client = app.test_client()
+    client.post("/login", data={"email": "big@example.com", "password": "password123",
+                                "csrf_token": _token(client.get("/login").data)})
+    resp = _post_big_file(client, url, field="image_zip", csrf_token=_token(client.get(url).data))
+    with app.app_context():
+        try:
+            assert resp.status_code == 302
+            assert ProjectImage.query.count() == 1
+        finally:
+            _close_database()
+
+
+def test_upload_pages_take_big_files_only_from_admins_and_managers(app, make_user, admin_user, end_user):
+    # In production CSRF reads the form first, so the limit must already be the right one by then.
+    from flask import request
+    from flask_login import login_user
+
+    manager = make_user(role="project-admin")
+    expected = [(end_user, app.config["MAX_CONTENT_LENGTH"]), (manager, app.config["MAX_UPLOAD_LENGTH"]),
+                (admin_user, app.config["MAX_UPLOAD_LENGTH"])]
+    for user, limit in expected:
+        with app.test_request_context("/admin/import-users", method="POST"):
+            login_user(user)
+            app.preprocess_request()
+            assert request.max_content_length == limit, user.role
+
+
+def test_admins_and_managers_can_still_upload_big_files(app, db, admin_client, make_project_admin):
+    from application.models import Project, ProjectImage
+    from tests.conftest import login
+
+    project = Project(name="Big", desc="d", is_annotation_project=True)
+    db.session.add(project)
+    db.session.commit()
+    assert _post_big_file(admin_client, f"/admin/upload-images/{project.id}", field="image_zip").status_code == 302
+    manager = app.test_client()
+    login(manager, make_project_admin(project).email)
+    _post_big_file(manager, f"/admin/upload-images/{project.id}", field="image_zip", name="second.png")
+    assert ProjectImage.query.filter_by(project_id=project.id).count() == 2

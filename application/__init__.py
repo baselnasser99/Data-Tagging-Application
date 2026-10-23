@@ -243,8 +243,6 @@ UPLOAD_ENDPOINTS = {"admin.create_project", "admin.import_users", "manager.edit_
 
 
 def _allow_big_uploads(app):
-    from flask_login import current_user
-
     @app.before_request
     def _raise_the_limit_on_upload_pages():
         if (request.endpoint in UPLOAD_ENDPOINTS and current_user.is_authenticated

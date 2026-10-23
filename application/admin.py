@@ -7,11 +7,11 @@ from collections import defaultdict
 from datetime import datetime
 
 from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, send_file, url_for
-from flask_login import current_user, login_user
+from flask_login import current_user
 from sqlalchemy import delete, func
 
 from . import distribution
-from .auth import MIN_PASSWORD_LENGTH, forget_failed_logins
+from .auth import MIN_PASSWORD_LENGTH, change_own_password, forget_failed_logins
 from .export import csv_cell
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
@@ -664,28 +664,12 @@ def admin_profile():
             flash('Email updated successfully', 'success')
 
         elif action == 'update_password':
-            current_password = request.form.get('current_password') or ''  # a field left out counts as empty
-            new_password = request.form.get('new_password') or ''
-            confirm_password = request.form.get('confirm_password') or ''
-
-            if not admin_user.check_password(current_password):
-                flash('Current password is incorrect', 'danger')
-                return redirect(url_for('admin.admin_profile'))
-
-            if new_password != confirm_password:
-                flash('New passwords do not match', 'danger')
-                return redirect(url_for('admin.admin_profile'))
-
-            if len(new_password) < MIN_PASSWORD_LENGTH:
-                flash(f'Password must be at least {MIN_PASSWORD_LENGTH} characters long', 'danger')
-                return redirect(url_for('admin.admin_profile'))
-
-            admin_user.set_password(new_password)  # ends every session, this one included
-            admin_user.must_change_password = False
-            db.session.commit()
-            login_user(admin_user)  # so sign this browser back in
-            audit.info("PASSWORD_CHANGED user_id=%s", admin_user.id)
-            flash('Password updated successfully', 'success')
+            error = change_own_password(admin_user, request.form.get('current_password'),
+                                        request.form.get('new_password'), request.form.get('confirm_password'))
+            if error:
+                flash(error, 'danger')
+            else:
+                flash('Password updated successfully', 'success')
 
         return redirect(url_for('admin.admin_profile'))
 

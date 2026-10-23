@@ -58,6 +58,28 @@ def forget_failed_logins(user, address=None):
     db.session.commit()
 
 
+def change_own_password(user, current_password, new_password, confirm_password):
+    """The signed-in person replaces their own password (members' and admins' profile pages).
+
+    Returns what is wrong with the form, or None once the password is changed. Every other
+    session ends (User.set_password) and this browser is signed back in. A field left out
+    counts as empty.
+    """
+    new_password = new_password or ''
+    if not user.check_password(current_password or ''):
+        return 'Current password is incorrect'
+    if new_password != (confirm_password or ''):
+        return 'New passwords do not match'
+    if len(new_password) < MIN_PASSWORD_LENGTH:
+        return f'Password must be at least {MIN_PASSWORD_LENGTH} characters long'
+    user.set_password(new_password)  # ends every session, this one included
+    user.must_change_password = False
+    db.session.commit()
+    login_user(user)
+    audit.info("PASSWORD_CHANGED user_id=%s", user.id)
+    return None
+
+
 @auth.route("/", methods=["GET", "POST"])
 @auth.route("/login", methods=["GET", "POST"])
 def login():

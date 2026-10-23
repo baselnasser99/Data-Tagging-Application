@@ -262,9 +262,10 @@ def assign_project_to_group():
     shown_ids = {project.id for project in projects}
     # A manager sees the groups they may choose, and those already on their projects; of a group
     # that also works for other managers, only its size (locked: not offered, members not named).
-    groups = [g for g in UserGroup.query.all()
-              if can_use_group(g) or any(gp.project_id in shown_ids for gp in g.assigned_projects)]
-    locked = {g.id for g in groups if not can_use_group(g)}
+    everyone = UserGroup.query.all()
+    locked = {g.id for g in everyone if not can_use_group(g)}
+    groups = [g for g in everyone
+              if g.id not in locked or any(gp.project_id in shown_ids for gp in g.assigned_projects)]
     progress = {(gp.group_id, gp.project_id): group_progress(group, [gp.project_id])
                 for group in groups for gp in group.assigned_projects if gp.project_id in shown_ids}
     return render_template("admin/assign_project_to_group.html", groups=groups, projects=projects, progress=progress,

@@ -1,10 +1,9 @@
-import logging
 from datetime import datetime, timedelta
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, abort
-from flask_login import current_user, login_user
+from flask_login import current_user
 
-from .auth import MIN_PASSWORD_LENGTH
+from .auth import change_own_password
 from .extns import db
 from .models import Project, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer
 from .permissions import user_required
@@ -110,30 +109,11 @@ def profile():
 @user_required
 def change_password():
     if request.method == 'POST':
-        current_password = request.form.get('current_password') or ''  # a field left out counts as empty
-        new_password = request.form.get('new_password') or ''
-        confirm_password = request.form.get('confirm_password') or ''
-        user = current_user._get_current_object()  # the User itself: login_user below can't take the proxy
-
-        # Verify current password
-        if not user.check_password(current_password):
-            flash('Current password is incorrect', 'danger')
+        error = change_own_password(db.session.get(User, current_user.id), request.form.get('current_password'),
+                                    request.form.get('new_password'), request.form.get('confirm_password'))
+        if error:
+            flash(error, 'danger')
             return redirect(url_for('annotation.change_password'))
-
-        # Validate new password
-        if new_password != confirm_password:
-            flash('New passwords do not match', 'danger')
-            return redirect(url_for('annotation.change_password'))
-
-        if len(new_password) < MIN_PASSWORD_LENGTH:
-            flash(f'Password must be at least {MIN_PASSWORD_LENGTH} characters long', 'danger')
-            return redirect(url_for('annotation.change_password'))
-
-        user.set_password(new_password)  # ends every session, this one included
-        user.must_change_password = False
-        db.session.commit()
-        login_user(user)  # so sign this browser back in
-        logging.getLogger("audit").info("PASSWORD_CHANGED user_id=%s", user.id)
         flash('Password changed successfully', 'success')
         return redirect(url_for('annotation.profile'))
 

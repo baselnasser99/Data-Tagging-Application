@@ -233,9 +233,26 @@ def _configure_https(app):
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxies, x_proto=proxies, x_host=proxies)
 
 
+class _OneLinePerEvent(logging.Filter):
+    """Write line breaks inside a message as \\r and \\n.
+
+    Some logged values come from visitors (the address they asked for, say), and a
+    line break in one would let them add a made-up line such as a LOGIN_OK.
+    """
+
+    def filter(self, record):
+        message = record.getMessage()
+        if "\n" in message or "\r" in message:
+            record.msg, record.args = message.replace("\r", "\\r").replace("\n", "\\n"), None
+        return True
+
+
 def _configure_logging(app):
     level = getattr(logging, str(app.config.get("LOG_LEVEL", "INFO")).upper(), logging.INFO)
     app.logger.setLevel(level)
+    for logger in (app.logger, logging.getLogger("audit")):
+        if not any(isinstance(f, _OneLinePerEvent) for f in logger.filters):
+            logger.addFilter(_OneLinePerEvent())
 
     log_dir = app.config.get("LOG_DIR")
     if not log_dir or app.testing:

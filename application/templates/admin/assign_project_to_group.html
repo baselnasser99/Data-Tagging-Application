@@ -30,7 +30,7 @@
                   <label>Select Group</label>
                   <select class="form-control" name="group_id" required>
                     <option value="">Choose a group...</option>
-                    {% for group in groups %}
+                    {% for group in groups if group.id not in locked %}
                       <option value="{{ group.id }}">
                         {{ group.name }} ({{ group.members | length }} members)
                       </option>
@@ -76,7 +76,7 @@
           <div class="box-header with-border">
             <h3 class="box-title">{{ group.name }}</h3>
             <p class="text-muted" style="margin: 4px 0 0;">
-              {{ plural(group.members | length, "member") }}{% if group.members %}:
+              {{ plural(group.members | length, "member") }}{% if group.members and group.id not in locked %}:
               {% for membership in group.members[:5] %}{{ membership.user.full_name }}{% if not loop.last %}, {% endif %}{% endfor %}{% if group.members | length > 5 %} and {{ group.members | length - 5 }} more{% endif %}{% endif %}
             </p>
           </div>

@@ -19,7 +19,7 @@ from .feedback import flash_distribution, warn_idle_members
 from .jinja_utils import plural
 from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, ProjectImage,
                      Question, TaskAssignment, UserGroup, media_type_for)
-from .groups import set_up_new_project
+from .groups import set_up_new_project, usable_groups
 from .permissions import project_admin_access_required, project_admin_required
 from .uploads import upload_dir
 
@@ -94,8 +94,7 @@ def create_annotation_project():
         flash(f"Project '{project_name}' created successfully!", "success")
         return redirect(url_for("annotation_admin.upload_images", project_id=project.id))
 
-    groups = UserGroup.query.all()
-    return render_template("admin/create_annotation_project.html", groups=groups)
+    return render_template("admin/create_annotation_project.html", groups=usable_groups())
 
 
 @annotation_admin.route("/upload-images/<int:project_id>", methods=["GET", "POST"])
@@ -204,7 +203,7 @@ def generate_annotation_tasks(project_id):
 
     images = ProjectImage.query.filter_by(project_id=project_id).all()
     questions = Question.query.filter_by(project_id=project_id).all()
-    groups = UserGroup.query.all()
+    groups = usable_groups(project)
 
     if request.method == "POST":
         selected_group_id = request.form.get("group_id")
@@ -216,6 +215,8 @@ def generate_annotation_tasks(project_id):
         if not group:
             flash("Selected group not found!", "error")
             return redirect(request.url)
+        if group not in groups:
+            abort(403)  # the group also works on other managers' projects
 
         # Record that this group works on the project, so the project shows up
         # on the group's dashboards and in later redistribution.

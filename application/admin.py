@@ -664,9 +664,9 @@ def admin_profile():
             flash('Email updated successfully', 'success')
 
         elif action == 'update_password':
-            current_password = request.form.get('current_password')
-            new_password = request.form.get('new_password')
-            confirm_password = request.form.get('confirm_password')
+            current_password = request.form.get('current_password') or ''  # a field left out counts as empty
+            new_password = request.form.get('new_password') or ''
+            confirm_password = request.form.get('confirm_password') or ''
 
             if not admin_user.check_password(current_password):
                 flash('Current password is incorrect', 'danger')

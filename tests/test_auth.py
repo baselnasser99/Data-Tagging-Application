@@ -281,3 +281,19 @@ def test_failed_sign_in_to_a_real_account_names_the_account(caplog, client, end_
     caplog.set_level("INFO", logger="audit")
     login(client, end_user.email, password="wrong")
     assert any(f"user_id={end_user.id}" in line and end_user.email in line for line in _audit_lines(caplog))
+
+
+# ---- password forms with fields left out ----------------------------------
+
+@pytest.mark.parametrize("fields", [{}, {"current_password": "password123"}])
+@pytest.mark.parametrize("who, url, extra", [("member", "/user/change-password", {}),
+                                             ("admin", "/admin/profile", {"action": "update_password"})])
+def test_password_forms_with_missing_fields_say_so_instead_of_crashing(app, user_client, admin_client, end_user,
+                                                                        admin_user, who, url, extra, fields):
+    # A tampered or half-sent form used to end in a 500 (check_password(None), len(None)).
+    client, user = (user_client, end_user) if who == "member" else (admin_client, admin_user)
+    app.config["PROPAGATE_EXCEPTIONS"] = False  # see the 500 a visitor would get, not the exception
+    resp = client.post(url, data={**extra, **fields}, follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"incorrect" in resp.data or b"at least" in resp.data
+    assert user.check_password("password123")  # unchanged

@@ -110,9 +110,9 @@ def profile():
 @user_required
 def change_password():
     if request.method == 'POST':
-        current_password = request.form.get('current_password')
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
+        current_password = request.form.get('current_password') or ''  # a field left out counts as empty
+        new_password = request.form.get('new_password') or ''
+        confirm_password = request.form.get('confirm_password') or ''
         user = current_user._get_current_object()  # the User itself: login_user below can't take the proxy
 
         # Verify current password

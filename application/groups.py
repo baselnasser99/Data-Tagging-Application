@@ -57,6 +57,8 @@ def _change_membership(group, added_message, removed_message, warn_idle=False):
     if action == 'add_user':
         if not user:
             flash('User not found', 'danger')
+        elif user.role != 'end-user' or not user.active:  # the same people _available_users offers
+            flash('Only active members can join a group, not admins, managers or removed people.', 'danger')
         elif UserGroupMembership.query.filter_by(user_id=user.id, group_id=group.id).first():
             flash('User is already in this group', 'warning')
         else:

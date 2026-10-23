@@ -14,9 +14,6 @@ class User(UserMixin, db.Model):
     password_hash = Column(String(500), nullable=False)
     role = Column(String(20), nullable=False)  # 'admin', 'project-admin', or 'end-user'
     active = Column(db.Boolean, nullable=False, default=True, server_default=db.true())  # False = removed by an admin; answers kept
-    # Kept in the database (not in memory) so the limit holds across Gunicorn workers and restarts.
-    failed_logins = Column(Integer, nullable=False, default=0, server_default="0")
-    locked_until = Column(db.DateTime, nullable=True)  # UTC; no sign-in before this time
     # Part of the id in the session cookie: raising it ends every session, copies included.
     session_version = Column(Integer, nullable=False, default=0, server_default="0")
 
@@ -315,3 +312,15 @@ class ExportLog(db.Model):
     created_date = Column(db.DateTime, default=db.func.current_timestamp())
 
     user = db.relationship("User")
+
+
+class LoginFailure(db.Model):
+    """One wrong sign-in: which address tried, and which account, if it exists (see auth.login).
+
+    Kept in the database (not in memory) so the limits hold across Gunicorn workers and restarts.
+    Rows older than the pause are deleted as new ones come in.
+    """
+    id = Column(Integer, primary_key=True)
+    address = Column(String(45), nullable=False, index=True)  # IPv6 needs up to 45 characters
+    user_id = Column(Integer, nullable=True, index=True)  # no foreign key: deleting an account keeps working
+    at = Column(db.DateTime, nullable=False, index=True)  # UTC

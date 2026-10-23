@@ -177,7 +177,7 @@ On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest -
 - Every form has a CSRF token. Cookies are HTTP-only, SameSite and sent over HTTPS only (except on the debug server), with an idle timeout. Pages are sent with `Cache-Control: no-store`.
 - Access is checked on every route: managers see only their own projects, and members only their own tasks.
 - All user-written text is escaped, including inside confirm dialogs.
-- After 5 wrong passwords, an account pauses for 15 minutes (stored in the database, so it holds across server processes).
+- After 5 wrong passwords for one account from one address, that address pauses for that account for 15 minutes; after 20 from one address across all accounts, the address pauses. A stranger's guesses never lock the owner out. Stored in the database, so it holds across server processes. Behind a reverse proxy, set `TRUSTED_PROXIES` (Docker Compose does), or every visitor shares the proxy's address.
 - Sign-ins, failed sign-ins and sign-outs are written to an audit log.
 
 ## Tech stack

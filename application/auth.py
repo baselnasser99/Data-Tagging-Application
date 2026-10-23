@@ -6,13 +6,15 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 from flask_login import current_user, login_user, logout_user
 
 from .extns import db
-from .models import User
+from .models import LoginFailure, User
 
 auth = Blueprint("auth", __name__)
 audit = logging.getLogger("audit")
 
 MIN_PASSWORD_LENGTH = 8
-MAX_FAILED_LOGINS = 5  # wrong passwords in a row before the account pauses
+# Wrong passwords are counted per address, so a stranger's guesses never lock the owner out:
+MAX_FAILED_LOGINS = 5  # for one account from one address, before that address pauses for it
+MAX_FAILED_LOGINS_PER_ADDRESS = 20  # across all accounts, before the address pauses (password spraying)
 LOCK_MINUTES = 15
 
 HOME_BY_ROLE = {
@@ -47,6 +49,15 @@ def _safe_next(target, user):
     return target
 
 
+def forget_failed_logins(user, address=None):
+    """A right password clears that address's count for the account; a new one from the admin, every address's."""
+    failures = LoginFailure.query.filter_by(user_id=user.id)
+    if address is not None:
+        failures = failures.filter_by(address=address)
+    failures.delete()
+    db.session.commit()
+
+
 @auth.route("/", methods=["GET", "POST"])
 @auth.route("/login", methods=["GET", "POST"])
 def login():
@@ -55,27 +66,31 @@ def login():
         password = request.form.get("password") or ""
         user = User.query.filter_by(email=email).first()
         now = datetime.now(timezone.utc).replace(tzinfo=None)
+        address = request.remote_addr or "unknown"
         # Only a real account is named: what was typed may be a password typed in the wrong box.
         who = f"user_id={user.id} email={user.email}" if user else "account=unknown"
 
-        if user and user.locked_until and user.locked_until > now:  # checked first: a right guess is refused too
-            audit.info("LOGIN_LOCKED %s ip=%s", who, request.remote_addr)
+        # Checked first, so during a pause even the right password is refused from this address.
+        recent = LoginFailure.query.filter(LoginFailure.address == address,
+                                           LoginFailure.at > now - timedelta(minutes=LOCK_MINUTES))
+        if recent.count() >= MAX_FAILED_LOGINS_PER_ADDRESS:
+            audit.info("LOGIN_THROTTLED %s ip=%s", who, address)
+            flash(f"Too many failed sign-ins from your network. Try again in {LOCK_MINUTES} minutes.", "danger")
+            return redirect(url_for("auth.login"))
+        if user and recent.filter(LoginFailure.user_id == user.id).count() >= MAX_FAILED_LOGINS:
+            audit.info("LOGIN_LOCKED %s ip=%s", who, address)
             flash(f"Too many wrong passwords. Try again in {LOCK_MINUTES} minutes.", "danger")
             return redirect(url_for("auth.login"))
 
         if not user or not user.active or not user.check_password(password):
-            audit.info("LOGIN_FAILED %s ip=%s", who, request.remote_addr)
-            if user:
-                user.failed_logins = (user.failed_logins or 0) + 1
-                if user.failed_logins >= MAX_FAILED_LOGINS:
-                    user.failed_logins, user.locked_until = 0, now + timedelta(minutes=LOCK_MINUTES)
-                db.session.commit()
+            audit.info("LOGIN_FAILED %s ip=%s", who, address)
+            LoginFailure.query.filter(LoginFailure.at <= now - timedelta(minutes=LOCK_MINUTES)).delete()
+            db.session.add(LoginFailure(address=address, user_id=user.id if user else None, at=now))
+            db.session.commit()
             flash("Email address or password is incorrect!", "danger")
             return redirect(url_for("auth.login"))
 
-        if user.failed_logins or user.locked_until:
-            user.failed_logins, user.locked_until = 0, None
-            db.session.commit()
+        forget_failed_logins(user, address)
 
         session.clear()
         login_user(user)

@@ -11,7 +11,7 @@ from flask_login import current_user, login_user
 from sqlalchemy import delete, func
 
 from . import distribution
-from .auth import MIN_PASSWORD_LENGTH
+from .auth import MIN_PASSWORD_LENGTH, forget_failed_logins
 from .export import csv_cell
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
@@ -131,8 +131,9 @@ def edit_user(user_id):
         user.full_name, user.email = full_name, email
         if password:
             user.set_password(password)
-            user.failed_logins, user.locked_until = 0, None  # a new password from the admin also lifts a lock
         db.session.commit()
+        if password:
+            forget_failed_logins(user)  # a new password from the admin also lifts every pause
         audit.info("USER_UPDATED user_id=%s by=%s password_changed=%s", user.id, current_user.id, bool(password))
         flash(f'{full_name} was updated.' + (' Share the new password with them.' if password else ''), 'success')
         return redirect(back)

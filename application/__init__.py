@@ -150,8 +150,7 @@ _ADDED_COLUMNS = [
     # Projects created before this setting existed keep handing out whole items.
     ("project", "hand_out_per_item", "BOOLEAN NOT NULL DEFAULT 1"),
     ("user", "active", "BOOLEAN NOT NULL DEFAULT 1"),
-    ("user", "failed_logins", "INTEGER NOT NULL DEFAULT 0"),
-    ("user", "locked_until", "DATETIME NULL"),
+    # user.failed_logins and user.locked_until are no longer used (see LoginFailure); old databases keep them.
     ("user", "session_version", "INTEGER NOT NULL DEFAULT 0"),
 ]
 

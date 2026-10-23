@@ -112,31 +112,91 @@ def test_side_panel_shows_a_summary_and_the_account_for_each_role(app, user_clie
     assert b"Your projects this week" in client.get("/admin/my-projects").data
 
 
-def test_five_wrong_passwords_pause_the_account_even_for_the_right_one(client, make_user, db):
+# ---- wrong passwords pause one address, not the account -------------------
+
+ATTACKER, OWNER = "198.51.100.1", "203.0.113.5"
+
+
+def _login_from(app, address, email, password="password123"):
+    client = app.test_client()
+    resp = client.post("/login", data={"email": email, "password": password},
+                       environ_base={"REMOTE_ADDR": address}, follow_redirects=True)
+    return client, resp
+
+
+def test_five_wrong_passwords_pause_that_address_even_for_the_right_one(app, make_user):
     from application.auth import MAX_FAILED_LOGINS
+
     user = make_user(email="target@example.com")
     for _ in range(MAX_FAILED_LOGINS):
-        login(client, user.email, password="wrong-guess")
-    db.session.refresh(user)
-    assert user.locked_until is not None
-    resp = login(client, user.email, follow=True)  # the right password, during the pause
+        _login_from(app, ATTACKER, user.email, "wrong-guess")
+    client, resp = _login_from(app, ATTACKER, user.email)  # the right password, during the pause
     assert b"Too many wrong passwords" in resp.data
     assert client.get("/user/dashboard").status_code == 302  # still signed out
 
-    user.locked_until = None  # the pause is over
+
+def test_someone_elses_wrong_guesses_do_not_lock_the_owner_out(app, make_user):
+    # Before, five wrong guesses from anyone paused the account itself: anyone could keep the admin out.
+    from application.auth import MAX_FAILED_LOGINS
+
+    user = make_user(email="target@example.com")
+    for _ in range(MAX_FAILED_LOGINS * 2):
+        _login_from(app, ATTACKER, user.email, "wrong-guess")
+    client, _ = _login_from(app, OWNER, user.email)
+    assert client.get("/user/dashboard").status_code == 200
+
+
+def test_one_address_trying_many_accounts_is_paused(app, make_user):
+    from application.auth import MAX_FAILED_LOGINS_PER_ADDRESS
+
+    user = make_user(email="sprayed@example.com")
+    for n in range(MAX_FAILED_LOGINS_PER_ADDRESS):  # one guess each, across many accounts
+        _login_from(app, ATTACKER, f"person{n}@example.com", "Summer2026!")
+    _, resp = _login_from(app, ATTACKER, user.email)
+    assert b"Too many failed sign-ins from your network" in resp.data
+    client, _ = _login_from(app, OWNER, user.email)
+    assert client.get("/user/dashboard").status_code == 200
+
+
+def test_the_pause_ends_after_lock_minutes(app, db, make_user):
+    from datetime import timedelta
+
+    from application.auth import LOCK_MINUTES, MAX_FAILED_LOGINS
+    from application.models import LoginFailure
+
+    user = make_user(email="target@example.com")
+    for _ in range(MAX_FAILED_LOGINS):
+        _login_from(app, ATTACKER, user.email, "wrong-guess")
+    for failure in LoginFailure.query.all():
+        failure.at -= timedelta(minutes=LOCK_MINUTES + 1)
     db.session.commit()
-    assert login(client, user.email).headers["Location"].endswith("/user/dashboard")
-    db.session.refresh(user)
-    assert user.failed_logins == 0
+    client, _ = _login_from(app, ATTACKER, user.email)
+    assert client.get("/user/dashboard").status_code == 200
 
 
-def test_a_right_password_resets_the_count(client, make_user, db):
+def test_a_right_password_resets_the_count(app, make_user):
+    from application.auth import MAX_FAILED_LOGINS
+
     user = make_user(email="typo@example.com")
-    for _ in range(3):
-        login(client, user.email, password="typo")
-    login(client, user.email)
-    db.session.refresh(user)
-    assert user.failed_logins == 0 and user.locked_until is None
+    for _ in range(MAX_FAILED_LOGINS - 1):
+        _login_from(app, OWNER, user.email, "typo")
+    _login_from(app, OWNER, user.email)
+    for _ in range(MAX_FAILED_LOGINS - 1):
+        _login_from(app, OWNER, user.email, "typo")
+    client, _ = _login_from(app, OWNER, user.email)
+    assert client.get("/user/dashboard").status_code == 200
+
+
+def test_a_new_password_from_the_admin_lifts_the_pause(app, admin_client, make_user):
+    from application.auth import MAX_FAILED_LOGINS
+
+    user = make_user(email="forgot@example.com")
+    for _ in range(MAX_FAILED_LOGINS):
+        _login_from(app, OWNER, user.email, "forgotten")
+    admin_client.post(f"/admin/users/{user.id}/edit", data={
+        "full_name": user.full_name, "email": user.email, "password": "a-fresh-password"})
+    client, _ = _login_from(app, OWNER, user.email, "a-fresh-password")
+    assert client.get("/user/dashboard").status_code == 200
 
 
 # ---- a copied session cookie stops working --------------------------------

@@ -261,6 +261,32 @@ def test_csp_allows_only_our_own_scripts(admin_client, path):
     assert "unsafe-inline" not in csp
 
 
+# Oldest versions without published vulnerabilities: jQuery 3.5.0 fixed CVE-2020-11022/-11023 (and
+# CVE-2019-11358, CVE-2015-9251 before it); Bootstrap 3.4.1 fixed CVE-2018-14040/-14041/-14042, CVE-2019-8331.
+SAFE_VERSIONS = {"jQuery": (3, 5, 0), "Bootstrap": (3, 4, 1)}
+
+
+def test_bundled_javascript_libraries_are_not_known_to_be_vulnerable():
+    import glob
+
+    found = {}
+    for path in glob.glob("application/static/**/*.js", recursive=True):
+        path = path.replace("\\", "/")
+        with open(path, encoding="utf-8", errors="replace") as f:
+            header = f.read(400)
+        match = re.search(r"\b(jQuery|Bootstrap) v(\d+)\.(\d+)\.(\d+)", header)
+        if match:
+            name, version = match.group(1), tuple(int(n) for n in match.group(2, 3, 4))
+            found[path] = version
+            assert version >= SAFE_VERSIONS[name], f"{path}: {name} {'.'.join(map(str, version))}"
+    assert len(found) == 2, found  # one jQuery and one Bootstrap, no forgotten old copies
+
+    with open("application/templates/base.html", encoding="utf-8") as f:
+        base = f.read()
+    for path in found:  # and those are the files the pages load
+        assert path.removeprefix("application/static/") in base, path
+
+
 def test_templates_have_no_inline_scripts_or_event_handlers():
     """script-src 'self' would block them: all JavaScript lives in static files."""
     import glob

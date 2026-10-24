@@ -45,6 +45,16 @@ a:hover { color: var(--ink-soft); }
   color: var(--ink);
 }
 
+/* The mark moves like the one in the app's top bar (app.css): the brackets close in on the
+   yellow square and let go, slowly, like an item being tagged. */
+.brand .brand-mark path { transform-box: view-box; transform-origin: 50% 50%;
+  animation: mark-select 7s cubic-bezier(.65, 0, .35, 1) infinite; }
+.brand .brand-mark rect { transform-box: view-box; transform-origin: 50% 50%;
+  animation: mark-tag 7s cubic-bezier(.65, 0, .35, 1) infinite; }
+@keyframes mark-select { 0%, 55%, 100% { transform: scale(1); } 70%, 80% { transform: scale(.82); } }
+@keyframes mark-tag { 0%, 62%, 100% { transform: scale(1); } 74% { transform: scale(1.12); } 82% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .brand .brand-mark path, .brand .brand-mark rect { animation: none; } }
+
 .auth-intro-body {
   margin: auto 0;
   max-width: 34rem;

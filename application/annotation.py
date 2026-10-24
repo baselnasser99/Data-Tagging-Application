@@ -7,6 +7,7 @@ from .auth import change_own_password
 from .extns import db
 from .models import Project, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer
 from .permissions import user_required
+from .stats import count_answered
 
 # Annotators' pages (on screen: members). The URLs keep their original /user prefix.
 annotation = Blueprint('annotation', __name__, url_prefix='/user')
@@ -91,8 +92,7 @@ def _my_group_projects(user_id):
                 assigned = UserQuestionAssignment.query.filter_by(
                     user_id=user_id, group_project_id=gp['group_project_id']).all()
                 gp['total'] = len(assigned)
-                gp['done'] = sum(1 for a in assigned if QuestionAnswer.query.filter_by(
-                    user_id=user_id, question_id=a.question_id).first())
+                gp['done'] = count_answered(assigned)
             group_projects.append(gp)
     return group_projects
 

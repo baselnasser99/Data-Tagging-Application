@@ -6,7 +6,7 @@ import json
 import pytest
 
 from application import distribution
-from application.export import fleiss_kappa, interpret_kappa, normalise
+from application.export import compared_answers, fleiss_kappa, interpret_kappa, normalise
 from application.models import (
     AnswerType,
     ExportLog,
@@ -43,6 +43,14 @@ def test_perfect_agreement_and_edge_cases():
 
 def test_normalise_ignores_case_spacing_and_punctuation():
     assert normalise("  Bicycle! ") == normalise("bicycle") == "bicycle"
+
+
+def test_which_answers_are_compared():
+    assert compared_answers("multiple_choice", ["Day", "Night"]) == ["Day", "Night"]  # as given
+    assert compared_answers("text", ["Red car", "red car!"]) == ["red car", "red car"]
+    # One answer longer than three words: the task's free text is read, not scored.
+    assert compared_answers("text", ["Car", "a red car parked outside"]) is None
+    assert compared_answers("text", []) is None
 
 
 # ---- end to end ---------------------------------------------------------------
@@ -241,6 +249,23 @@ def test_results_per_question_match_the_export(db, answered_project):
     assert [(d["answer"], d["count"]) for d in text["distribution"]] == [("bicycle", 4)]
     assert (text["compared"], text["agreed"]) == (2, 2) and not text["disagreements"]
 
+
+def test_long_free_text_is_listed_not_scored(db, answered_project):
+    """Answers over three words get no majority and no counts, in the export and on the results page alike."""
+    from application.export import build_project_export, question_results
+
+    for answer in QuestionAnswer.query.join(Question).filter(Question.answer_type == AnswerType.TEXT):
+        answer.answer = f"a bicycle leaning on the wall {answer.id}"
+    db.session.commit()
+
+    data = build_project_export(answered_project)
+    summaries = [q["summary"] for image in data["images"] for q in image["questions"] if q["type"] == "text"]
+    assert summaries and all("majority_answer" not in s and "majority_share" not in s for s in summaries)
+
+    text = question_results(data)[1]
+    assert text["distribution"] == []
+    assert (text["compared"], text["agreed"]) == (2, 0)
+    assert len(text["disagreements"]) == 2  # shown for a person to read
 
 def test_progress_page_shows_results(admin_client, answered_project):
     page = admin_client.get(f"/admin/view-annotation-project/{answered_project.id}").data.decode()

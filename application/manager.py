@@ -6,11 +6,10 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, redirect, url_for, flash, render_template
 from flask_login import current_user
 
-from . import distribution
+from . import distribution, surveys
 from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
 from .feedback import flash_distribution
-from .groups import distribute_questions_to_group
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
                      QuestionAnswer, TaskAssignment, User, UserQuestionAssignment)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
@@ -390,7 +389,7 @@ def _update_settings(project):
 def _redistribute_survey(project):
     for group_project in project.assigned_groups:
         if group_project.group:
-            distribute_questions_to_group(group_project.group, project)
+            surveys.give_to_group(group_project.group, project)
 
 
 _EDIT_ACTIONS = {

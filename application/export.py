@@ -78,6 +78,19 @@ def _question_kind(question) -> str:
     return "text"
 
 
+def compared_answers(kind: str, values: list[str]) -> list[str] | None:
+    """One task's answers as agreement compares them, or None when they aren't compared.
+
+    Multiple choice: as given. Free text: normalised, but only if every answer is short.
+    The export's per-task majority and the results page's counts both use this.
+    """
+    if kind == "multiple_choice":
+        return values
+    if values and all(len(v.split()) <= SHORT_TEXT_MAX_WORDS for v in values):
+        return [normalise(v) for v in values]
+    return None
+
+
 def build_project_export(project: Project) -> dict:
     """Collect every answer of an annotation project into one structure."""
     tasks = (
@@ -107,11 +120,7 @@ def build_project_export(project: Project) -> dict:
 
         summary = {"answers_received": len(task_answers), "answers_required": task.required_answers,
                    "cant_tell": len(task_answers) - len(values)}
-        compared = None
-        if kind == "multiple_choice":
-            compared = values
-        elif values and all(len(v.split()) <= SHORT_TEXT_MAX_WORDS for v in values):
-            compared = [normalise(v) for v in values]
+        compared = compared_answers(kind, values)
         if compared:
             ranked = Counter(compared).most_common(2)
             top, count = ranked[0]
@@ -197,21 +206,18 @@ def question_results(data: dict, disagreements_shown: int = 6) -> list[dict]:
         compared = agreed = 0
         disagreements, unclear = [], []
         for image, task in pairs:
-            values = [a["answer"] for a in task["answers"] if not a["cant_tell"]]
+            given = [a for a in task["answers"] if not a["cant_tell"]]
             not_sure = [a for a in task["answers"] if a["cant_tell"]]
             if not_sure and len(unclear) < disagreements_shown:
                 unclear.append({"image_id": image["image_id"], "file_name": image["file_name"], "answers": not_sure})
-            if kind == "multiple_choice":
-                counts.update(values)
-            elif values and all(len(v.split()) <= SHORT_TEXT_MAX_WORDS for v in values):
-                counts.update(normalise(v) for v in values)
-            if len(values) >= 2:
+            counts.update(compared_answers(kind, [a["answer"] for a in given]) or [])
+            if len(given) >= 2:
                 compared += 1
                 if task["summary"].get("majority_share") == 1:
                     agreed += 1
                 elif len(disagreements) < disagreements_shown:
                     disagreements.append({"image_id": image["image_id"], "file_name": image["file_name"],
-                                          "answers": [a for a in task["answers"] if not a["cant_tell"]]})
+                                          "answers": given})
         options = (tasks[0]["options"] if tasks and tasks[0]["options"] else []) if kind == "multiple_choice" else []
         # Choices in the order the question lists them, then anything else people answered.
         order = options + [v for v, _ in counts.most_common() if v not in options]

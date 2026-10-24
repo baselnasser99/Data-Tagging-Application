@@ -1,7 +1,28 @@
 """Progress and workload figures shown on the admin, manager and group pages."""
 from datetime import datetime, timedelta
 
+from .extns import db
 from .models import AnnotationTask, Question, QuestionAnswer, TaskAssignment, UserQuestionAssignment
+
+
+def answered(assignments):
+    """The (user id, question id) pairs among these survey assignments that have an answer.
+
+    One query however many assignments there are. Survey answers have no task assignment.
+    """
+    users, questions = {a.user_id for a in assignments}, {a.question_id for a in assignments}
+    if not users:
+        return set()
+    rows = db.session.query(QuestionAnswer.user_id, QuestionAnswer.question_id).filter(
+        QuestionAnswer.user_id.in_(users), QuestionAnswer.question_id.in_(questions),
+        QuestionAnswer.task_assignment_id.is_(None)).distinct()
+    return {(user_id, question_id) for user_id, question_id in rows}
+
+
+def count_answered(assignments):
+    """How many of these survey assignments have been answered."""
+    done = answered(assignments)
+    return sum(1 for a in assignments if (a.user_id, a.question_id) in done)
 
 
 def project_progress(project):
@@ -10,9 +31,7 @@ def project_progress(project):
         tasks = AnnotationTask.query.filter_by(project_id=project.id)
         return tasks.filter_by(is_completed=True).count(), tasks.count()
     assigned = UserQuestionAssignment.query.join(Question).filter(Question.project_id == project.id).all()
-    done = sum(1 for q in assigned if QuestionAnswer.query.filter_by(
-        user_id=q.user_id, question_id=q.question_id, task_assignment_id=None).first())
-    return done, len(assigned)
+    return count_answered(assigned), len(assigned)
 
 
 def group_progress(group, project_ids):
@@ -26,11 +45,9 @@ def group_progress(group, project_ids):
         TaskAssignment.user_id.in_(member_ids), AnnotationTask.project_id.in_(project_ids))
     survey = UserQuestionAssignment.query.filter(
         UserQuestionAssignment.user_id.in_(member_ids),
-        UserQuestionAssignment.group_project_id.in_([f"{group.id}-{pid}" for pid in project_ids]))
-    total = tasks.count() + survey.count()
-    done = tasks.filter(TaskAssignment.is_completed.is_(True)).count() + sum(
-        1 for q in survey if QuestionAnswer.query.filter_by(
-            user_id=q.user_id, question_id=q.question_id, task_assignment_id=None).first())
+        UserQuestionAssignment.group_project_id.in_([f"{group.id}-{pid}" for pid in project_ids])).all()
+    total = tasks.count() + len(survey)
+    done = tasks.filter(TaskAssignment.is_completed.is_(True)).count() + count_answered(survey)
     return done, total
 
 

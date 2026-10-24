@@ -87,7 +87,7 @@ def test_removing_member_through_the_ui_redistributes_their_tasks(admin_client, 
 
 def test_survey_distribution_gives_each_member_each_question_once(db, make_user):
     """Running the survey hand-out twice must not duplicate anyone's questions."""
-    from application.groups import distribute_questions_to_group
+    from application.surveys import give_to_group
     from application.models import GroupProject, Project, Question, UserQuestionAssignment
 
     project = Project(name="Survey", desc="d")
@@ -102,8 +102,8 @@ def test_survey_distribution_gives_each_member_each_question_once(db, make_user)
     db.session.add(GroupProject(group_id=group.id, project_id=project.id))
     db.session.commit()
 
-    distribute_questions_to_group(group, project)
-    distribute_questions_to_group(group, project)
+    give_to_group(group, project)
+    give_to_group(group, project)
 
     rows = UserQuestionAssignment.query.filter_by(group_project_id=f"{group.id}-{project.id}").all()
     assert sorted((r.user_id, r.question_id) for r in rows) == sorted(

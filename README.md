@@ -203,6 +203,7 @@ application/
 ├── annotation_admin.py  projects: create, upload, hand out, progress, export
 ├── annotation.py        members' tasks and answers
 ├── distribution.py      the fair hand-out algorithm
+├── surveys.py           handing out survey questions
 ├── export.py            CSV/JSON export and agreement scores
 └── permissions.py, models.py, templates/, static/
 ```

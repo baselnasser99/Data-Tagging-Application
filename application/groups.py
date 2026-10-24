@@ -7,7 +7,7 @@ application/distribution.py, so workloads stay balanced.
 from flask import Blueprint, request, redirect, url_for, flash, render_template, abort
 from flask_login import current_user
 
-from . import distribution
+from . import distribution, surveys
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
 from .models import GroupProject, Project, ProjectAdmin, QuestionAnswer, User, UserGroup, UserGroupMembership, UserQuestionAssignment
@@ -165,23 +165,11 @@ def set_up_new_project(project, group_id):
 def assign_questions_to_new_group_member(user, group):
     """Give a new group member their share of the group's projects.
 
-    Survey projects: every member answers every question.
+    Survey projects: every member answers every question (application/surveys.py).
     Annotation projects: open slots are filled and workloads rebalanced
     (see application/distribution.py).
     """
-    for gp in GroupProject.query.filter_by(group_id=group.id).all():
-        project = gp.project
-        if project is None or project.is_annotation_project:
-            continue
-        group_project_id_str = f"{group.id}-{project.id}"
-        for question in project.questions:
-            if not UserQuestionAssignment.query.filter_by(
-                user_id=user.id, question_id=question.id, group_project_id=group_project_id_str
-            ).first():
-                db.session.add(UserQuestionAssignment(
-                    user_id=user.id, question_id=question.id, group_project_id=group_project_id_str
-                ))
-    db.session.commit()
+    surveys.give_to_new_member(user, group)
     return distribution.on_member_added(user, group.id)
 
 
@@ -242,7 +230,7 @@ def assign_project_to_group():
             else: # Regular survey project
                 questions = project.questions
                 if questions:
-                    distribute_questions_to_group(group, project)
+                    surveys.give_to_group(group, project)
                     flash(f'Project "{project.name}" assigned to group "{group.name}" and questions distributed successfully!', 'success')
                 else:
                     flash(f'Project "{project.name}" assigned to group "{group.name}". No questions found yet. Please add questions to the project.', 'warning')
@@ -270,48 +258,6 @@ def assign_project_to_group():
                 for group in groups for gp in group.assigned_projects if gp.project_id in shown_ids}
     return render_template("admin/assign_project_to_group.html", groups=groups, projects=projects, progress=progress,
                            locked=locked)
-
-
-def distribute_questions_to_group(group, project):
-    """Distribute questions evenly among group members for survey projects, or based on annotation tasks for annotation projects"""
-    members = [m.user for m in group.members if m.user]
-    questions = project.questions
-
-    if not members or not questions:
-        return
-
-    # Create a unique identifier for this group-project combination
-    group_project_id = f"{group.id}-{project.id}"
-
-    # Clear existing assignments for this group-project combination before re-distributing
-    UserQuestionAssignment.query.filter_by(group_project_id=group_project_id).delete()
-    db.session.commit()
-
-    if project.is_annotation_project:
-        distribution.distribute(project)
-
-    else: # This is a regular survey project
-        # For survey projects, each user in the group should receive ALL questions from the project
-        for member in members:
-            for question in questions:
-                existing_assignment = UserQuestionAssignment.query.filter_by(
-                    user_id=member.id,
-                    question_id=question.id,
-                    group_project_id=group_project_id
-                ).first()
-                
-                if not existing_assignment:
-                    db.session.add(UserQuestionAssignment(
-                        user_id=member.id,
-                        question_id=question.id,
-                        group_project_id=group_project_id,
-                    ))
-    # Mark questions as distributed (this flag might need review based on exact workflow, but keeping for now)
-    group_project_link = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
-    if group_project_link:
-        group_project_link.questions_distributed = True
-
-    db.session.commit()
 
 
 @groups.route("/delete-group/<int:group_id>", methods=["POST"])

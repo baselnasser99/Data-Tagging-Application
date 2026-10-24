@@ -31,7 +31,7 @@ People are added by the admin one at a time (with a role, optionally straight in
   | `annotation_admin` | Projects: create, upload, hand out, progress, export |
   | `annotation` | Members' tasks and answers |
 
-- **Shared modules:** `distribution.py` (the algorithm), `export.py` (CSV/JSON, agreement), `permissions.py` (role checks as route decorators), `feedback.py` (messages), `models.py` (tables), `config.py` (settings from `.env`).
+- **Shared modules:** `distribution.py` (the algorithm), `surveys.py` (survey questions: everyone gets every question), `export.py` (CSV/JSON, agreement), `permissions.py` (role checks as route decorators), `feedback.py` (messages), `models.py` (tables), `config.py` (settings from `.env`).
 - **Database:** SQLAlchemy 2. MySQL 8 in production, SQLite for development and tests. `db.create_all()` creates the tables; on start, `_upgrade_schema()` adds columns and constraints introduced after the first release, so older databases keep working.
 - **Frontend:** Jinja templates, Bootstrap 3 and AdminLTE 2, a custom design layer (`app.css`, `apple.css`), Chart.js for the answers-per-week chart. It honours reduced-motion, reduced-transparency and high-contrast settings.
 - **No background workers.** Every operation runs inside the web request. The measurements in §9 show this is fast enough, so Celery and Redis would add two services without a measurable benefit.

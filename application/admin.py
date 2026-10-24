@@ -10,7 +10,7 @@ from flask import Blueprint, abort, flash, make_response, redirect, render_templ
 from flask_login import current_user
 from sqlalchemy import delete, func
 
-from . import distribution
+from . import distribution, surveys
 from .auth import MIN_PASSWORD_LENGTH, change_own_password, forget_failed_logins
 from .export import csv_cell
 from .extns import db
@@ -384,16 +384,8 @@ def _give_imported_project(users, project_id):
             flash(f"No open tasks were left to assign in '{project.name}'.", 'info')
         return
 
-    # Surveys: every imported person gets every question.
-    added = 0
-    for user in users:
-        for question in project.questions:
-            if not UserQuestionAssignment.query.filter_by(user_id=user.id, question_id=question.id).first():
-                db.session.add(UserQuestionAssignment(
-                    user_id=user.id, question_id=question.id,
-                    group_project_id=f"imported-{project.id}",  # not tied to a group
-                ))
-                added += 1
+    # Surveys: every imported person gets every question they don't already hold, through a group or otherwise.
+    added = surveys.give_questions(users, project, f"imported-{project.id}", held_under_any_key=True)
     db.session.commit()
     if added:
         flash(f"{added} questions assigned to users for project '{project.name}'.", 'success')

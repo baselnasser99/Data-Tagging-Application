@@ -128,10 +128,11 @@
           </ul>
           {% if summary.more %}
           <details class="sidebar-todo-more">
-            <summary>and {{ summary.more | length }} more</summary>
+            <summary>and {{ summary.more | length + summary.rest }} more</summary>
             <ul class="sidebar-todo">
               {% for text, url in summary.more %}<li><a href="{{ url }}">{{ text }}</a></li>{% endfor %}
             </ul>
+            {% if summary.rest %}<a class="sidebar-todo-rest" href="{{ summary.rest_url }}">and {{ summary.rest }} more: see all projects</a>{% endif %}
           </details>
           {% endif %}
           {% endif %}

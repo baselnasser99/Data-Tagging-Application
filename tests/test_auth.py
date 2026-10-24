@@ -151,6 +151,20 @@ def test_needs_you_lists_each_projects_next_step_and_loose_people(app, db, admin
     assert "Empty: add items" not in page and "no group" not in page and "Nobody yet" not in page
 
 
+def test_needs_you_stays_short_with_many_projects(db, admin_client):
+    from application.models import Project, UserGroup
+
+    db.session.add_all([Project(name=f"New {i}", desc="d", is_annotation_project=True) for i in range(15)])
+    db.session.add_all([UserGroup(name="Empty A"), UserGroup(name="Empty B")])
+    db.session.commit()
+    page = admin_client.get("/admin/dashboard").data.decode()
+    assert "2 groups with no members" in page  # one line for many groups, shown before the projects
+    assert page.index("2 groups with no members") < page.index("New 0: add items")
+    # 16 lines: the groups line and New 0 shown, New 1-8 folded (10 in all), the last 6 only counted
+    assert "New 8: add items" in page and "New 9: add items" not in page
+    assert "and 14 more</summary>" in page and "and 6 more: see all projects" in page
+
+
 # ---- wrong passwords pause one address, not the account -------------------
 
 ATTACKER, OWNER = "198.51.100.1", "203.0.113.5"

@@ -47,7 +47,9 @@ def test_cant_tell_finishes_the_task_and_stays_out_of_the_agreement(app, admin_c
     assert task["summary"]["majority_answer"] == "day" and task["summary"]["majority_share"] == 1.0  # Bob's isn't a vote
     assert sorted(a["cant_tell"] for a in task["answers"]) == [False, True]
 
-    rows = list(csv.DictReader(io.StringIO(admin_client.get(f"/admin/project/{project.id}/export.csv").data.decode())))
+    text = admin_client.get(f"/admin/project/{project.id}/export.csv").data.decode()
+    assert text.splitlines()[0].endswith(",task_majority_share,cant_tell")  # last: no older column moves
+    rows = list(csv.DictReader(io.StringIO(text)))
     assert sorted(r["cant_tell"] for r in rows if r["question"] == q) == ["", "yes"]
 
 

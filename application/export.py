@@ -233,7 +233,8 @@ def question_results(data: dict, disagreements_shown: int = 6) -> list[dict]:
 
 CSV_COLUMNS = [
     "image_id", "file_name", "media_type", "question_id", "question", "question_type",
-    "annotator", "annotator_name", "answer", "cant_tell", "submitted_at", "task_majority_answer", "task_majority_share",
+    "annotator", "annotator_name", "answer", "submitted_at", "task_majority_answer", "task_majority_share",
+    "cant_tell",  # added later: last, so files read by column position keep working
 ]
 
 

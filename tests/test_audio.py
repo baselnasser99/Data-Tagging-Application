@@ -81,8 +81,9 @@ def test_audio_tasks_are_generated_and_shown_with_a_player(app, admin_client, db
         page = client.get(url)
         assert page.status_code == 200, url
         assert b"<audio" in page.data, url
-        assert clip.filename.encode() in page.data, url
-        assert b'<img src="' + b"/files/images/" not in page.data, url
+        assert f"/item/{clip.id}".encode() in page.data, url  # the player plays this clip, by its number
+        assert clip.filename.encode() not in page.data, url    # members don't see the file name
+        assert f'<img src="/item/{clip.id}"'.encode() not in page.data, url
 
     # Answer both questions, then export: the clip is marked as audio.
     data = {f"answer_{a.id}": "a bird" for a in mine}

@@ -26,7 +26,7 @@
         {{ answer_field(question, "answer", "answer", autofocus=True) }}
         <button type="submit" class="btn btn-primary btn-lg btn-block answer-submit" data-busy="Saving…">Submit and go to the next</button>
         <p class="answer-hint" data-keyboard-hint hidden>
-          {% if question.answer_type.name == 'MCQ' %}Press <kbd>1</kbd>–<kbd>{{ [question.number_of_options, 9]|min }}</kbd> to choose, <kbd>Enter</kbd> to submit.
+          {% if question.answer_type.name == 'MCQ' %}Press <kbd>1</kbd>–<kbd>{{ [question.number_of_options, 9]|min }}</kbd> to choose, <kbd>Enter</kbd> to submit{% if not image.is_audio %}, <kbd>Z</kbd> to zoom{% endif %}.
           {% else %}Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit.{% endif %}
         </p>
         {% endif %}

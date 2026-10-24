@@ -24,24 +24,24 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
   </tr>
 </table>
 
-![Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group](docs/screenshots/admin-dashboard.png)
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/admin-dashboard-dark.png"><img src="docs/screenshots/admin-dashboard.png" alt="Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group"></picture>
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/progress-results.png" alt="Progress and results: agreement per question as Fleiss' kappa, how often each answer was given, and the items people disagreed on"><br><sub><b>Results:</b> agreement per question, answer counts, and where people disagreed</sub></td>
-    <td width="50%"><img src="docs/screenshots/project-overview.png" alt="A project's page: tasks done, answers given, each person's share of the tasks, questions and settings"><br><sub><b>Project:</b> progress, work balance, questions and settings</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/progress-results-dark.png"><img src="docs/screenshots/progress-results.png" alt="Progress and results: agreement per question as Fleiss' kappa, how often each answer was given, and the items people disagreed on"></picture><br><sub><b>Results:</b> agreement per question, answer counts, and where people disagreed</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/project-overview-dark.png"><img src="docs/screenshots/project-overview.png" alt="A project's page: tasks done, answers given, each person's share of the tasks, questions and settings"></picture><br><sub><b>Project:</b> progress, work balance, questions and settings</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/member-task.png" alt="A member answering a multiple-choice question about a picture, with numbered choices"><br><sub><b>Member's task:</b> one item, one question, keyboard shortcuts</sub></td>
-    <td><img src="docs/screenshots/member-overview.png" alt="A member's overview with their next task one click away"><br><sub><b>Member's overview:</b> the next task, one click away</sub></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/member-task-dark.png"><img src="docs/screenshots/member-task.png" alt="A member answering a multiple-choice question about a picture, with numbered choices"></picture><br><sub><b>Member's task:</b> one item, one question, keyboard shortcuts</sub></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/member-overview-dark.png"><img src="docs/screenshots/member-overview.png" alt="A member's overview with their next task one click away"></picture><br><sub><b>Member's overview:</b> the next task, one click away</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/hand-out-tasks.png" alt="Handing out tasks, with a preview of how many tasks each person will get"><br><sub><b>Hand out tasks:</b> each person's share, shown before anything is handed out</sub></td>
-    <td><img src="docs/screenshots/users.png" alt="Searchable list of people with groups, projects and answers"><br><sub><b>People:</b> search, groups, edit and remove</sub></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/hand-out-tasks-dark.png"><img src="docs/screenshots/hand-out-tasks.png" alt="Handing out tasks, with a preview of how many tasks each person will get"></picture><br><sub><b>Hand out tasks:</b> each person's share, shown before anything is handed out</sub></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/users-dark.png"><img src="docs/screenshots/users.png" alt="Searchable list of people with groups, projects and answers"></picture><br><sub><b>People:</b> search, groups, edit and remove</sub></td>
   </tr>
 </table>
 
-<sub>Screenshots use the demo data from <code>scripts/seed_demo.py</code>.</sub>
+<sub>Screenshots use the demo data from <code>scripts/seed_demo.py</code>, and follow your GitHub theme: light or dark.</sub>
 
 ## What it does
 

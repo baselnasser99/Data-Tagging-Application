@@ -53,3 +53,16 @@ def test_dark_tokens_are_the_same_both_ways():
     # Colours live in tokens.css only.
     for name in ("app.css", "auth.css"):
         assert "prefers-color-scheme" not in (STATIC / "css" / name).read_text(encoding="utf-8")
+
+
+def test_readme_screenshots_follow_the_github_theme():
+    # Each README screenshot sits in a <picture> with a dark copy, and both files exist.
+    root = STATIC.parent.parent
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    pictures = re.findall(r'<picture><source media="\(prefers-color-scheme: dark\)" srcset="([^"]+)">'
+                          r'<img src="([^"]+)"', readme)
+    shots = re.findall(r'docs/screenshots/[\w-]+\.png', readme)
+    assert pictures and len(shots) == 2 * len(pictures)  # no screenshot outside a <picture>
+    for dark, light in pictures:
+        assert dark == light.replace(".png", "-dark.png")
+        assert (root / dark).is_file() and (root / light).is_file()

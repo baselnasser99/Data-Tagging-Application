@@ -19,4 +19,8 @@
   }
   search.addEventListener('input', apply);
   filter.addEventListener('change', apply);
+  // ?show=none (the side panel's "in no group" link) opens the list already filtered
+  var show = new URLSearchParams(location.search).get('show');
+  var option = show && Array.prototype.find.call(filter.options, function (o) { return o.value === show; });
+  if (option) { filter.value = show; apply(); }
 })();

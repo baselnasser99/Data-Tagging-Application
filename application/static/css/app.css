@@ -185,6 +185,18 @@ a:hover, a:focus { color: var(--ink-soft); }
 .sidebar-card dt { font-weight: 400; color: var(--muted); }
 .sidebar-card dd { margin: 0; font-weight: 700; }
 .sidebar-card .progress { margin: 10px 0 0; background: var(--surface); }
+/* "Needs you": each line a link to the page where it gets done, marked with a small yellow square */
+.sidebar-todo { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.sidebar-todo a { display: block; position: relative; margin: 0 -8px; padding: 3px 8px 3px 20px; border-radius: var(--radius-sm);
+  color: var(--ink); text-decoration: none; font-size: 13.5px; line-height: 1.25; }
+.sidebar-todo a::before { content: ""; position: absolute; left: 8px; top: .72em; width: 6px; height: 6px; border-radius: 1px; background: var(--marker); }
+.sidebar-todo a:hover, .sidebar-todo a:focus-visible { background: var(--surface); text-decoration: underline; text-underline-offset: 3px; }
+.sidebar-todo .is-clear { color: var(--muted); font-size: 14px; }
+.sidebar-todo .is-clear .fa { color: var(--success); }
+.sidebar-todo-more { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.sidebar-todo-more > summary { cursor: pointer; padding: 2px 0; }
+.sidebar-todo-more > .sidebar-todo { margin-top: 2px; }
+.sidebar-todo-rest { display: block; margin-top: 4px; color: var(--muted); }
 .sidebar-account { display: flex; align-items: center; gap: 10px; padding: 10px 4px 0; border-top: 1px solid var(--line); }
 .sidebar-account-who { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .sidebar-account-who > strong, .sidebar-account-who > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

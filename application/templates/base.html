@@ -113,16 +113,36 @@
       </ul>
       </nav>
 
-      {# The space under the menu: a few numbers about your work, and your account. #}
+      {# The space under the menu: your progress (members) or what needs you (admins, managers), and your account. #}
       {% set summary = sidebar_summary(current_user) %}
       <div class="sidebar-foot">
         <section class="sidebar-card" aria-label="{{ summary.title }}">
           <h2>{{ summary.title }}</h2>
+          {% if summary.todo is defined %}
+          <ul class="sidebar-todo">
+            {% for text, url in summary.todo %}
+            <li><a href="{{ url }}">{{ text }}</a></li>
+            {% else %}
+            <li class="is-clear"><i class="fa fa-check" aria-hidden="true"></i> Nothing needs you right now.</li>
+            {% endfor %}
+          </ul>
+          {% if summary.more %}
+          <details class="sidebar-todo-more">
+            <summary>and {{ summary.more | length + summary.rest }} more</summary>
+            <ul class="sidebar-todo">
+              {% for text, url in summary.more %}<li><a href="{{ url }}">{{ text }}</a></li>{% endfor %}
+            </ul>
+            {% if summary.rest %}<a class="sidebar-todo-rest" href="{{ summary.rest_url }}">and {{ summary.rest }} more: see all projects</a>{% endif %}
+          </details>
+          {% endif %}
+          {% endif %}
+          {% if summary.lines %}
           <dl>
             {% for label, value in summary.lines %}
             <div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>
             {% endfor %}
           </dl>
+          {% endif %}
           {% if summary.total %}
           {% set pct = (summary.done / summary.total * 100)|round(1) %}
           <div class="progress{% if summary.done == summary.total %} is-done{% endif %}" role="progressbar" aria-label="Your tasks done"

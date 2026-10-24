@@ -19,7 +19,7 @@ except ImportError:  # pragma: no cover - optional dependency
 
 from .config import Config  # noqa: E402  (must come after load_dotenv)
 from .extns import csrf, db, login_manager  # noqa: E402
-from .models import User  # noqa: E402
+from .models import ProjectImage, User  # noqa: E402
 
 
 def create_app(config_object=None):
@@ -41,7 +41,7 @@ def create_app(config_object=None):
     from .groups import groups
     from .manager import manager
     from .annotation_admin import annotation_admin
-    from .permissions import can_open_upload
+    from .permissions import can_open_upload, can_see_project
     from .uploads import upload_dir
     from .jinja_utils import getattr_safe, plural, sidebar_summary
 
@@ -85,11 +85,21 @@ def create_app(config_object=None):
             abort(403)
         return send_from_directory(upload_dir(), name)
 
+    @app.route("/item/<int:item_id>")
+    @login_required
+    def item_file(item_id):
+        # A project's item by its number, so the address doesn't carry the file name, which can
+        # give the answer away ("red_stop_sign.png"). Same rule as above: the project's people only.
+        item = db.session.get(ProjectImage, item_id)
+        if item is None or not can_see_project(current_user, item.project_id):
+            abort(403)  # unknown items too: no hint that one exists
+        return send_from_directory(upload_dir("images", str(item.project_id)), item.filename)
+
     @app.after_request
     def _security_headers(response):
         # Pages show private data: don't let the browser keep a copy that the
         # Back button could show after sign-out. Static files may be cached.
-        if request.endpoint not in ("static", "uploaded_file"):
+        if request.endpoint not in ("static", "uploaded_file", "item_file"):
             response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"

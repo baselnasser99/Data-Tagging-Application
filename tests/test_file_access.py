@@ -73,6 +73,35 @@ def test_unknown_file_gets_403_not_a_hint_that_it_exists(app, item):
     assert _client(app, item["member"]).get("/files/nothing-here.png").status_code == 403
 
 
+def _item_url(db, project):
+    from application.models import ProjectImage
+    image = ProjectImage(project_id=project.id, filename="photo.png", original_filename="red_stop_sign.png", file_path="x")
+    db.session.add(image)
+    db.session.commit()
+    return f"/item/{image.id}"
+
+
+def test_items_by_number_follow_the_same_rule(app, db, item, make_project_admin):
+    url = _item_url(db, item["project"])
+    resp = _client(app, item["member"]).get(url)
+    assert resp.status_code == 200 and resp.data == b"file-bytes"
+    assert _client(app, item["outsider"]).get(url).status_code == 403
+    assert _client(app, make_project_admin(item["other_project"])).get(url).status_code == 403
+    assert _client(app, item["member"]).get("/item/99999").status_code == 403  # no hint that it doesn't exist
+
+
+def test_item_pages_do_not_put_the_file_name_in_the_address(app, db, item):
+    from flask import render_template_string
+    url = _item_url(db, item["project"])
+    from application.models import ProjectImage
+    image = db.session.get(ProjectImage, int(url.rsplit("/", 1)[1]))
+    with app.test_request_context():
+        html = render_template_string('{% from "includes/media.html" import media_item %}'
+                                      '{{ media_item(project, item, label="Picture to label") }}',
+                                      project=item["project"], item=image)
+    assert url in html and "red_stop_sign" not in html and "photo.png" not in html
+
+
 def test_survey_attachments_follow_the_same_rule(app, db, make_user):
     survey, member = _project_with_member(db, make_user, "Survey", survey=True)
     _other, outsider = _project_with_member(db, make_user, "Other", survey=True)

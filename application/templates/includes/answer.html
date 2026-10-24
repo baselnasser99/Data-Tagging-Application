@@ -4,7 +4,7 @@
 
     {% from "includes/answer.html" import answer_top, item_stage, answer_field, about_project %}
     {{ answer_top(project, done, total, "Task 7 of 9") }}      progress strip, the way back and "Saved"
-    {{ item_stage(project, image) }}                           the item, framed by the selection corners
+    {{ item_stage(project, image) }}                           the item, framed by the selection corners; pictures can be zoomed
     {{ answer_field(question, "answer", "answer") }}           choices or a text box
     {{ about_project(project) }}                               the project's description, folded away
 
@@ -14,7 +14,7 @@
   Choices are numbered so they can be picked with the keyboard (static/js/answer.js);
   autofocus only reaches a text box, so no choice looks picked before the member picks it.
 #}
-{% from "includes/media.html" import media_item %}
+{% from "includes/media.html" import media_item, media_url %}
 
 {% macro answer_top(project, done, total, heading) -%}
 <section class="content-header answer-top">
@@ -49,6 +49,16 @@
     <span class="corners" aria-hidden="true"></span>
     {{ media_item(project, image, img_class="item-media", label="Audio clip to label" if image.is_audio else "Picture to label") }}
   </div>
+  {% if not image.is_audio %}
+  {# Zoom (static/js/answer.js): the picture as large as the screen allows; Esc closes it #}
+  <button type="button" class="btn btn-default btn-sm item-zoom" data-zoom="zoom-view" hidden>
+    <i class="fa fa-search-plus" aria-hidden="true"></i> Zoom <kbd>Z</kbd>
+  </button>
+  <dialog class="zoom-view" id="zoom-view" aria-label="The picture, full size">
+    <img src="{{ media_url(project, image) }}" alt="Picture to label, full size">
+    <form method="dialog"><button type="submit" class="btn btn-default zoom-close">Close <kbd>Esc</kbd></button></form>
+  </dialog>
+  {% endif %}
 </figure>
 {%- endmacro %}
 

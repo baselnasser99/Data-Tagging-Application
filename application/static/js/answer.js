@@ -7,6 +7,18 @@
 
   document.querySelectorAll("[data-keyboard-hint]").forEach(function (hint) { hint.hidden = false; });
 
+  // Zoom: the button, a click on the picture or Z opens it full size; Esc, Z or a click closes it.
+  var zoomButton = document.querySelector("[data-zoom]");
+  var zoom = zoomButton && document.getElementById(zoomButton.dataset.zoom);
+  if (zoom && zoom.showModal) {
+    zoomButton.hidden = false;
+    var openZoom = function () { if (!zoom.open) zoom.showModal(); };
+    zoomButton.addEventListener("click", openZoom);
+    var picture = document.querySelector(".item-stage .item-media");
+    if (picture) { picture.classList.add("is-zoomable"); picture.addEventListener("click", openZoom); }
+    zoom.addEventListener("click", function (e) { if (e.target.tagName !== "BUTTON") zoom.close(); });
+  }
+
   function submit() {
     if (form.requestSubmit) form.requestSubmit(); else form.submit();
   }
@@ -20,6 +32,13 @@
 
   document.addEventListener("keydown", function (e) {
     var typing = e.target.tagName === "TEXTAREA" || (e.target.tagName === "INPUT" && e.target.type === "text");
+
+    if (zoom && zoom.showModal && !typing && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "z" || e.key === "Z")) {
+      e.preventDefault();
+      if (zoom.open) zoom.close(); else zoom.showModal();
+      return;
+    }
+    if (zoom && zoom.open) return;  // keys pick nothing behind the zoomed picture
 
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit(); return; }
     if (e.key === "Enter" && e.target.type === "radio") { e.preventDefault(); submit(); return; }

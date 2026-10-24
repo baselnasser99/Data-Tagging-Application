@@ -14,8 +14,9 @@
   label="Item to label": what members see and hear instead of the file name (alt text,
   player name, no tooltip). File names can give the answer away ("red_stop_sign.png").
 #}
+{# By the item's number, not its file name (see item_file in application/__init__.py) #}
 {% macro media_url(project, item) -%}
-  {{ url_for('uploaded_file', name='images/' ~ project.id ~ '/' ~ item.filename) }}
+  {{ url_for('item_file', item_id=item.id) }}
 {%- endmacro %}
 
 {% macro media_item(project, item, img_class="", img_style="", thumbnail=False, label=None) -%}

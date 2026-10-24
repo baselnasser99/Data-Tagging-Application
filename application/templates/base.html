@@ -14,8 +14,11 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <!-- Light/dark theme: applies a saved choice before the page is drawn, so no defer -->
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
 
   <script src="{{ url_for('static', filename='new/plugins/jQuery/jquery-3.7.1.min.js') }}"></script>
+  <link href="{{ url_for('static', filename='css/tokens.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='new/css/bootstrap.min.css') }}" rel="stylesheet">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
   <link href="{{ url_for('static', filename='new/css/AdminLTE.min.css') }}" rel="stylesheet">
@@ -64,6 +67,14 @@
                   {% else %}
                   <a href="{{ url_for('admin.admin_profile') }}">Profile settings</a>
                   {% endif %}
+                </li>
+                <li class="theme-switch" role="group" aria-labelledby="theme-switch-label">
+                  <span class="theme-switch-label" id="theme-switch-label">Theme</span>
+                  <div class="theme-choices">
+                    <button type="button" data-theme-choice="light" aria-pressed="false"><i class="fa fa-sun-o" aria-hidden="true"></i> Light</button>
+                    <button type="button" data-theme-choice="dark" aria-pressed="false"><i class="fa fa-moon-o" aria-hidden="true"></i> Dark</button>
+                    <button type="button" data-theme-choice="system" aria-pressed="true"><i class="fa fa-desktop" aria-hidden="true"></i> System</button>
+                  </div>
                 </li>
                 <li><a href="{{ url_for('auth.logout') }}">Sign out</a></li>
               </ul>

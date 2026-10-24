@@ -55,14 +55,16 @@ def test_dark_tokens_are_the_same_both_ways():
         assert "prefers-color-scheme" not in (STATIC / "css" / name).read_text(encoding="utf-8")
 
 
-def test_readme_screenshots_follow_the_github_theme():
-    # Each README screenshot sits in a <picture> with a dark copy, and both files exist.
+def test_readme_images_follow_the_github_theme():
+    # Each of the README's own images (the banner and the screenshots) sits in a <picture>
+    # with a dark copy, and both files exist. Badges from other sites are left alone.
     root = STATIC.parent.parent
     readme = (root / "README.md").read_text(encoding="utf-8")
     pictures = re.findall(r'<picture><source media="\(prefers-color-scheme: dark\)" srcset="([^"]+)">'
                           r'<img src="([^"]+)"', readme)
-    shots = re.findall(r'docs/screenshots/[\w-]+\.png', readme)
-    assert pictures and len(shots) == 2 * len(pictures)  # no screenshot outside a <picture>
+    local_images = re.findall(r'(?:src|srcset)="(docs/[^"]+\.png)"', readme)
+    assert pictures and len(local_images) == 2 * len(pictures)  # no local image outside a <picture>
+    assert ("docs/preview/preview@2x-dark.png", "docs/preview/preview@2x.png") in pictures  # the banner
     for dark, light in pictures:
         assert dark == light.replace(".png", "-dark.png")
         assert (root / dark).is_file() and (root / light).is_file()

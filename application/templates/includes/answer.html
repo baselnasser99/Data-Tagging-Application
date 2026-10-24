@@ -37,7 +37,6 @@
     <span class="corners" aria-hidden="true"></span>
     {{ media_item(project, image, img_class="item-media") }}
   </div>
-  <figcaption>{{ 'Audio clip' if image.is_audio else 'Picture' }} · {{ image.original_filename }}</figcaption>
 </figure>
 {%- endmacro %}
 

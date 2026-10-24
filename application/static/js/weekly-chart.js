@@ -8,7 +8,7 @@
   function colours() {
     const style = getComputedStyle(document.documentElement);
     const token = name => style.getPropertyValue(name).trim();
-    return { bar: token('--accent'), text: token('--muted'), grid: token('--chart-grid') };
+    return { bar: token('--data'), edge: token('--data-edge'), text: token('--muted'), grid: token('--chart-grid') };
   }
 
   const c = colours();
@@ -21,6 +21,8 @@
         label: 'Answers submitted',
         data: weeks.map(w => w.answers),
         backgroundColor: c.bar,
+        borderColor: c.edge,
+        borderWidth: 1,
         borderRadius: 4,
         maxBarThickness: 28
       }]
@@ -40,6 +42,7 @@
   function repaint() {
     const c = colours();
     chart.data.datasets[0].backgroundColor = c.bar;
+    chart.data.datasets[0].borderColor = c.edge;
     chart.options.scales.x.ticks.color = chart.options.scales.y.ticks.color = c.text;
     chart.options.scales.y.grid.color = c.grid;
     chart.update();

@@ -65,7 +65,7 @@
           </div>
           {% if k is not none %}
           <div class="kappa-scale" role="img" aria-label="Fleiss' kappa {{ '%.2f'|format(k) }} on a scale from 0 to 1">
-            {% for limit in (0.2, 0.4, 0.6, 0.8, 1.0) %}<span></span>{% endfor %}
+            {% for band in ("slight", "fair", "moderate", "substantial", "almost perfect") %}<span{% if r.agreement == band or (loop.first and r.agreement == "poor") %} class="is-here"{% endif %}></span>{% endfor %}
             <i style="left: {{ ([[k, 0]|max, 1]|min * 100)|round(1) }}%"></i>
           </div>
           <div class="kappa-labels" aria-hidden="true"><span>slight</span><span>fair</span><span>moderate</span><span>substantial</span><span>almost perfect</span></div>
@@ -75,9 +75,10 @@
 
         {% if r.distribution %}
         <p class="result-label">{{ "How often each answer was given" if r.type == "multiple_choice" else "Most common short answers" }}</p>
+        {% set most = r.distribution|map(attribute="count")|max %}
         <ul class="answer-bars">
           {% for d in r.distribution %}
-          <li>
+          <li{% if most and d.count == most %} class="is-top"{% endif %}>
             <span class="answer-bars-label">{{ d.answer }}</span>
             <span class="answer-bars-track" aria-hidden="true"><span style="width: {{ (d.share * 100)|round(1) }}%"></span></span>
             <span class="answer-bars-count">{{ d.count }}</span>

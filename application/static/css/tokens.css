@@ -30,7 +30,7 @@
   --warning: #8A5300;
   --warning-bg: #FDF3E1;
   --info-bg: #E8EEF6;
-  /* Accents: one calm blue for progress and charts, plus soft tints that tell the kinds of
+  /* Accents: one calm blue for links and notes, plus soft tints that tell the kinds of
      action apart. Colour always sits next to a word, never carries meaning alone. */
   --accent: #3366CC;
   --accent-soft: #EBF1FB;
@@ -45,7 +45,11 @@
   --success-solid: #1F7A4D; /* fills with white text: these stay dark in both themes */
   --danger-solid: #B42318;
   --danger-line: #E3B4AF;
-  --accent-done: #B9CBEA;   /* finished share in the work-balance bars */
+  /* Data: progress bars, answer bars and charts use the marker yellow, the way a highlighter
+     marks what is done. Yellow on light grey is faint (1.3:1), so bars get a darker rim
+     (3.5:1 against the canvas); on the dark canvas the yellow stands out by itself. */
+  --data: #F5CF3A;
+  --data-edge: #9A7A00;
   --stripe: #F6F8FA;
   --chart-grid: #E3E7EC;
   --hairline: rgba(28, 39, 51, 0.08);
@@ -90,7 +94,7 @@
     --on-ink: #12171D;
     --ink-hover: #FFFFFF;
     --danger-line: #6B3330;
-    --accent-done: #34476B;
+    --data-edge: #F5CF3A;
     --stripe: #1F2730;
     --chart-grid: #2A323C;
     --hairline: rgba(255, 255, 255, 0.07);
@@ -132,7 +136,7 @@
   --on-ink: #12171D;
   --ink-hover: #FFFFFF;
   --danger-line: #6B3330;
-  --accent-done: #34476B;
+  --data-edge: #F5CF3A;
   --stripe: #1F2730;
   --chart-grid: #2A323C;
   --hairline: rgba(255, 255, 255, 0.07);

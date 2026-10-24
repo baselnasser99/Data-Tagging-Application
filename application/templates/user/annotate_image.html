@@ -32,6 +32,10 @@
         <button type="submit" class="btn btn-primary btn-lg btn-block answer-submit" data-busy="Saving…">
           {{ 'Submit and go to the next' if total_uncompleted_questions <= assignments|length else 'Submit these ' ~ plural(assignments|length, "answer") }}
         </button>
+        <button type="submit" class="btn btn-default btn-block answer-cant-tell" name="cant_tell" value="1" formnovalidate data-busy="Saving…">
+          Can't tell for this item
+        </button>
+        <p class="answer-cant-tell-note">Too blurry, cut off or ambiguous? This marks all of its questions, and your manager sees it.</p>
         <p class="answer-hint" data-keyboard-hint hidden>
           {% if assignments|selectattr('task.question.answer_type.name', 'equalto', 'MCQ')|list %}Press a number to choose, <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit{% if not image.is_audio %}, <kbd>Z</kbd> to zoom{% endif %}.
           {% else %}Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit.{% endif %}

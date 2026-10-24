@@ -27,6 +27,9 @@ A fixed split breaks the moment someone joins or leaves, and re-splitting would 
 **How do you measure label quality?**
 Fleiss' kappa for each multiple-choice question, over tasks with at least two answers, read on the Landis and Koch scale. Each task also gets a majority answer, and a tie has no majority. The kappa code is checked against Fleiss's published example (κ = 0.210).
 
+**What if an item can't be answered, for example a blurry picture?**
+The member presses *Can't tell* instead of guessing. It finishes the task, so the work stays fair and nothing is handed out again, but it is left out of the majority answer and Fleiss' kappa: a guess would add noise to the agreement score, and an "I don't know" is not a vote for any answer. These items are flagged in the export and listed on the results page, where a manager can see whether the item is unclear or the question needs a better choice.
+
 **Why no agreement score for free text?**
 Two good descriptions rarely match word for word. Short answers of up to three words are compared after ignoring case and punctuation; longer text needs a person to review it.
 

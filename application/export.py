@@ -12,6 +12,8 @@ Agreement (thesis ch. 3.1: inter-annotator agreement as a quality signal)
   * Short free-text answers (up to three words): answers are compared after
     normalising case, spacing and punctuation, giving a percent agreement.
   * Longer free text: no score; the answers are listed for a human to read.
+  * "Can't tell" answers (cant_tell: true) are exported but left out of all of
+    the above: they say nothing about which answer is right.
 """
 from __future__ import annotations
 
@@ -101,9 +103,10 @@ def build_project_export(project: Project) -> dict:
         question = task.question
         kind = _question_kind(question)
         task_answers = sorted(by_task.get(task.id, []), key=lambda a: a.submitted_date or datetime.min)
-        values = [a.answer for a in task_answers]
+        values = [a.answer for a in task_answers if not a.cant_tell]  # "can't tell" is no vote
 
-        summary = {"answers_received": len(values), "answers_required": task.required_answers}
+        summary = {"answers_received": len(task_answers), "answers_required": task.required_answers,
+                   "cant_tell": len(task_answers) - len(values)}
         compared = None
         if kind == "multiple_choice":
             compared = values
@@ -137,6 +140,7 @@ def build_project_export(project: Project) -> dict:
                     "annotator": a.user.email,
                     "annotator_name": a.user.full_name,
                     "answer": a.answer,
+                    "cant_tell": bool(a.cant_tell),
                     "submitted_at": a.submitted_date.isoformat() if a.submitted_date else None,
                 }
                 for a in task_answers
@@ -191,9 +195,12 @@ def question_results(data: dict, disagreements_shown: int = 6) -> list[dict]:
         kind = summary["type"]
         counts: Counter = Counter()
         compared = agreed = 0
-        disagreements = []
+        disagreements, unclear = [], []
         for image, task in pairs:
-            values = [a["answer"] for a in task["answers"]]
+            values = [a["answer"] for a in task["answers"] if not a["cant_tell"]]
+            not_sure = [a for a in task["answers"] if a["cant_tell"]]
+            if not_sure and len(unclear) < disagreements_shown:
+                unclear.append({"image_id": image["image_id"], "file_name": image["file_name"], "answers": not_sure})
             if kind == "multiple_choice":
                 counts.update(values)
             elif values and all(len(v.split()) <= SHORT_TEXT_MAX_WORDS for v in values):
@@ -204,7 +211,7 @@ def question_results(data: dict, disagreements_shown: int = 6) -> list[dict]:
                     agreed += 1
                 elif len(disagreements) < disagreements_shown:
                     disagreements.append({"image_id": image["image_id"], "file_name": image["file_name"],
-                                          "answers": task["answers"]})
+                                          "answers": [a for a in task["answers"] if not a["cant_tell"]]})
         options = (tasks[0]["options"] if tasks and tasks[0]["options"] else []) if kind == "multiple_choice" else []
         # Choices in the order the question lists them, then anything else people answered.
         order = options + [v for v, _ in counts.most_common() if v not in options]
@@ -213,6 +220,9 @@ def question_results(data: dict, disagreements_shown: int = 6) -> list[dict]:
         results.append({
             **summary,
             "answers": sum(len(t["answers"]) for t in tasks),
+            "cant_tell": sum(t["summary"]["cant_tell"] for t in tasks),
+            "unclear_items": sum(1 for t in tasks if t["summary"]["cant_tell"]),
+            "unclear": unclear,
             "distribution": [{"answer": v, "count": counts[v], "share": counts[v] / total if total else 0} for v in top],
             "compared": compared,
             "agreed": agreed,
@@ -224,6 +234,7 @@ def question_results(data: dict, disagreements_shown: int = 6) -> list[dict]:
 CSV_COLUMNS = [
     "image_id", "file_name", "media_type", "question_id", "question", "question_type",
     "annotator", "annotator_name", "answer", "submitted_at", "task_majority_answer", "task_majority_share",
+    "cant_tell",  # added later: last, so files read by column position keep working
 ]
 
 
@@ -252,7 +263,9 @@ def to_csv(data: dict) -> str:
                 "task_majority_share": q["summary"].get("majority_share", ""),
             }
             rows = [{"annotator": a["annotator"], "annotator_name": a["annotator_name"], "answer": a["answer"],
-                     "submitted_at": a["submitted_at"] or ""} for a in q["answers"]]
-            for row in rows or [{"annotator": "", "annotator_name": "", "answer": "", "submitted_at": ""}]:
+                     "cant_tell": "yes" if a["cant_tell"] else "", "submitted_at": a["submitted_at"] or ""}
+                    for a in q["answers"]]
+            for row in rows or [{"annotator": "", "annotator_name": "", "answer": "", "cant_tell": "",
+                                 "submitted_at": ""}]:
                 writer.writerow({k: csv_cell(v) for k, v in {**base, **row}.items()})
     return out.getvalue()

@@ -25,6 +25,10 @@
         {% else %}
         {{ answer_field(question, "answer", "answer", autofocus=True) }}
         <button type="submit" class="btn btn-primary btn-lg btn-block answer-submit" data-busy="Saving…">Submit and go to the next</button>
+        <button type="submit" class="btn btn-default btn-block answer-cant-tell" name="cant_tell" value="1" formnovalidate data-busy="Saving…">
+          Can't tell
+        </button>
+        <p class="answer-cant-tell-note">Too blurry, cut off or ambiguous to answer? Mark it, and your manager sees it.</p>
         <p class="answer-hint" data-keyboard-hint hidden>
           {% if question.answer_type.name == 'MCQ' %}Press <kbd>1</kbd>–<kbd>{{ [question.number_of_options, 9]|min }}</kbd> to choose, <kbd>Enter</kbd> to submit{% if not image.is_audio %}, <kbd>Z</kbd> to zoom{% endif %}.
           {% else %}Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit.{% endif %}

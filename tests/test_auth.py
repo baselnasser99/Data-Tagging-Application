@@ -102,14 +102,53 @@ def test_side_panel_shows_a_summary_and_the_account_for_each_role(app, user_clie
     member = user_client.get("/user/dashboard").data
     assert b"Your progress" in member and b"Sign out" in member and b"Member" in member
     admin = admin_client.get("/admin/dashboard").data
-    assert b"This week" in admin and b"Answers in 7 days" in admin
+    assert b"Needs you" in admin and b"Answers in 7 days" not in admin  # what waits, not the dashboard's numbers again
 
-    project = Project(name="P", desc="d")
+    project = Project(name="P", desc="d", is_annotation_project=True)
     db.session.add(project)
     db.session.commit()
     client = app.test_client()
     login(client, make_project_admin(project).email)
-    assert b"Your projects this week" in client.get("/admin/my-projects").data
+    manager = client.get("/admin/my-projects").data
+    assert b"Needs you" in manager and b"P: add items" in manager
+
+
+def test_needs_you_lists_each_projects_next_step_and_loose_people(app, db, admin_client, make_user, make_project_admin):
+    from application.models import AnnotationTask, Project, ProjectImage, Question, UserGroup
+    from application.models import AnswerType
+
+    no_items = Project(name="Empty", desc="d", is_annotation_project=True)
+    to_hand_out = Project(name="Ready", desc="d", is_annotation_project=True)
+    survey = Project(name="Poll", desc="d", is_annotation_project=False)
+    db.session.add_all([no_items, to_hand_out, survey, UserGroup(name="Nobody yet")])
+    db.session.flush()
+    db.session.add_all([
+        ProjectImage(project_id=to_hand_out.id, filename="a.png", original_filename="a.png", file_path="x"),
+        Question(question="Shape?", project_id=to_hand_out.id, answer_type=AnswerType.TEXT),
+        Question(question="Happy?", project_id=survey.id, answer_type=AnswerType.TEXT),
+    ])
+    db.session.commit()
+    make_user(name="Loose")  # a member in no group
+
+    page = admin_client.get("/admin/dashboard").data.decode()
+    for text in ("Empty: add items", "Ready: hand out tasks", "Poll: give it to a group",
+                 "1 person in no group", "Nobody yet: no members yet"):
+        assert text in page, text
+    assert "and 3 more" in page  # two shown, the rest folded away
+    assert "/admin/users?show=none" in page
+
+    # Once the tasks exist, that step is done
+    db.session.add(AnnotationTask(project_id=to_hand_out.id, image_id=to_hand_out.images[0].id,
+                                  question_id=to_hand_out.questions[0].id))
+    db.session.commit()
+    assert "Ready: hand out tasks" not in admin_client.get("/admin/dashboard").data.decode()
+
+    # A manager sees only their own projects, and nothing about people or groups
+    client = app.test_client()
+    login(client, make_project_admin(survey).email)
+    page = client.get("/admin/my-projects").data.decode()
+    assert "Poll: give it to a group" in page
+    assert "Empty: add items" not in page and "no group" not in page and "Nobody yet" not in page
 
 
 # ---- wrong passwords pause one address, not the account -------------------

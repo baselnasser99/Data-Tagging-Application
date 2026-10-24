@@ -275,6 +275,12 @@ a:hover { color: var(--ink-soft); }
 .button:hover { background: var(--ink-soft); color: var(--on-ink); }
 .button:active { transform: scale(0.97); }  /* the sign-in button answers the press, like the app's buttons */
 @media (prefers-reduced-motion: reduce) { .button:active { transform: none; } }
+/* Signing in (static/js/auth.js): the button says so while the next page loads */
+.button.is-busy { cursor: progress; }
+.button.is-busy::before { content: ""; display: inline-block; width: .95em; height: .95em; margin-right: 8px; vertical-align: -.12em;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: busy-spin 700ms linear infinite; }
+@keyframes busy-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .button.is-busy::before { animation: none; border-right-color: currentColor; opacity: .5; } }
 
 
 .alert {

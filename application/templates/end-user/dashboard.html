@@ -18,7 +18,8 @@
   <a class="next-task" href="{{ next_up.url }}">
     <span class="next-task-item">
       <span class="corners" aria-hidden="true"></span>
-      {{ media_item(next_up.project, next_up.item, thumbnail=True, img_class="next-task-media") }}
+      {{ media_item(next_up.project, next_up.item, thumbnail=True, img_class="next-task-media",
+                    label="Audio clip to label" if next_up.item.is_audio else "Picture to label") }}
     </span>
     <span class="next-task-text">
       <span class="next-task-kicker">Up next · {{ next_up.project.name }}</span>

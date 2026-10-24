@@ -3,10 +3,13 @@
   (user/annotation_task.html) and the per-item page (user/annotate_image.html).
 
     {% from "includes/answer.html" import answer_top, item_stage, answer_field, about_project %}
-    {{ answer_top(project, done, total, "Task 7 of 9") }}      progress strip and the way back
+    {{ answer_top(project, done, total, "Task 7 of 9") }}      progress strip, the way back and "Saved"
     {{ item_stage(project, image) }}                           the item, framed by the selection corners
     {{ answer_field(question, "answer", "answer") }}           choices or a text box
     {{ about_project(project) }}                               the project's description, folded away
+
+  A page using answer_top puts {% block flash %}{% endblock %} before its content: answer_top
+  shows the messages itself.
 
   Choices are numbered so they can be picked with the keyboard (static/js/answer.js);
   autofocus only reaches a text box, so no choice looks picked before the member picks it.
@@ -18,10 +21,19 @@
   <a class="answer-back" href="{{ url_for('annotation.annotation_tasks', project_id=project.id) }}">
     <i class="fa fa-arrow-left" aria-hidden="true"></i> My tasks · {{ project.name }}
   </a>
+  {# "Saved" goes next to the count, where the eye already is; other messages stay full alerts.
+     The page leaves out base.html's flash area (an empty flash block), so each message shows once. #}
+  {% set messages = get_flashed_messages(with_categories=true) %}
+  {% set saved = messages | selectattr(0, "equalto", "success") | map(attribute=1) | list %}
+  {% for category, message in messages if category != 'success' %}
+  <p class="alert alert-{{ {'error': 'danger', 'message': 'info'}.get(category, category) }} answer-alert" role="alert">{{ message }}</p>
+  {% endfor %}
   <div class="answer-progress">
     <h1>{{ heading }}</h1>
     {% if total %}
-    <span class="answer-count">{{ done }} of {{ plural(total, "task") }} done</span>
+    <span class="answer-count">
+      {%- if saved %}<span class="answer-saved" role="status"><i class="fa fa-check" aria-hidden="true"></i> Saved<span class="sr-only">: {{ saved | join(" ") }}</span></span> · {% endif -%}
+      {{ done }} of {{ plural(total, "task") }} done</span>
     <div class="progress" role="progressbar" aria-label="Your progress in {{ project.name }}"
          aria-valuenow="{{ done }}" aria-valuemin="0" aria-valuemax="{{ total }}">
       <div class="progress-bar" style="width: {{ (done / total * 100)|round(1) }}%"></div>
@@ -35,7 +47,7 @@
 <figure class="item-stage{% if image.is_audio %} is-audio{% endif %}">
   <div class="item-frame">
     <span class="corners" aria-hidden="true"></span>
-    {{ media_item(project, image, img_class="item-media") }}
+    {{ media_item(project, image, img_class="item-media", label="Audio clip to label" if image.is_audio else "Picture to label") }}
   </div>
 </figure>
 {%- endmacro %}

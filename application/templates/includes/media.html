@@ -10,24 +10,27 @@
 
   thumbnail=True draws a small music tile instead of a full player for audio,
   for galleries where a row of players would be cluttered.
+
+  label="Item to label": what members see and hear instead of the file name (alt text,
+  player name, no tooltip). File names can give the answer away ("red_stop_sign.png").
 #}
 {% macro media_url(project, item) -%}
   {{ url_for('uploaded_file', name='images/' ~ project.id ~ '/' ~ item.filename) }}
 {%- endmacro %}
 
-{% macro media_item(project, item, img_class="", img_style="", thumbnail=False) -%}
+{% macro media_item(project, item, img_class="", img_style="", thumbnail=False, label=None) -%}
   {%- if item.is_audio -%}
     {%- if thumbnail -%}
-      <div class="media-audio-thumb" style="{{ img_style }}" title="{{ item.original_filename }}">
+      <div class="media-audio-thumb" style="{{ img_style }}"{% if not label %} title="{{ item.original_filename }}"{% endif %}>
         <i class="fa fa-music" aria-hidden="true"></i>
-        <span class="sr-only">Audio file: {{ item.original_filename }}</span>
+        <span class="sr-only">{{ label or "Audio file: " ~ item.original_filename }}</span>
       </div>
     {%- else -%}
       <div class="media-audio">
         <i class="fa fa-music fa-3x" aria-hidden="true"></i>
-        <p class="media-audio-name">{{ item.original_filename }}</p>
+        {% if not label %}<p class="media-audio-name">{{ item.original_filename }}</p>{% endif %}
         <audio controls preload="metadata" src="{{ media_url(project, item) }}"
-               aria-label="Audio clip {{ item.original_filename }}">
+               aria-label="{{ label or "Audio clip " ~ item.original_filename }}">
           Your browser cannot play this audio file.
           <a href="{{ media_url(project, item) }}">Download it</a> instead.
         </audio>
@@ -35,6 +38,6 @@
     {%- endif -%}
   {%- else -%}
     <img src="{{ media_url(project, item) }}" class="{{ img_class }}" style="{{ img_style }}"
-         alt="{{ item.original_filename }}" title="{{ item.original_filename }}" loading="lazy">
+         alt="{{ label or item.original_filename }}"{% if not label %} title="{{ item.original_filename }}"{% endif %} loading="lazy">
   {%- endif -%}
 {%- endmacro %}

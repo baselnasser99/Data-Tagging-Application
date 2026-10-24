@@ -3,6 +3,8 @@
 
 {% block title %}Answer questions – {{ project.name }}{% endblock %}
 
+{% block flash %}{% endblock %}
+
 {% block content %}
 {{ answer_top(project, done, total, plural(total_uncompleted_questions, "question") ~ " about this item") }}
 
@@ -27,7 +29,7 @@
         </div>
         {% endfor %}
 
-        <button type="submit" class="btn btn-primary btn-lg btn-block answer-submit">
+        <button type="submit" class="btn btn-primary btn-lg btn-block answer-submit" data-busy="Saving…">
           {{ 'Submit and go to the next' if total_uncompleted_questions <= assignments|length else 'Submit these ' ~ plural(assignments|length, "answer") }}
         </button>
         <p class="answer-hint" data-keyboard-hint hidden>

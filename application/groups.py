@@ -10,9 +10,9 @@ from flask_login import current_user
 from . import distribution
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
-from .models import GroupProject, Project, ProjectAdmin, QuestionAnswer, User, UserGroup, UserGroupMembership, UserQuestionAssignment
+from .models import GroupProject, Project, ProjectAdmin, User, UserGroup, UserGroupMembership, UserQuestionAssignment
 from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
-from .stats import group_progress
+from .stats import answered, group_progress
 
 groups = Blueprint("groups", __name__, url_prefix="/admin")
 
@@ -196,10 +196,11 @@ def remove_pending_assignments_from_removed_group_member(user, group):
         project = gp.project
         if project is None or project.is_annotation_project:
             continue
-        for assignment in UserQuestionAssignment.query.filter_by(
-            user_id=user.id, group_project_id=f"{group.id}-{project.id}"
-        ).all():
-            if not QuestionAnswer.query.filter_by(user_id=user.id, question_id=assignment.question_id).first():
+        assignments = UserQuestionAssignment.query.filter_by(
+            user_id=user.id, group_project_id=f"{group.id}-{project.id}").all()
+        done = answered(assignments)
+        for assignment in assignments:
+            if (assignment.user_id, assignment.question_id) not in done:
                 db.session.delete(assignment)
     db.session.commit()
     return distribution.on_member_removed(user, group.id)

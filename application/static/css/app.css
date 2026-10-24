@@ -721,9 +721,18 @@ code { color: var(--ink); background: var(--canvas); }
 .group-members .avatar { background: var(--group-bg); color: var(--group-ink); border: 2px solid var(--surface); margin-left: -6px; }
 .group-members .avatar:first-child { margin-left: 0; }
 .group-members > .text-muted { margin-left: 8px; }
+/* Narrower screens: name and actions on one line, groups and figures on the next */
 @media (max-width: 900px) {
-  .person { grid-template-columns: 40px 1fr auto; }
-  .person-groups, .person-figures, .person-actions { grid-column: 2 / -1; justify-content: flex-start; }
+  .person:not(.person-short) { grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-areas: "avatar who actions" "avatar groups figures"; gap: 6px 14px; }
+  .person:not(.person-short) .person-avatar { grid-area: avatar; align-self: start; }
+  .person:not(.person-short) .person-who { grid-area: who; }
+  .person:not(.person-short) .person-actions { grid-area: actions; }
+  .person:not(.person-short) .person-groups { grid-area: groups; }
+  .person:not(.person-short) .person-figures { grid-area: figures; gap: 12px; font-size: 13.5px; }
+  .person:not(.person-short) .person-figures > * { min-width: 0; }
+}
+@media (max-width: 560px) {
+  .person:not(.person-short) { grid-template-areas: "avatar who actions" "avatar groups groups" "avatar figures figures"; padding: 12px 14px; }
 }
 
 /* Group cards: one line per project, with its progress */
@@ -731,6 +740,9 @@ code { color: var(--ink); background: var(--canvas); }
 .assignment-list > li { padding: 10px 0; border-top: 1px solid var(--line); }
 .assignment-list > li:first-child { border-top: 0; padding-top: 0; }
 .assignment-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.assignment-progress { margin: 6px 0 0; height: 6px; }
+.how-list { margin: 0; padding-left: 18px; }
+.how-list > li { padding: 3px 0; }
 
 /* Project cards: full description, buttons wrap, Delete set apart */
 .project-desc { white-space: pre-line; overflow-wrap: anywhere; margin: 0; }
@@ -787,6 +799,14 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 /* Multiple-choice options: three per row on wide screens */
 .option-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0 16px; }
 
+/* A form on its way (static/js/site.js): its button shows a spinner and, with data-busy, says what is happening */
+.btn.is-busy { cursor: progress; }
+.btn.is-busy[disabled] { opacity: .85; }
+.btn.is-busy::before { content: ""; display: inline-block; width: .95em; height: .95em; margin-right: 8px; vertical-align: -.12em;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: busy-spin 700ms linear infinite; }
+@keyframes busy-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .btn.is-busy::before { animation: none; border-right-color: currentColor; opacity: .5; } }
+
 /* ---------- answering screen (includes/answer.html) ----------
    The item large on the left inside the selection corners, the question on the right. */
 .answer-top { padding-bottom: 12px; }
@@ -795,6 +815,8 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .answer-progress { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 4px 16px; margin-top: 10px; }
 .answer-progress h1 { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; color: var(--ink); }
 .answer-count { justify-self: end; color: var(--muted); font-size: 14px; }
+.answer-saved { color: var(--success); font-weight: 700; }  /* "✓ Saved · 7 of 9 tasks done" */
+.answer-alert { margin: 12px 0 0; }
 .answer-progress .progress { grid-column: 1 / -1; margin: 8px 0 0; height: 6px; background: var(--line); }
 
 .answer-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 24px; align-items: start; }

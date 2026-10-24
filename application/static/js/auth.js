@@ -14,3 +14,22 @@ document.querySelectorAll(".password-field .reveal").forEach(function (button) {
     input.focus();
   });
 });
+
+// "Signing in…" while the next page loads, so a slow sign-in doesn't look like nothing happened.
+document.querySelectorAll("form").forEach(function (form) {
+  form.addEventListener("submit", function () {
+    var button = form.querySelector("[type=submit][data-busy]");
+    if (!button) return;
+    button.dataset.label = button.textContent;
+    button.textContent = button.dataset.busy;
+    button.classList.add("is-busy");
+    button.setAttribute("aria-busy", "true");
+  });
+});
+window.addEventListener("pageshow", function () {
+  document.querySelectorAll(".is-busy").forEach(function (button) {
+    button.textContent = button.dataset.label;
+    button.classList.remove("is-busy");
+    button.removeAttribute("aria-busy");
+  });
+});

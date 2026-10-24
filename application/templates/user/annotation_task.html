@@ -3,6 +3,8 @@
 
 {% block title %}Task – {{ project.name }}{% endblock %}
 
+{% block flash %}{% endblock %}
+
 {% block content %}
 {{ answer_top(project, done, total,
               "Answered" if assignment.is_completed else "Task " ~ (done + 1) ~ " of " ~ total) }}
@@ -22,7 +24,7 @@
         <a class="btn btn-default btn-block" href="{{ url_for('annotation.annotation_tasks', project_id=project.id) }}">Back to my tasks</a>
         {% else %}
         {{ answer_field(question, "answer", "answer", autofocus=True) }}
-        <button type="submit" class="btn btn-primary btn-lg btn-block answer-submit">Submit and go to the next</button>
+        <button type="submit" class="btn btn-primary btn-lg btn-block answer-submit" data-busy="Saving…">Submit and go to the next</button>
         <p class="answer-hint" data-keyboard-hint hidden>
           {% if question.answer_type.name == 'MCQ' %}Press <kbd>1</kbd>–<kbd>{{ [question.number_of_options, 9]|min }}</kbd> to choose, <kbd>Enter</kbd> to submit.
           {% else %}Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit.{% endif %}

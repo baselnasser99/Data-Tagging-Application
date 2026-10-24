@@ -149,9 +149,12 @@
     {% endif %}
 
     <main class="content-wrapper" id="main" tabindex="-1">
+      {# Answering screens show their messages next to the progress instead (includes/answer.html) #}
+      {% block flash %}
       <div class="flash-area">
         {% include "flash_messages.html" %}
       </div>
+      {% endblock %}
       {% block content %}
       {% endblock %}
 

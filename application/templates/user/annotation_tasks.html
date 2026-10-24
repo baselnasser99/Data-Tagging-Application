@@ -33,9 +33,9 @@
         </div>
         <div class="box-body">
           {% if image.is_audio %}
-          {{ media_item(project, image) }}
+          {{ media_item(project, image, label="Audio clip to label") }}
           {% else %}
-          {{ media_item(project, image,
+          {{ media_item(project, image, label="Picture to label",
                         img_style="display: block; width: 100%; height: 170px; object-fit: contain; background: var(--canvas); border-radius: 4px;") }}
           {% endif %}
           <ul class="list-unstyled task-questions">

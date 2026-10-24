@@ -1,116 +1,117 @@
 {% extends 'base.html' %}
 
+{% block title %}Assign to a group – {{ app_name }}{% endblock %}
+
 {% block content %}
-  <!-- Content Header (Page header) -->
-  <section class="content-header">
-    <h1>Assign Project to Group</h1>
-    <ol class="breadcrumb">
-      <li>
-        <a href="#"><i class="fa fa-dashboard"></i> Home</a>
-      </li>
-      <li>Groups</li>
-      <li class="active">Assign Project</li>
-    </ol>
-  </section>
-  <section>
-  </section>
-  
-  <section class="content">
-    <div class="row">
-      <div class="col-lg-12">
-        <div class="box box-primary">
-          <div class="box-header with-border">
-            <h3 class="box-title">Assign Project to Group</h3>
-          </div>
-          <form method="post">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="box-body">
-              <div class="row">
-                <div class="form-group col-md-6 col-xs-12">
-                  <label>Select Group</label>
-                  <select class="form-control" name="group_id" required>
-                    <option value="">Choose a group...</option>
-                    {% for group in groups if group.id not in locked %}
-                      <option value="{{ group.id }}">
-                        {{ group.name }} ({{ group.members | length }} members)
-                      </option>
-                    {% endfor %}
-                  </select>
-                  {% if not groups %}
-                    <small class="text-muted">No groups available. <a href="{{ url_for('groups.create_group') }}">Create a group first</a></small>
-                  {% endif %}
-                </div>
-                <div class="form-group col-md-6 col-xs-12">
-                  <label>Select Project</label>
-                  <select class="form-control" name="project_id" required>
-                    <option value="">Choose a project...</option>
-                    {% for project in projects %}
-                      <option value="{{ project.id }}">
-                        {{ project.name }} ({{ plural(project.questions | length, "question") }})
-                      </option>
-                    {% endfor %}
-                  </select>
-                  {% if not projects %}
-                    <small class="text-muted">No projects available. <a href="{{ url_for('admin.create_project') }}">Create a project first</a></small>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-            <div class="box-footer">
-              <button type="submit" class="btn btn-primary" {% if not groups or not projects %}disabled{% endif %}>
-                <i class="fa fa-link"></i> Assign Project to Group
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Current assignments: one card per group, its projects listed inside -->
-    <h2 class="section-title">Current assignments</h2>
-    {% if groups %}
-    <div class="row task-grid">
-      {% for group in groups %}
-      <div class="col-md-6 col-xs-12">
-        <div class="box">
-          <div class="box-header with-border">
-            <h3 class="box-title">{{ group.name }}</h3>
-            <p class="text-muted" style="margin: 4px 0 0;">
-              {{ plural(group.members | length, "member") }}{% if group.members and group.id not in locked %}:
-              {% for membership in group.members[:5] %}{{ membership.user.full_name }}{% if not loop.last %}, {% endif %}{% endfor %}{% if group.members | length > 5 %} and {{ group.members | length - 5 }} more{% endif %}{% endif %}
-            </p>
-          </div>
+<section class="content-header page-heading">
+  <div>
+    <h1>Assign to a group</h1>
+    <p class="page-lede">Give a project or survey to a group. Survey questions go to every member; a project's tasks are shared out fairly.</p>
+  </div>
+</section>
+
+<section class="content">
+  <div class="row">
+    <div class="col-md-8 col-xs-12">
+      <div class="box">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="box-body">
-            <ul class="assignment-list">
-              {% for group_project in group.assigned_projects if (group.id, group_project.project_id) in progress %}
-              {% set done, total = progress[(group.id, group_project.project_id)] %}
-              <li>
-                <div class="assignment-row">
-                  <span><strong>{{ group_project.project.name }}</strong>
-                    <span class="text-muted">· {{ plural(group_project.project.questions | length, "question") }}</span></span>
-                  <span class="text-muted">{% if total %}{{ done }} of {{ plural(total, "task") }} done{% else %}No work yet{% endif %}</span>
-                </div>
-                {% if total %}
-                <div class="progress progress-xs" style="margin: 6px 0 0;" role="progressbar" aria-label="{{ group_project.project.name }} progress"
-                     aria-valuenow="{{ done }}" aria-valuemin="0" aria-valuemax="{{ total }}">
-                  <div class="progress-bar" style="width: {{ (done / total * 100)|round(1) }}%"></div>
-                </div>
-                {% endif %}
-              </li>
-              {% else %}
-              <li class="text-muted">No projects assigned yet.</li>
-              {% endfor %}
-            </ul>
+            <div class="form-group">
+              <label for="project_id">Project or survey</label>
+              <select class="form-control" id="project_id" name="project_id" required>
+                <option value="">Choose a project...</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}">
+                  {{ project.name }} ({{ plural(project.questions | length, "question") }})
+                </option>
+                {% endfor %}
+              </select>
+              {% if not projects %}
+              <p class="help-block">No projects yet. <a href="{{ url_for('admin.create_project') }}">Create a survey</a> or <a href="{{ url_for('annotation_admin.create_annotation_project') }}">a project</a> first.</p>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="group_id">Group that will do the work</label>
+              <select class="form-control" id="group_id" name="group_id" required>
+                <option value="">Choose a group...</option>
+                {% for group in groups if group.id not in locked %}
+                <option value="{{ group.id }}">{{ group.name }} ({{ plural(group.members | length, "person", "people") }})</option>
+                {% endfor %}
+              </select>
+              {% if not groups %}
+              <p class="help-block">No groups yet. <a href="{{ url_for('groups.create_group') }}">Create a group</a> first.</p>
+              {% endif %}
+            </div>
           </div>
+          <div class="box-footer quick-actions">
+            <button type="submit" class="btn btn-primary" {% if not groups or not projects %}disabled{% endif %}>
+              <i class="fa fa-share" aria-hidden="true"></i> Assign
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-xs-12">
+      <div class="box">
+        <div class="box-header with-border"><h2 class="box-title">What happens next</h2></div>
+        <div class="box-body">
+          <ul class="how-list">
+            <li>A <strong>survey</strong>'s questions go to every member of the group straight away.</li>
+            <li>A <strong>project</strong>'s tasks are handed out once it has items and questions, to whoever has the fewest open.</li>
+            <li>People who join the group later get their share automatically.</li>
+          </ul>
         </div>
       </div>
-      {% endfor %}
     </div>
-    {% else %}
-    <div class="box"><div class="empty-state">
-      <strong>No groups yet</strong>
-      <a href="{{ url_for('groups.create_group') }}">Create your first group</a>
-    </div></div>
-    {% endif %}
-  </section>
+  </div>
+
+  {# Current assignments: one card per group, its projects listed inside #}
+  <h2 class="section-title">Current assignments</h2>
+  {% if groups %}
+  <div class="row task-grid">
+    {% for group in groups %}
+    <div class="col-md-6 col-xs-12">
+      <div class="box">
+        <div class="box-header with-border">
+          <h3 class="box-title">{{ group.name }}</h3>
+          <p class="text-muted box-subtitle">
+            {{ plural(group.members | length, "member") }}{% if group.members and group.id not in locked %}:
+            {% for membership in group.members[:5] %}{{ membership.user.full_name }}{% if not loop.last %}, {% endif %}{% endfor %}{% if group.members | length > 5 %} and {{ group.members | length - 5 }} more{% endif %}{% endif %}
+          </p>
+        </div>
+        <div class="box-body">
+          <ul class="assignment-list">
+            {% for group_project in group.assigned_projects if (group.id, group_project.project_id) in progress %}
+            {% set done, total = progress[(group.id, group_project.project_id)] %}
+            <li>
+              <div class="assignment-row">
+                <span><strong>{{ group_project.project.name }}</strong>
+                  <span class="text-muted">· {{ plural(group_project.project.questions | length, "question") }}</span></span>
+                <span class="text-muted">{% if total %}{{ done }} of {{ plural(total, "task") }} done{% else %}No work yet{% endif %}</span>
+              </div>
+              {% if total %}
+              <div class="progress assignment-progress" role="progressbar" aria-label="{{ group_project.project.name }} progress"
+                   aria-valuenow="{{ done }}" aria-valuemin="0" aria-valuemax="{{ total }}">
+                <div class="progress-bar" style="width: {{ (done / total * 100)|round(1) }}%"></div>
+              </div>
+              {% endif %}
+            </li>
+            {% else %}
+            <li class="text-muted">No projects assigned yet.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="box"><div class="empty-state">
+    <strong>No groups yet</strong>
+    <a href="{{ url_for('groups.create_group') }}">Create your first group</a>
+  </div></div>
+  {% endif %}
+</section>
 {% endblock %}

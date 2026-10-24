@@ -248,7 +248,6 @@ def create_project_admin(project_id):
 @project_admin_required
 def project_groups(project_id):
     project = db.get_or_404(Project, project_id)
-    # In a real implementation, you'd fetch groups assigned to this project
     assigned_groups = [gp.group for gp in project.assigned_groups]
     return render_template("admin/project_groups.html", project=project, assigned_groups=assigned_groups)
 

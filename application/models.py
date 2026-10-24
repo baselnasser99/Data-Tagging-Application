@@ -175,7 +175,7 @@ class GroupProject(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('user_group.id'), primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), primary_key=True)
     assigned_date = db.Column(db.DateTime, default=db.func.current_timestamp())
-    questions_distributed = db.Column(db.Boolean, default=False)
+    questions_distributed = db.Column(db.Boolean, default=False)  # still written, but no page reads it
 
     # Relationships
     group = db.relationship("UserGroup", back_populates="assigned_projects")

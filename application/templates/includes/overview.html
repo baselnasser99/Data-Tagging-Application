@@ -7,7 +7,7 @@
     {{ balance_panel(balance) }}                       one block per project
     {{ balance_panel([b], per_project=False) }}        a single project's page: no project names, everyone listed
 
-  projects/progress: Project rows and project_progress() results by id (application/groups.py).
+  projects/progress: Project rows and project_progress() results by id (application/stats.py).
   balance: workload_balance() results (application/admin.py).
 #}
 {% from "includes/project_status.html" import project_status %}

@@ -93,8 +93,6 @@ def _my_group_projects(user_id):
                     user_id=user_id, group_project_id=gp['group_project_id']).all()
                 gp['total'] = len(assigned)
                 gp['done'] = count_answered(assigned)
-                project.total_questions = gp['total']
-                project.answered = gp['total'] > 0 and gp['done'] == gp['total']
             group_projects.append(gp)
     return group_projects
 
@@ -168,13 +166,11 @@ def view_group_project(group_project_id):
     # Get only the questions assigned to this user
     questions = [assignment.question for assignment in assigned_questions]
 
-    # Create a project-like object with only assigned questions
+    # What the page shows: the project, with only the questions assigned to this user
     project_data = {
-        'id': project.id,
         'name': project.name,
         'desc': project.desc,
         'questions': questions,
-        'is_group_project': True,
         'group_project_id': group_project_id
     }
 

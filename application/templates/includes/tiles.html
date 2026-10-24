@@ -5,15 +5,16 @@
   Usage:
     {% from "includes/tiles.html" import tile %}
     <div class="action-tiles">
-      {{ tile(url_for(...), "upload", "Upload items", "Images or audio clips, or ZIP files", tone="teal") }}
-  Tones (icon tint): blue = projects, violet = questions and surveys, green = people,
-  amber = handing out work, teal = files in or out. The primary tile is dark.
+      {{ tile(url_for(...), "upload", "Upload items", "Images or audio clips, or ZIP files", next=True) }}
     </div>
+  Icons are ink on grey. The primary tile is dark. next=True marks the step a project
+  needs next with the marker yellow and the words "Next step".
 #}
-{% macro tile(url, icon, title, text, primary=False, tone="blue") -%}
-  <a href="{{ url }}" class="action-tile tone-{{ tone }}{% if primary %} action-tile-primary{% endif %}">
+{% macro tile(url, icon, title, text, primary=False, next=False) -%}
+  <a href="{{ url }}" class="action-tile{% if primary %} action-tile-primary{% endif %}{% if next %} action-tile-next{% endif %}">
     <span class="action-tile-icon" aria-hidden="true"><i class="fa fa-{{ icon }}"></i></span>
     <span class="action-tile-text">
+      {% if next %}<span class="action-tile-kicker">Next step</span>{% endif %}
       <strong>{{ title }}</strong>
       <span>{{ text }}</span>
     </span>

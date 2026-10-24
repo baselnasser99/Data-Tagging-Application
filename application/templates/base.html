@@ -38,7 +38,7 @@
     <header class="main-header">
       <a href="{{ url_for('auth.login') }}" class="logo">
         <span class="logo-mini">{{ mark(24) }}</span>
-        <span class="logo-lg">{{ mark(24) }} {{ app_name }}</span>
+        <span class="logo-lg">{{ mark(24) }} <span class="logo-name" title="{{ app_name }}">{{ app_name }}</span></span>
       </a>
 
       <nav class="navbar navbar-static-top" aria-label="Account">

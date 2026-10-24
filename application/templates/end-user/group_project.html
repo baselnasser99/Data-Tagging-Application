@@ -1,125 +1,69 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% from "includes/answer.html" import answer_field %}
+
+{#
+  A member answering a survey: every question on one page, sent together.
+  Built from the same pieces as the answering screens (includes/answer.html),
+  so choices are numbered and the keyboard works the same (static/js/answer.js).
+#}
+
+{% block title %}{{ project.name }} – {{ app_name }}{% endblock %}
 
 {% block content %}
-  <!-- Content Header (Page header) -->
-  <section class="content-header">
-    <h1>{{ project.name }} <small>(Group Assignment)</small></h1>
-    <ol class="breadcrumb">
-      <li>
-        <a href="#"><i class="fa fa-dashboard"></i> Home</a>
-      </li>
-      <li>
-        <a href="{{ url_for('annotation.my_projects') }}">My Projects</a>
-      </li>
-      <li class="active">Group Project</li>
-    </ol>
-  </section>
-  <section>
-  </section>
-  <section class="content">
-    <div class="row">
-      <div class="col-xs-12">
-        <div class="box box-primary">
-          <div class="box-header with-border">
-            <h3 class="box-title">Project Description</h3>
-          </div>
-          <div class="box-body">
-            <p>{{ project.desc }}</p>
-            <div class="alert alert-info">
-              <i class="fa fa-info-circle"></i>
-              <strong>Note:</strong> You are seeing only the questions assigned to you from this group project. 
-              Other group members may have different questions.
-            </div>
-          </div>
-        </div>
-        
-        <form action="{{ url_for('annotation.view_group_project', group_project_id=project.group_project_id) }}" method="post">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          {% for question in project.questions %}
-            <div class="box box-default">
-              <div class="box-header with-border">
-                <h4 class="box-title"><strong>Question {{ loop.index }}</strong></h4>
-              </div>
-              <div class="box-body">
-                <h4 class="mb-3">{{ question.question }}</h4>
-                
-                {% if question.file_path %}
-                  {% set file_extension = question.file_path.split('.')[-1].lower() %}
-                  <div class="mb-3">
-                    {% if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'bmp'] %}
-                      <img src="{{ url_for('uploaded_file', name=question.file_path) }}" 
-                           alt="Question Image" 
-                           class="img-responsive" 
-                           style="max-width: 500px; max-height: 400px;">
-                    {% elif file_extension in ['mp4', 'avi', 'mov', 'wmv'] %}
-                      <video controls style="max-width: 500px; max-height: 400px;">
-                        <source src="{{ url_for('uploaded_file', name=question.file_path) }}" type="video/{{ file_extension }}">
-                        Your browser does not support the video tag.
-                      </video>
-                    {% elif file_extension in ['mp3', 'wav', 'ogg'] %}
-                      <audio controls>
-                        <source src="{{ url_for('uploaded_file', name=question.file_path) }}" type="audio/{{ file_extension }}">
-                        Your browser does not support the audio element.
-                      </audio>
-                    {% else %}
-                      <a href="{{ url_for('uploaded_file', name=question.file_path) }}" 
-                         target="_blank" 
-                         class="btn btn-info">
-                        <i class="fa fa-download"></i> Download File
-                      </a>
-                    {% endif %}
-                  </div>
-                {% endif %}
+{% set count = project.questions|length %}
+<section class="content-header answer-top">
+  <a class="answer-back" href="{{ url_for('annotation.my_projects') }}">
+    <i class="fa fa-arrow-left" aria-hidden="true"></i> My projects
+  </a>
+  <div class="answer-progress">
+    <h1>{{ project.name }}</h1>
+    <span class="answer-count">Survey · {{ plural(count, "question") }}</span>
+  </div>
+  {% if project.desc %}<p class="page-lede survey-desc">{{ project.desc }}</p>{% endif %}
+</section>
 
-                {% if question.answer_type.name == 'TEXT' %}
-                  <div class="form-group">
-                    <label for="answer_{{ question.id }}">Your Answer:</label>
-                    <textarea class="form-control" 
-                              name="answer_{{ question.id }}" 
-                              id="answer_{{ question.id }}" 
-                              rows="4" 
-                              placeholder="Enter your answer here..." 
-                              required></textarea>
-                  </div>
-                {% elif question.answer_type.name == 'MCQ' %}
-                  <div class="form-group">
-                    <label>Select your answer:</label>
-                    {% for i in range(1, question.number_of_options + 1) %}
-                      {% set option = getattr_safe(question, 'option' + i|string) %}
-                      {% if option %}
-                        <div class="radio">
-                          <label>
-                            <input type="radio"
-                                   name="answer_{{ question.id }}"
-                                   value="{{ option }}"
-                                   required>
-                            {{ option }}
-                          </label>
-                        </div>
-                      {% endif %}
-                    {% endfor %}
-                  </div>
-                {% endif %}
-              </div>
-            </div>
-          {% endfor %}
-          
-          <div class="row">
-            <div class="col-xs-12">
-              <div class="box box-success">
-                <div class="box-footer">
-                  <button type="submit" class="btn btn-success btn-lg">
-                    <i class="fa fa-check"></i> Submit All Answers
-                  </button>
-                  <a href="{{ url_for('annotation.my_projects') }}" class="btn btn-default btn-lg">
-                    <i class="fa fa-arrow-left"></i> Back to My Projects
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </form>
+<section class="content">
+  <form method="post" class="answer-form survey-answers"
+        action="{{ url_for('annotation.view_group_project', group_project_id=project.group_project_id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <p class="survey-note">These are the questions for you. Others in your group may have different ones. Your answers are sent together when you submit.</p>
+
+    {% for question in project.questions %}
+    <div class="answer-block">
+      <p class="answer-kind">Question {{ loop.index }} of {{ count }} · {{ 'Choose one' if question.answer_type.name == 'MCQ' else 'Write your answer' }}</p>
+      <h2 class="answer-question">{{ question.question }}</h2>
+
+      {% if question.file_path %}
+      {% set file_url = url_for('uploaded_file', name=question.file_path) %}
+      {% set ext = question.file_path.rsplit('.', 1)[-1].lower() %}
+      <div class="survey-attachment">
+        {% if ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp'] %}
+        <div class="item-frame">
+          <span class="corners" aria-hidden="true"></span>
+          <img src="{{ file_url }}" class="item-media" alt="Picture for question {{ loop.index }}">
+        </div>
+        {% elif ext in ['mp4', 'avi', 'mov', 'wmv'] %}
+        <video controls preload="metadata" src="{{ file_url }}">Your browser cannot play this video. <a href="{{ file_url }}">Download it</a> instead.</video>
+        {% elif ext in ['mp3', 'wav', 'ogg'] %}
+        <audio controls preload="metadata" src="{{ file_url }}">Your browser cannot play this audio file. <a href="{{ file_url }}">Download it</a> instead.</audio>
+        {% else %}
+        <a class="btn btn-default" href="{{ file_url }}" target="_blank" rel="noopener"><i class="fa fa-download" aria-hidden="true"></i> Open the attached file</a>
+        {% endif %}
       </div>
+      {% endif %}
+
+      {{ answer_field(question, "answer_" ~ question.id, "answer_" ~ question.id, autofocus=loop.first) }}
     </div>
-  </section>
+    {% endfor %}
+
+    <button type="submit" class="btn btn-primary btn-lg btn-block answer-submit">
+      {{ 'Submit your answer' if count == 1 else 'Submit all ' ~ count ~ ' answers' }}
+    </button>
+    <p class="answer-hint" data-keyboard-hint hidden>Press a number to choose, <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit.</p>
+  </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/answer.js') }}"></script>
 {% endblock %}

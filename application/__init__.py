@@ -43,7 +43,8 @@ def create_app(config_object=None):
     from .annotation_admin import annotation_admin
     from .permissions import can_open_upload, can_see_project
     from .uploads import upload_dir
-    from .jinja_utils import getattr_safe, plural, sidebar_summary
+    from .jinja_utils import getattr_safe, plural
+    from .sidebar import sidebar_summary
 
     app.register_blueprint(auth)
     app.register_blueprint(admin)

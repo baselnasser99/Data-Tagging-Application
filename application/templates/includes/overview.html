@@ -63,7 +63,7 @@
             <li>
               <span class="balance-name">{{ p.name }}</span>
               <span class="balance-bar" aria-hidden="true">
-                <span class="is-open" style="width: {{ (p.open / b.share_max * 100)|round(1) if b.share_max else 0 }}%"></span><span class="is-done" style="width: {{ (p.done / b.share_max * 100)|round(1) if b.share_max else 0 }}%"></span>
+                <span class="is-done" style="width: {{ (p.done / b.share_max * 100)|round(1) if b.share_max else 0 }}%"></span><span class="is-open" style="width: {{ (p.open / b.share_max * 100)|round(1) if b.share_max else 0 }}%"></span>
               </span>
               <span class="balance-count"><b>{{ p.open }}</b> open</span>
             </li>
@@ -79,8 +79,8 @@
         {% endfor %}
         {% if balance %}
         <div class="box-footer balance-key">
-          <span><i class="key-open"></i>open</span>
           <span><i class="key-done"></i>done</span>
+          <span><i class="key-open"></i>open</span>
         </div>
         {% endif %}
       </div>

@@ -441,9 +441,9 @@ code { color: var(--ink); background: var(--canvas); }
 .badge.bg-blue, .badge.bg-aqua, .label-primary, .label-info { background: var(--info-bg) !important; color: var(--ink) !important; }
 
 .progress { background: var(--canvas); border-radius: 3px; box-shadow: none; height: 8px; }
-.progress-bar, .progress-bar[class*="bg-"], .progress-bar-success, .progress-bar-primary { background: var(--accent) !important; box-shadow: none; }
+.progress-bar, .progress-bar[class*="bg-"], .progress-bar-success, .progress-bar-primary { background: var(--data) !important; box-shadow: inset 0 0 0 1px var(--data-edge); }
 /* Finished work turns green: a whole project, a person's share, your own tasks */
-.state-done .progress-bar, .progress.is-done .progress-bar { background: var(--success) !important; }
+.state-done .progress-bar, .progress.is-done .progress-bar { background: var(--success) !important; box-shadow: none; }
 
 /* colored text helpers used for icons */
 .text-blue, .text-aqua, .text-light-blue { color: var(--ink) !important; }
@@ -516,15 +516,15 @@ code { color: var(--ink); background: var(--canvas); }
 .balance-people > li { display: grid; grid-template-columns: minmax(0, 9.5rem) 1fr auto; align-items: center; gap: 12px; font-size: 14px; }
 .balance-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .balance-bar { display: flex; height: 10px; border-radius: 3px; background: var(--canvas); overflow: hidden; }
-.balance-bar .is-open { background: var(--accent); }
-.balance-bar .is-done { background: var(--accent-done); }
+/* Done work is the solid yellow, open work is hatched: still to fill in */
+.balance-bar .is-done { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }
+.balance-bar .is-open, .key-open { background: repeating-linear-gradient(135deg, var(--line-strong) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--line-strong); }
 .balance-count { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 4.5rem; text-align: right; }
 .balance-count b { color: var(--ink); }
 .balance-more { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 .balance-key { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
 .balance-key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-.key-open { background: var(--accent); }
-.key-done { background: var(--accent-done); }
+.key-done { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }
 
 .group-complete { display: flex; align-items: center; gap: 10px; }
 .group-complete .progress { flex: 1; margin: 0; min-width: 48px; }
@@ -838,7 +838,7 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .choice:has(input:focus-visible) { outline: 3px solid var(--marker); outline-offset: 2px; }
 .answer-text { font-size: 16px; min-height: 120px; }
 
-.answer-submit { margin-top: 18px; }
+.answer-submit { margin-top: 18px; white-space: normal; }
 .answer-hint { margin: 10px 0 0; font-size: 13px; color: var(--muted); text-align: center; }
 .answer-hint kbd { font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink); background: var(--canvas); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; box-shadow: none; }
 .answer-done { color: var(--success); font-weight: 700; margin: 0 0 14px; }
@@ -847,11 +847,16 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .about-project > summary { display: list-item; cursor: pointer; font-weight: 700; }
 .about-project > p { margin: 8px 0 0; color: var(--muted); }
 
-@media (max-width: 991px) {
-  .answer-layout { grid-template-columns: 1fr; }
-  .item-stage { position: static; padding: 16px; }
-  .item-frame { min-height: 220px; }
-  .item-media { height: min(42vh, 360px); }
+/* Side by side while the content area has room for both (it is narrower when the sidebar
+   is open, so this asks the area, not the screen); stacked below that, with a shorter item
+   so the question still starts on the first screen. */
+.answer-top + .content { container-type: inline-size; }
+@container (max-width: 639px) {
+  .answer-layout { grid-template-columns: 1fr; gap: 14px; }
+  .item-stage { position: static; padding: 10px; }
+  .item-frame { min-height: 0; padding: 12px; }
+  .item-media { height: min(32vh, 260px); }
+  .item-stage figcaption { margin-top: 8px; }
 }
 
 /* ---------- member overview: the next task, one click away ---------- */
@@ -901,9 +906,8 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .agreement-head strong { font-size: 18px; }
 /* Landis and Koch's five bands, light to dark, with a marker at the project's kappa */
 .kappa-scale { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; height: 10px; margin-top: 10px; }
-.kappa-scale > span { border-radius: 2px; background: var(--accent); }
-.kappa-scale > span:nth-child(1) { opacity: .16; } .kappa-scale > span:nth-child(2) { opacity: .32; }
-.kappa-scale > span:nth-child(3) { opacity: .5; }  .kappa-scale > span:nth-child(4) { opacity: .72; }
+.kappa-scale > span { border-radius: 2px; background: var(--line); }
+.kappa-scale > span.is-here { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }  /* the band the project's kappa falls in */
 .kappa-scale > i { position: absolute; top: -4px; width: 4px; height: 18px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
 .kappa-labels { display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 6px; font-size: 11.5px; color: var(--muted); }
 .kappa-labels span { text-align: center; }
@@ -912,7 +916,9 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .answer-bars > li { display: grid; grid-template-columns: minmax(0, 8rem) 1fr 2.5rem; align-items: center; gap: 12px; font-size: 14px; }
 .answer-bars-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .answer-bars-track { height: 10px; border-radius: 3px; background: var(--canvas); overflow: hidden; }
-.answer-bars-track > span { display: block; height: 100%; background: var(--accent); }
+.answer-bars-track > span { display: block; height: 100%; background: var(--line-strong); }
+.answer-bars > li.is-top .answer-bars-track > span { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }  /* the most common answer, highlighted */
+.answer-bars > li.is-top .answer-bars-label, .answer-bars > li.is-top .answer-bars-count { font-weight: 700; color: var(--ink); }
 .answer-bars-count { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
 .result-agreed { margin: 0 0 10px; }
 

@@ -27,11 +27,29 @@ def test_account_menu_has_the_theme_switch(user_client):
     assert 'aria-labelledby="theme-switch-label"' in html
 
 
-def test_stylesheets_define_the_dark_tokens_both_ways():
-    # Followed from the system setting, and forced by the switch.
+def test_every_layout_loads_the_shared_tokens(client, admin_client):
+    tokens = '<link href="/static/css/tokens.css" rel="stylesheet">'
+    for resp in (admin_client.get("/admin/dashboard"), admin_client.get("/no-such-page")):
+        assert tokens in _head(resp.get_data(as_text=True))
+    admin_client.get("/logout")
+    assert tokens in _head(client.get("/login").get_data(as_text=True))
+
+
+def _declarations(css, selector):
+    body = css.split(selector + " {", 1)[1].split("}", 1)[0]
+    return dict(re.findall(r"(--[\w-]+):\s*([^;]+);", body))
+
+
+def test_dark_tokens_are_the_same_both_ways():
+    # Followed from the system setting, and forced by the switch: the two copies must match,
+    # and every dark token must exist in the light set too.
+    css = (STATIC / "css" / "tokens.css").read_text(encoding="utf-8")
+    assert "@media (prefers-color-scheme: dark)" in css
+    system = _declarations(css, ':root:not([data-theme="light"])')
+    forced = _declarations(css, ':root[data-theme="dark"]')
+    light = _declarations(css, ":root")
+    assert system and system == forced
+    assert set(forced) <= set(light)
+    # Colours live in tokens.css only.
     for name in ("app.css", "auth.css"):
-        css = (STATIC / "css" / name).read_text(encoding="utf-8")
-        assert "@media (prefers-color-scheme: dark)" in css
-        assert ':root:not([data-theme="light"])' in css
-        assert ':root[data-theme="dark"]' in css
-        assert "color-scheme: dark" in css
+        assert "prefers-color-scheme" not in (STATIC / "css" / name).read_text(encoding="utf-8")

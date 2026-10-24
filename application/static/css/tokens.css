@@ -1,0 +1,148 @@
+/* Colour tokens for every page: the signed-in app (app.css, apple.css) and the sign-in
+   and error pages (auth.css). Loaded before those stylesheets by base.html,
+   includes/auth_layout.html and errors/_layout.html.
+
+     ink      #1C2733  text, primary actions, selection corners
+     canvas   #EDF0F3  page background
+     surface  #FFFFFF  panels
+     line     #D4DAE1  borders and dividers
+     muted    #56616F  secondary text
+     marker   #F5CF3A  "highlighter": current page, focus halo, tags
+
+   Dark theme: the same tokens, darker. It follows the system setting unless the theme
+   switch in the account menu (static/js/theme.js) sets data-theme on <html>. The dark set
+   is written twice, once per way of asking for it; keep the two copies the same. */
+
+:root {
+  --ink: #1C2733;
+  --ink-soft: #2E3B4A;
+  --canvas: #EDF0F3;
+  --surface: #FFFFFF;
+  --line: #D4DAE1;
+  --line-strong: #AEB7C2;
+  --muted: #56616F;
+  --marker: #F5CF3A;
+  --marker-soft: #FCF1C4;
+  --danger: #B42318;
+  --danger-bg: #FDECEA;
+  --success: #1F7A4D;
+  --success-bg: #E7F4EC;
+  --warning: #8A5300;
+  --warning-bg: #FDF3E1;
+  --info-bg: #E8EEF6;
+  /* Accents: one calm blue for progress and charts, plus soft tints that tell the kinds of
+     action apart. Colour always sits next to a word, never carries meaning alone. */
+  --accent: #3366CC;
+  --accent-soft: #EBF1FB;
+  --tint-blue: #EBF1FB;   --tint-blue-ink: #3366CC;
+  --tint-green: #E7F4EC;  --tint-green-ink: #1F7A4D;
+  --tint-amber: #FDF3E1;  --tint-amber-ink: #8A5300;
+  --tint-violet: #F1ECFA; --tint-violet-ink: #6B47B8;
+  --tint-teal: #E4F3F3;   --tint-teal-ink: #1C6E73;
+  --on-ink: #FFFFFF;        /* text on an ink fill (primary buttons, avatars) */
+  --on-marker: #1C2733;     /* text on the yellow marker: always dark, in both themes */
+  --ink-hover: #3B4A5C;     /* primary buttons under the mouse (apple.css) */
+  --success-solid: #1F7A4D; /* fills with white text: these stay dark in both themes */
+  --danger-solid: #B42318;
+  --danger-line: #E3B4AF;
+  --accent-done: #B9CBEA;   /* finished share in the work-balance bars */
+  --stripe: #F6F8FA;
+  --chart-grid: #E3E7EC;
+  --hairline: rgba(28, 39, 51, 0.08);
+  --shade: #1C2733;         /* the colour of shadows, mixed in at low strength */
+  /* Sign-in and error pages (auth.css): the dotted background, the picture of a batch of
+     items, and the highlighter stroke under "fairly" */
+  --dots: #C9D0D8;
+  --tile: #DCE1E7;
+  --tile-ground: #C9D0D8;
+  --tile-shape: #C3CAD3;
+  --tile-selected: #D3D9E0;
+  --hl-ink: currentColor;
+  --hl-bottom: 0.08em;
+  --hl-height: 0.42em;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ink: #E6EAF0;
+    --ink-soft: #C9D1DB;
+    --canvas: #12171D;
+    --surface: #1B222B;
+    --line: #2E3742;
+    --line-strong: #5A6573;
+    --muted: #9AA5B1;
+    --marker-soft: #3A3214;
+    --danger: #F28B82;
+    --danger-bg: #3A1D1B;
+    --success: #5CC48F;
+    --success-bg: #15302A;
+    --warning: #E8B04B;
+    --warning-bg: #3A2E14;
+    --info-bg: #1E2A3A;
+    --accent: #6E9BF0;
+    --accent-soft: #1E2A40;
+    --tint-blue: #1E2A40;   --tint-blue-ink: #8FB2F5;
+    --tint-green: #15302A;  --tint-green-ink: #6FCF9B;
+    --tint-amber: #3A2E14;  --tint-amber-ink: #E8B04B;
+    --tint-violet: #2A2140; --tint-violet-ink: #B9A2EE;
+    --tint-teal: #12302F;   --tint-teal-ink: #6CC9CC;
+    --on-ink: #12171D;
+    --ink-hover: #FFFFFF;
+    --danger-line: #6B3330;
+    --accent-done: #34476B;
+    --stripe: #1F2730;
+    --chart-grid: #2A323C;
+    --hairline: rgba(255, 255, 255, 0.07);
+    --shade: #000000;
+    --dots: #2A323C;
+    --tile: #252D37;
+    --tile-ground: #2F3843;
+    --tile-shape: #36404C;
+    --tile-selected: #2B343F;
+    --hl-ink: #1C2733;   /* the stroke covers the whole word, so the word is dark on yellow */
+    --hl-bottom: 0;
+    --hl-height: 1.05em;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #E6EAF0;
+  --ink-soft: #C9D1DB;
+  --canvas: #12171D;
+  --surface: #1B222B;
+  --line: #2E3742;
+  --line-strong: #5A6573;
+  --muted: #9AA5B1;
+  --marker-soft: #3A3214;
+  --danger: #F28B82;
+  --danger-bg: #3A1D1B;
+  --success: #5CC48F;
+  --success-bg: #15302A;
+  --warning: #E8B04B;
+  --warning-bg: #3A2E14;
+  --info-bg: #1E2A3A;
+  --accent: #6E9BF0;
+  --accent-soft: #1E2A40;
+  --tint-blue: #1E2A40;   --tint-blue-ink: #8FB2F5;
+  --tint-green: #15302A;  --tint-green-ink: #6FCF9B;
+  --tint-amber: #3A2E14;  --tint-amber-ink: #E8B04B;
+  --tint-violet: #2A2140; --tint-violet-ink: #B9A2EE;
+  --tint-teal: #12302F;   --tint-teal-ink: #6CC9CC;
+  --on-ink: #12171D;
+  --ink-hover: #FFFFFF;
+  --danger-line: #6B3330;
+  --accent-done: #34476B;
+  --stripe: #1F2730;
+  --chart-grid: #2A323C;
+  --hairline: rgba(255, 255, 255, 0.07);
+  --shade: #000000;
+  --dots: #2A323C;
+  --tile: #252D37;
+  --tile-ground: #2F3843;
+  --tile-shape: #36404C;
+  --tile-selected: #2B343F;
+  --hl-ink: #1C2733;   /* the stroke covers the whole word, so the word is dark on yellow */
+  --hl-bottom: 0;
+  --hl-height: 1.05em;
+}

@@ -49,7 +49,7 @@ People are added by the admin one at a time (with a role, optionally straight in
 | `ProjectImage` | An item: an image or an audio clip (`media_type`) |
 | `AnnotationTask` | One item × one question; unique on (project, item, question) |
 | `TaskAssignment` | One task given to one person; unique on (task, person) |
-| `QuestionAnswer` | An answer, with person, time and assignment |
+| `QuestionAnswer` | An answer, with person, time and assignment, and `cant_tell` (true when the member marked the item "can't tell") |
 | `UserQuestionAssignment` | Survey questions given to a person |
 | `ExportLog` | Every export: who, when, which format, how many answers |
 
@@ -97,11 +97,12 @@ If the least busy person can't take the busiest person's work (they already hold
 
 ## 6. Export and agreement (6.5.7, 4.2)
 
-- **CSV:** one row per answer: item, media type, question, annotator name and email, answer, time.
-- **JSON:** nested by item, then question, then answers, with `exported_at` and the agreement per question.
+- **CSV:** one row per answer: item, media type, question, annotator name and email, answer, time, the task's majority answer and share, and last `cant_tell` (`yes` for a "can't tell" answer, otherwise empty).
+- **JSON:** nested by item, then question, then answers, with `exported_at` and the agreement per question. Each answer has `cant_tell` (true or false), and each task's summary counts them.
 - **Majority answer** per task with its share, for example "Red (2 of 2)". A tie has no majority.
 - **Fleiss' kappa** per multiple-choice question, over tasks with at least two answers, with the Landis and Koch reading (slight, fair, moderate, substantial, almost perfect). It is checked against the published example from Fleiss (1971), κ = 0.210.
 - **Free-text** answers of up to three words are compared after ignoring case and punctuation.
+- **"Can't tell."** A member who cannot answer an item (blurry, cut off, ambiguous) presses *Can't tell* instead of guessing. On the page that asks all of an item's questions, it marks every one of them. It completes the assignment like any answer, so the task counts toward its *answers per task* and nobody else is given it. It is exported, but left out of the majority answer, its share, Fleiss' kappa and the answer counts: it says nothing about which answer is right, and counting it would lower the agreement for the wrong reason. The results page lists these items per question, and the side panel shows managers how many were marked in the last 7 days.
 - Every export is written to `ExportLog`.
 
 ## 7. Removing and editing people

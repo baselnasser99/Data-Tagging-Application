@@ -51,8 +51,9 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
 | **Fair hand-out** | Every *item × question* becomes a task. Each task goes to the person with the lightest open workload, never twice to the same person, up to a per-person cap. Optionally, several people can answer each task. |
 | **People come and go** | When someone leaves a group, their unfinished tasks are handed to the rest; when someone joins, workloads are rebalanced. Finished answers are never lost. |
 | **Three roles** | **Admin** (everything), **Manager** (runs their own projects), **Member** (answers their tasks). Each role gets its own home page. |
-| **Progress and results** | Status and progress for every project, each person's share of the work, answers per week and progress per group. Each project's results page shows agreement per question (Fleiss' kappa), how often each answer was given, and the items people disagreed on. |
+| **Progress and results** | Status and progress for every project, each person's share of the work, answers per week and progress per group. Each project's results page shows agreement per question (Fleiss' kappa), how often each answer was given, the items people disagreed on, and the items marked "can't tell". The side panel lists what needs the admin or manager next. |
 | **Export** | CSV or JSON per project, with who answered what and when, the majority answer, and **Fleiss' kappa** for inter-annotator agreement. Every export is logged. |
+| **"Can't tell"** | A member who can't answer an item (blurry, cut off, ambiguous) marks it instead of guessing. It finishes the task, is flagged in the export (`cant_tell`), and is left out of the majority answer and the agreement score. |
 | **People admin** | Add people one at a time or from a CSV file, search and filter them, edit details, and remove people safely: their open work is handed on and their answers are kept. |
 | **Surveys** | A simpler mode in which every member answers every question. |
 

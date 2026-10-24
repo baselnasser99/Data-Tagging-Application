@@ -888,6 +888,8 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .answer-text { font-size: 16px; min-height: 120px; }
 
 .answer-submit { margin-top: 18px; white-space: normal; }
+.answer-cant-tell { margin-top: 10px; white-space: normal; }
+.answer-cant-tell-note { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
 .answer-hint { margin: 10px 0 0; font-size: 13px; color: var(--muted); text-align: center; }
 .answer-hint kbd { font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink); background: var(--canvas); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; box-shadow: none; }
 .answer-done { color: var(--success); font-weight: 700; margin: 0 0 14px; }
@@ -984,6 +986,8 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .disagreement-thumb, .disagreements .media-audio-thumb { flex: none; width: 44px; height: 44px; object-fit: contain; border-radius: 3px; background: var(--surface); }
 .disagreement-text { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; font-size: 13px; }
 .disagreement-text > .text-muted { flex-basis: 100%; }
+.disagreements.is-unclear > li { background: var(--marker-soft); }
+.result-note { margin: -4px 0 8px; font-size: 13px; }
 .answer-chip { padding: 1px 8px; border-radius: 3px; background: var(--surface); border: 1px solid var(--line); }
 .answer-chip b { font-weight: 700; margin-right: 2px; }
 @media (max-width: 991px) { .results-grid { grid-template-columns: 1fr; } }

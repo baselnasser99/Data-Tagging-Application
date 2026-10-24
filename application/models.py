@@ -141,6 +141,9 @@ class QuestionAnswer(db.Model):
     question_id = Column(Integer, ForeignKey("question.id"), nullable=False)
     answer = Column(Text, nullable=False)
     submitted_date = db.Column(db.DateTime, nullable=True, default=db.func.current_timestamp())
+    # "Can't tell": the member couldn't answer (a blurry or ambiguous item). It finishes the task like any
+    # answer, but agreement, majority and answer counts leave it out, and the results page lists the item.
+    cant_tell = Column(db.Boolean, nullable=False, default=False, server_default=db.false())
 
     # Optional: Link to annotation task for image-based answers
     task_assignment_id = Column(Integer, ForeignKey("task_assignment.id"), nullable=True)

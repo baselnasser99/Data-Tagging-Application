@@ -47,7 +47,9 @@ def needs_attention(user):
     Admins first see people who are in no group and groups nobody has joined (at most two lines,
     so many projects never push them out of sight). Then each project's first missing step, in the
     same order as the "Next step" tile on its page (items, then questions, then handing out; for
-    surveys questions, then a group). Managers see only their own projects.
+    surveys questions, then a group). And items members marked "can't tell" in the last 7 days:
+    there is no "dealt with" state, so older ones drop off instead of staying on the card for good.
+    Managers see only their own projects.
 
     It runs on every page, so the number of queries stays the same however many projects there
     are: one pass over each table says which projects have items, questions, tasks and a group.
@@ -55,8 +57,12 @@ def needs_attention(user):
     from flask import url_for
 
     from .extns import db
-    from .models import (AnnotationTask, GroupProject, Project, ProjectAdmin, ProjectImage, Question, User, UserGroup,
-                         UserGroupMembership)
+    from datetime import datetime, timedelta
+
+    from sqlalchemy import distinct, func
+
+    from .models import (AnnotationTask, GroupProject, Project, ProjectAdmin, ProjectImage, Question, QuestionAnswer,
+                         TaskAssignment, User, UserGroup, UserGroupMembership)
 
     projects = db.session.query(Project.id, Project.name, Project.is_annotation_project).order_by(Project.id)
     if user.role != "admin":
@@ -68,6 +74,12 @@ def needs_attention(user):
 
     with_items, with_questions = having(ProjectImage.project_id), having(Question.project_id)
     with_tasks, with_group = having(AnnotationTask.project_id), having(GroupProject.project_id)
+    unclear = dict(db.session.query(AnnotationTask.project_id, func.count(distinct(AnnotationTask.image_id)))
+                   .join(TaskAssignment, TaskAssignment.task_id == AnnotationTask.id)
+                   .join(QuestionAnswer, QuestionAnswer.task_assignment_id == TaskAssignment.id)
+                   .filter(QuestionAnswer.cant_tell.is_(True),
+                           QuestionAnswer.submitted_date >= datetime.now() - timedelta(days=7))
+                   .group_by(AnnotationTask.project_id))
 
     todo = []
     if user.role == "admin":
@@ -93,4 +105,7 @@ def needs_attention(user):
             todo.append((f"{name}: add questions", url_for("manager.edit_project_questions", project_id=pid)))
         elif pid not in with_group:
             todo.append((f"{name}: give it to a group", url_for("groups.assign_project_to_group")))
+        if unclear.get(pid):
+            todo.append((f"{name}: {plural(unclear[pid], 'item')} marked can't tell",
+                         url_for("annotation_admin.view_annotation_project", project_id=pid)))
     return todo

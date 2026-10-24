@@ -48,7 +48,7 @@
     <div class="box result">
       <div class="box-header with-border">
         <h3 class="box-title">{{ r.question }}</h3>
-        <p class="text-muted box-subtitle">{{ "Multiple choice" if r.type == "multiple_choice" else "Free text" }} · {{ plural(r.answers, "answer") }}</p>
+        <p class="text-muted box-subtitle">{{ "Multiple choice" if r.type == "multiple_choice" else "Free text" }} · {{ plural(r.answers, "answer") }}{% if r.cant_tell %} · {{ r.cant_tell }} can't tell{% endif %}</p>
       </div>
       <div class="box-body">
         {% if r.type == "multiple_choice" %}
@@ -105,6 +105,22 @@
           {% endfor %}
         </ul>
         {% endif %}
+        {% endif %}
+
+        {% if r.unclear %}
+        <p class="result-label">Marked "can't tell": {{ plural(r.unclear_items, "item") }}</p>
+        <p class="text-muted result-note">Left out of the agreement and the counts above. Worth a look: the item may be unclear, or the question may need a better choice.</p>
+        <ul class="disagreements is-unclear">
+          {% for d in r.unclear %}
+          <li>
+            {% if items[d.image_id] %}{{ media_item(project, items[d.image_id], thumbnail=True, img_class="disagreement-thumb") }}{% endif %}
+            <span class="disagreement-text">
+              <span class="text-muted">{{ d.file_name }}</span>
+              {% for a in d.answers %}<span class="answer-chip"><b>{{ a.annotator_name.split(' ')[0] }}</b> can't tell</span>{% endfor %}
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
         {% endif %}
       </div>
     </div>

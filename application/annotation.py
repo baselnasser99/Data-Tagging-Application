@@ -224,10 +224,18 @@ def _next_item(user_id, project_id):
     return redirect(url_for("annotation.annotation_tasks", project_id=project_id))
 
 
-def _save_answer(assignment, text):
-    """Store one answer and mark the assignment done; the task is done once it has enough answers."""
+CANT_TELL = "Can't tell"
+
+
+def _save_answer(assignment, text, cant_tell=False):
+    """Store one answer and mark the assignment done; the task is done once it has enough answers.
+
+    cant_tell=True: the member couldn't answer. It finishes the task all the same (simplest for
+    everyone: nobody else is handed the task), and the export and results leave it out of agreement.
+    """
     db.session.add(QuestionAnswer(user_id=assignment.user_id, question_id=assignment.task.question_id,
-                                  answer=text, task_assignment_id=assignment.id))
+                                  answer=CANT_TELL if cant_tell else text, cant_tell=cant_tell,
+                                  task_assignment_id=assignment.id))
     assignment.is_completed = True
     assignment.completed_date = db.func.current_timestamp()
     assignment.task.current_answers += 1
@@ -257,6 +265,11 @@ def annotation_task(assignment_id):
             flash("You have already answered this task.", "info")
             return redirect(url_for("annotation.annotation_tasks"))
 
+        if request.form.get("cant_tell"):
+            _save_answer(assignment, "", cant_tell=True)
+            db.session.commit()
+            flash("Marked as \"can't tell\". Your manager will see it.", "success")
+            return _next_item(current_user.id, project.id)
         if answer_text:
             _save_answer(assignment, answer_text)
             db.session.commit()
@@ -301,6 +314,14 @@ def annotate_image(image_id, project_id, batch_index=0):
         else:
             flash("No new tasks found for this image!", "info")
         return redirect(url_for("annotation.annotation_tasks"))
+
+    if request.method == "POST" and request.form.get("cant_tell"):
+        # The item itself is unclear, so every question about it still open for this member
+        for assignment in open_assignments:
+            _save_answer(assignment, "", cant_tell=True)
+        db.session.commit()
+        flash("Marked as \"can't tell\". Your manager will see it.", "success")
+        return _next_item(user_id, project.id)
 
     if request.method == "POST":
         answered = 0

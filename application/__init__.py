@@ -175,6 +175,7 @@ _ADDED_COLUMNS = [
     # user.failed_logins and user.locked_until are no longer used (see LoginFailure); old databases keep them.
     ("user", "session_version", "INTEGER NOT NULL DEFAULT 0"),
     ("user", "must_change_password", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("question_answer", "cant_tell", "BOOLEAN NOT NULL DEFAULT 0"),
 ]
 
 

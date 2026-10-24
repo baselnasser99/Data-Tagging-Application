@@ -213,6 +213,36 @@ def test_import_users_into_survey_project_assigns_questions(admin_client, survey
     assert UserQuestionAssignment.query.filter_by(user_id=new_user.id).count() == 1
 
 
+def test_import_into_survey_skips_questions_people_already_hold(admin_client, db, survey, end_user):
+    """Someone who holds the question through a group isn't given it a second time by an import."""
+    from application.models import UserQuestionAssignment
+
+    question = survey.questions[0]
+    db.session.add(UserQuestionAssignment(user_id=end_user.id, question_id=question.id, group_project_id="9-9"))
+    db.session.commit()
+    csv_data = f"full_name,email,password\nOld,{end_user.email},\nNew,new@example.com,secret123\n"
+
+    resp = admin_client.post(
+        "/admin/import-users",
+        data={"csv_file": (io.BytesIO(csv_data.encode()), "u.csv"), "project_id": str(survey.id)},
+        content_type="multipart/form-data", follow_redirects=True,
+    )
+
+    assert b"1 questions assigned" in resp.data
+    assert UserQuestionAssignment.query.filter_by(user_id=end_user.id).count() == 1
+    new_user = User.query.filter_by(email="new@example.com").one()
+    assert [a.group_project_id for a in UserQuestionAssignment.query.filter_by(user_id=new_user.id)] == [
+        f"imported-{survey.id}"]
+
+    again = admin_client.post(
+        "/admin/import-users",
+        data={"csv_file": (io.BytesIO(csv_data.encode()), "u.csv"), "project_id": str(survey.id)},
+        content_type="multipart/form-data", follow_redirects=True,
+    )
+    assert b"already assigned questions" in again.data
+    assert UserQuestionAssignment.query.count() == 2
+
+
 # ---- manager (project-admin) role ------------------------------------------
 
 def test_admin_can_create_a_manager_for_a_project(admin_client, survey):

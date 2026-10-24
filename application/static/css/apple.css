@@ -13,7 +13,6 @@
   --radius: 12px;
   --shadow-small: 0 1px 2px color-mix(in srgb, var(--shade) 6%, transparent), 0 1px 1px color-mix(in srgb, var(--shade) 4%, transparent);
   --shadow-card: 0 1px 2px color-mix(in srgb, var(--shade) 5%, transparent), 0 6px 20px color-mix(in srgb, var(--shade) 6%, transparent);
-  --glass: color-mix(in srgb, var(--surface) 72%, transparent);  /* follows the theme */
   /* Motion: strong custom curves (the built-in ones are too weak), short durations */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);  /* things appearing and responding to a press */
   --press: transform 160ms var(--ease-out);
@@ -31,17 +30,15 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .small-box h3 { letter-spacing: -0.02em; line-height: 1.1; }
 .text-muted, .help-block, small { letter-spacing: 0.01em; }
 
-/* ---------- materials: translucent sticky top bar ---------- */
+/* ---------- sticky top bar ---------- */
 .wrapper { overflow-x: clip; overflow-y: visible; }  /* AdminLTE's hidden/auto would make .wrapper the scroller and stop the bar from sticking */
 .main-header { position: sticky; top: 0; z-index: 1030; }
 .main-header .logo,
 .main-header .navbar {
-  background: var(--glass);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
+  background: var(--surface);  /* solid: content scrolling under a see-through bar showed as smudges */
   border-bottom: 1px solid var(--hairline);
 }
-.main-header .logo:hover { background: var(--glass); }
+.main-header .logo:hover { background: var(--surface); }
 
 /* ---------- depth: soft, rounded surfaces ---------- */
 .box, .card, .panel, .nav-tabs-custom, .small-box, .small-box[class*="bg-"] {
@@ -104,10 +101,7 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   .flash-area .alert { animation: fade 150ms ease both; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 }
-@media (prefers-reduced-transparency: reduce) {
-  .main-header .logo, .main-header .navbar { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
-}
 @media (prefers-contrast: more) {
   .box, .card, .panel, .small-box { box-shadow: none; border: 1px solid var(--line-strong); }
-  .main-header .logo, .main-header .navbar { background: var(--surface); backdrop-filter: none; border-bottom-color: var(--line-strong); }
+  .main-header .logo, .main-header .navbar { border-bottom-color: var(--line-strong); }
 }

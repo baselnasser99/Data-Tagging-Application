@@ -80,6 +80,7 @@ a:hover, a:focus { color: var(--ink-soft); }
 .main-header .logo .logo-lg { display: flex; align-items: center; gap: 10px; height: 55px; }
 .main-header .logo .logo-mini { display: none; }
 .main-header .logo .brand-mark { flex: none; color: var(--ink); }
+.main-header .logo .logo-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }  /* a long APP_NAME ends in "…" */
 
 .main-header .sidebar-toggle { color: var(--ink); }
 
@@ -559,8 +560,11 @@ code { color: var(--ink); background: var(--canvas); }
 @media (max-width: 767px) {
   .content-header { padding: 20px 16px 4px; }
   .content, .flash-area { padding-left: 16px; padding-right: 16px; }
-  .main-header .logo { border-right: 0; }
-  .main-sidebar { padding-top: 100px; }
+  .main-header .logo {
+    position: absolute; top: 0; left: 50%; z-index: 1001; transform: translateX(-50%);  /* above Bootstrap's .navbar-static-top (1000) */
+    width: auto; max-width: calc(100% - 150px); overflow: hidden; padding: 0; border-right: 0;
+  }
+  .main-sidebar { padding-top: 56px; }
   .figure { border-left: 0; border-top: 1px solid var(--line); }
   .figure:first-child { border-top: 0; }
 }
@@ -622,16 +626,16 @@ code { color: var(--ink); background: var(--canvas); }
   border-radius: var(--radius); box-shadow: var(--shadow-card, none); border: 1px solid var(--line); color: var(--ink); }
 .action-tile:hover, .action-tile:focus { color: var(--ink); text-decoration: none; border-color: var(--line-strong); }
 .action-tile:focus-visible { outline: 3px solid var(--marker); outline-offset: 2px; }
-.action-tile-icon { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--canvas);
+.action-tile-icon { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--canvas); color: var(--ink);
   display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
 .action-tile-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .action-tile-text > strong { font-size: 15px; }
 .action-tile-text > span { color: var(--muted); font-size: 13px; line-height: 1.35; }
-.tone-blue .action-tile-icon { background: var(--tint-blue); color: var(--tint-blue-ink); }
-.tone-green .action-tile-icon { background: var(--tint-green); color: var(--tint-green-ink); }
-.tone-amber .action-tile-icon { background: var(--tint-amber); color: var(--tint-amber-ink); }
-.tone-violet .action-tile-icon { background: var(--tint-violet); color: var(--tint-violet-ink); }
-.tone-teal .action-tile-icon { background: var(--tint-teal); color: var(--tint-teal-ink); }
+/* The step a project needs next: highlighted like the selected answer */
+.action-tile-next { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); background: var(--marker-soft); }
+.action-tile-next:hover, .action-tile-next:focus { border-color: var(--ink); }
+.action-tile-next .action-tile-icon { background: var(--marker); color: var(--on-marker); }
+.action-tile-kicker { font-size: 12px; font-weight: 700; color: var(--ink); }
 .action-tile-primary { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
 .action-tile-primary:hover, .action-tile-primary:focus { color: var(--on-ink); border-color: var(--ink); }
 .action-tile-primary .action-tile-icon { background: color-mix(in srgb, var(--on-ink) 14%, transparent); color: var(--on-ink); }
@@ -858,6 +862,15 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
   .item-media { height: min(32vh, 260px); }
   .item-stage figcaption { margin-top: 8px; }
 }
+
+/* Survey (end-user/group_project.html): the answering screen's pieces in one column */
+.survey-desc { margin: 10px 0 0; max-width: 760px; }
+.survey-answers { max-width: 760px; }
+.survey-note { margin: 0 0 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+.survey-attachment { margin: 0 0 16px; }
+.survey-attachment .item-frame { min-height: 0; }
+.survey-attachment .item-media { height: auto; max-height: 320px; }
+.survey-attachment video, .survey-attachment audio { display: block; width: 100%; max-height: 360px; }
 
 /* ---------- member overview: the next task, one click away ---------- */
 .next-task {

@@ -59,20 +59,26 @@
         </div>
     </div>
 
+    {# The first thing the project still lacks, marked on its tile #}
+    {% if project.is_annotation_project %}
+    {% set next_step = "upload" if not annotation_stats.images_count else ("questions" if not questions_count else ("hand_out" if not total else "")) %}
+    {% else %}
+    {% set next_step = "questions" if not questions_count else ("groups" if not assigned_groups else "") %}
+    {% endif %}
     <h2 class="section-title">Manage</h2>
     <div class="action-tiles">
         {% if project.is_annotation_project %}
         {{ tile(url_for('annotation_admin.upload_images', project_id=project.id), "upload", "Upload items",
-                "Images, audio clips or ZIP files", tone="teal") }}
+                "Images, audio clips or ZIP files", next=next_step == "upload") }}
         {{ tile(url_for('annotation_admin.generate_annotation_tasks', project_id=project.id), "tasks", "Hand out tasks",
-                "Share the work across a group", tone="amber") }}
+                "Share the work across a group", next=next_step == "hand_out") }}
         {% endif %}
         {{ tile(url_for('manager.edit_project_questions', project_id=project.id), "pencil", "Questions and settings",
-                "Edit questions, rename the project", tone="violet") }}
+                "Edit questions, rename the project", next=next_step == "questions") }}
         {{ tile(url_for('manager.project_groups', project_id=project.id), "users", "Groups",
-                plural(assigned_groups|length, "group") ~ " working on it", tone="green") }}
+                plural(assigned_groups|length, "group") ~ " working on it", next=next_step == "groups") }}
         {{ tile(url_for('manager.project_admins', project_id=project.id), "user", "Manager",
-                project_admins[0].user.full_name if project_admins else "No manager yet", tone="amber") }}
+                project_admins[0].user.full_name if project_admins else "No manager yet") }}
     </div>
 
     <div class="row">

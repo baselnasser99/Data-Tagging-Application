@@ -1,0 +1,5 @@
+# Text files are stored with LF line endings; a checkout may convert them for Windows (core.autocrlf).
+* text=auto
+
+# The thesis as graded: kept byte for byte, line endings included.
+docs/thesis/original/** -text

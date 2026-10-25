@@ -196,6 +196,19 @@ class UserQuestionAssignment(db.Model):
 
 
 # File types accepted inside an annotation project's ZIP upload.
+# Form limits. The forms send these counts, and the server loops over them, so they are checked.
+MAX_QUESTIONS = 100  # questions in one new project
+MAX_OPTIONS = 6  # Question has option1 to option6
+
+
+def option_count(value):
+    """A multiple-choice option count from a form, kept to the 2 to 6 the Question columns hold."""
+    try:
+        return max(2, min(int(value), MAX_OPTIONS))
+    except (TypeError, ValueError):
+        return 2
+
+
 IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
 AUDIO_EXTENSIONS = ('.mp3', '.wav', '.ogg', '.m4a', '.flac')
 # Survey question attachments may also be videos.

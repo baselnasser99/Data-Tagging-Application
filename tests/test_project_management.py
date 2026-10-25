@@ -154,6 +154,26 @@ def test_add_and_delete_question(admin_client, survey):
     assert Question.query.filter_by(question="Pick one").first() is None
 
 
+def test_huge_question_counts_are_refused_before_any_work(app, make_user):
+    # The forms send these counts and the server loops over them: 10**9 used to keep a worker busy for minutes.
+    manager = make_user(role="project-admin")
+    client = app.test_client()
+    login(client, manager.email)
+    for url in ("/admin/create-annotation-project", "/admin/create-project"):
+        resp = client.post(url, data={"project_name": "Huge", "project_desc": "d", "total_questions": str(10**9)})
+        assert resp.status_code == 302
+    assert Project.query.filter_by(name="Huge").count() == 0
+
+
+def test_new_question_gets_at_most_six_options(admin_client, survey):
+    admin_client.post(
+        f"/admin/project/{survey.id}/edit-questions",
+        data={"action": "add_question", "new_question_text": "Pick one", "new_question_type": "mcq",
+              "new_question_num_options": str(10**9)},
+    )
+    assert Question.query.filter_by(question="Pick one").one().number_of_options == 6
+
+
 def test_update_annotation_settings(admin_client, annotation_project):
     project, _, _ = annotation_project
     admin_client.post(

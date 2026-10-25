@@ -18,7 +18,7 @@ from .extns import db
 from .feedback import flash_distribution, warn_idle_members
 from .jinja_utils import plural
 from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, ProjectImage,
-                     Question, TaskAssignment, UserGroup, media_type_for)
+                     Question, TaskAssignment, UserGroup, MAX_QUESTIONS, media_type_for)
 from .groups import set_up_new_project, usable_groups
 from .permissions import project_admin_access_required, project_admin_required
 from .uploads import upload_dir
@@ -39,6 +39,9 @@ def create_annotation_project():
         answers_per_task = max(1, int(request.form.get("answers_per_task", 1)))
         total_questions = int(request.form.get("total_questions", 0))
         assigned_group_id = request.form.get("assigned_group_id")
+        if not 0 <= total_questions <= MAX_QUESTIONS:
+            flash(f"A project can have at most {MAX_QUESTIONS} questions.", "error")
+            return redirect(request.url)
 
         # Create the annotation project
         project = Project(

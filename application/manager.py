@@ -11,7 +11,7 @@ from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
 from .feedback import flash_distribution
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
-                     QuestionAnswer, TaskAssignment, User, UserQuestionAssignment)
+                     QuestionAnswer, TaskAssignment, User, UserQuestionAssignment, option_count)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
 from .uploads import save_attachment
@@ -328,7 +328,7 @@ def _add_question(project):
         answer_type=AnswerType.TEXT if kind == 'text' else AnswerType.MCQ,
     )
     if kind == 'mcq':
-        question.number_of_options = int(request.form.get('new_question_num_options', 0))
+        question.number_of_options = option_count(request.form.get('new_question_num_options'))
         for i in range(1, question.number_of_options + 1):
             setattr(question, f'option{i}', request.form.get(f'new_question_option_{i}', ''))
     db.session.add(question)

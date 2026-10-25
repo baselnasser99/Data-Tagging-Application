@@ -19,7 +19,8 @@ from .groups import (assign_questions_to_new_group_member, remove_pending_assign
                      set_up_new_project)
 from .jinja_utils import plural
 from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, Question, QuestionAnswer,
-                     TaskAssignment, User, UserGroup, UserGroupMembership, UserQuestionAssignment)
+                     TaskAssignment, User, UserGroup, UserGroupMembership, UserQuestionAssignment,
+                     MAX_OPTIONS, MAX_QUESTIONS)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
 from .uploads import public_file_url, save_attachment
@@ -400,6 +401,10 @@ def create_project():
         project_name = request.form.get("project_name")
         project_desc = request.form.get("project_desc")
         assigned_group_id = request.form.get("assigned_group_id")
+        total_questions = int(request.form.get("total_questions") or 0)
+        if not 0 <= total_questions <= MAX_QUESTIONS:  # checked first: the project is saved right below
+            flash(f"A project can have at most {MAX_QUESTIONS} questions.", "danger")
+            return redirect(url_for("admin.create_project"))
 
         project = Project(name=project_name,
                           desc=project_desc)
@@ -409,16 +414,14 @@ def create_project():
         set_up_new_project(project, assigned_group_id)
 
         # Save questions if any are provided
-        total_questions_str = request.form.get("total_questions")
-        if total_questions_str and int(total_questions_str) > 0:
-            total_questions = int(total_questions_str)
+        if total_questions > 0:
             for i in range(1, total_questions + 1):
                 question_text = request.form.get(f"question-{i}")
                 filename = save_attachment(request.files.get(f"question-{i}-file"))
 
                 answer_type_value = request.form.get(f"dropdown-{i}")
                 answer_type = AnswerType.TEXT if answer_type_value == 'text' else AnswerType.MCQ
-                number_of_options = int(request.form.get(f"number_of_options-{i}", 0))
+                number_of_options = max(0, min(int(request.form.get(f"number_of_options-{i}", 0)), MAX_OPTIONS))
                 answer = request.form.get(f"answer-{i}")
 
                 # Create and save question

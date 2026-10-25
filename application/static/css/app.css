@@ -132,6 +132,11 @@ a:hover, a:focus { color: var(--ink-soft); }
 .account-menu .account-who span { display: block; color: var(--muted); font-size: 13px; word-break: break-all; }
 .account-menu > li > a { padding: 8px 16px; color: var(--ink); }
 .account-menu > li > a:hover { background: var(--canvas); }
+/* Sign out is a small form (POST with the CSRF token) that looks like the links around it */
+.sign-out-form { display: inline; margin: 0; }
+.account-menu .sign-out-item { display: block; width: 100%; padding: 8px 16px; border: 0; background: none;
+  color: var(--ink); font: inherit; text-align: left; }
+.account-menu .sign-out-item:hover, .account-menu .sign-out-item:focus { background: var(--canvas); }
 
 /* Theme switch in the account menu: three buttons, the current choice raised like a tab */
 .account-menu .theme-switch { padding: 8px 16px 10px; margin: 4px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -202,7 +207,7 @@ a:hover, a:focus { color: var(--ink-soft); }
 .sidebar-account-who > strong, .sidebar-account-who > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-account-who > span { color: var(--muted); font-size: 13px; }
 .sidebar-icon-link { width: 32px; height: 32px; border-radius: var(--radius-sm); display: inline-flex; align-items: center;
-  justify-content: center; color: var(--muted); text-decoration: none; }
+  justify-content: center; color: var(--muted); text-decoration: none; border: 0; padding: 0; background: none; }
 .sidebar-icon-link:hover, .sidebar-icon-link:focus { background: var(--canvas); color: var(--ink); }
 .sidebar-collapse .sidebar-foot { display: none; }  /* the narrow, icons-only panel has no room for it */
 

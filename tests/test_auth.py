@@ -33,7 +33,7 @@ def test_logged_in_user_visiting_login_is_sent_home(user_client):
 
 
 def test_logout_clears_session(user_client):
-    resp = user_client.get("/logout", follow_redirects=True)
+    resp = user_client.post("/logout", follow_redirects=True)
     assert b"Logged out" in resp.data
     with user_client.session_transaction() as sess:
         assert "_user_id" not in sess and "id" not in sess
@@ -263,7 +263,7 @@ def _copy_of_cookie(app, client):
 
 def test_signing_out_ends_every_copy_of_the_session(app, user_client):
     thief = _copy_of_cookie(app, user_client)
-    user_client.get("/logout")
+    user_client.post("/logout")
     assert thief.get("/user/dashboard").status_code == 302
 
 

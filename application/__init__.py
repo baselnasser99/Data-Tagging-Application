@@ -345,4 +345,6 @@ def _register_error_handlers(app):
     @app.errorhandler(CSRFError)
     def csrf_error(error):
         audit.warning("CSRF_REJECTED %s", _who())
+        if request.endpoint == "auth.logout":  # an expired page's Sign out: nothing was done, just go to sign-in
+            return redirect(url_for("auth.login"))
         return render_template("errors/400.html", reason=error.description), 400

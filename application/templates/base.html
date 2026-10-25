@@ -76,7 +76,7 @@
                     <button type="button" data-theme-choice="system" aria-pressed="true"><i class="fa fa-desktop" aria-hidden="true"></i> System</button>
                   </div>
                 </li>
-                <li><a href="{{ url_for('auth.logout') }}">Sign out</a></li>
+                <li><form class="sign-out-form" method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="sign-out-item">Sign out</button></form></li>
               </ul>
             </li>
           </ul>
@@ -162,7 +162,7 @@
           </span>
           <a href="{{ url_for('annotation.profile') if current_user.role == 'end-user' else url_for('admin.admin_profile') }}"
              class="sidebar-icon-link" title="Profile settings" aria-label="Profile settings"><i class="fa fa-cog" aria-hidden="true"></i></a>
-          <a href="{{ url_for('auth.logout') }}" class="sidebar-icon-link" title="Sign out" aria-label="Sign out"><i class="fa fa-sign-out" aria-hidden="true"></i></a>
+          <form class="sign-out-form" method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="sidebar-icon-link" title="Sign out" aria-label="Sign out"><i class="fa fa-sign-out" aria-hidden="true"></i></button></form>
         </div>
       </div>
     </aside>

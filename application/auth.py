@@ -1,9 +1,12 @@
 import logging
+import secrets
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from urllib.parse import urlsplit
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_user, logout_user
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extns import db
 from .models import LoginFailure, User
@@ -47,6 +50,12 @@ def _safe_next(target, user):
     if not parts.path.startswith(AREA_BY_ROLE.get(user.role, "/nowhere/")):
         return None
     return target
+
+
+@lru_cache(maxsize=1)
+def _dummy_hash():
+    """A hash of a random password, checked when the account doesn't exist (made once, on first use)."""
+    return generate_password_hash(secrets.token_hex(16))
 
 
 def forget_failed_logins(user, address=None):
@@ -99,15 +108,24 @@ def login():
             audit.info("LOGIN_THROTTLED %s ip=%s", who, address)
             flash(f"Too many failed sign-ins from your network. Try again in {LOCK_MINUTES} minutes.", "danger")
             return redirect(url_for("auth.login"))
-        if user and recent.filter(LoginFailure.user_id == user.id).count() >= MAX_FAILED_LOGINS:
+        # Counted per typed email, not per account, so an unknown email pauses the same way:
+        # otherwise the pause message would tell a stranger which emails have accounts.
+        if recent.filter(LoginFailure.email == email.lower()).count() >= MAX_FAILED_LOGINS:
             audit.info("LOGIN_LOCKED %s ip=%s", who, address)
             flash(f"Too many wrong passwords. Try again in {LOCK_MINUTES} minutes.", "danger")
             return redirect(url_for("auth.login"))
 
-        if not user or not user.active or not user.check_password(password):
+        # One password hash either way, so the answer takes as long for an unknown email as for a real one.
+        if user and user.active:
+            password_ok = user.check_password(password)
+        else:
+            check_password_hash(_dummy_hash(), password)
+            password_ok = False
+        if not password_ok:
             audit.info("LOGIN_FAILED %s ip=%s", who, address)
             LoginFailure.query.filter(LoginFailure.at <= now - timedelta(minutes=LOCK_MINUTES)).delete()
-            db.session.add(LoginFailure(address=address, user_id=user.id if user else None, at=now))
+            db.session.add(LoginFailure(address=address, user_id=user.id if user else None,
+                                        email=email.lower()[:255], at=now))
             db.session.commit()
             flash("Email address or password is incorrect!", "danger")
             return redirect(url_for("auth.login"))

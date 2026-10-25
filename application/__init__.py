@@ -177,6 +177,7 @@ _ADDED_COLUMNS = [
     ("user", "session_version", "INTEGER NOT NULL DEFAULT 0"),
     ("user", "must_change_password", "BOOLEAN NOT NULL DEFAULT 0"),
     ("question_answer", "cant_tell", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("login_failure", "email", "VARCHAR(255)"),
 ]
 
 

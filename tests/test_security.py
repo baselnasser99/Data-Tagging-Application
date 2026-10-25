@@ -104,6 +104,31 @@ def test_every_post_form_in_templates_has_csrf_token():
         assert html.count("csrf_token()") >= len(forms), path
 
 
+def test_the_graded_versions_default_admin_password_stops_working(app, db):
+    # A database first made by v1.0-thesis-submitted, upgraded in place: its default admin, whose
+    # password is published in that tag, used to sign in as before.
+    from application import _V1_DEFAULT_ADMIN, _retire_v1_default_admin
+    from tests.conftest import login
+
+    email, published = _V1_DEFAULT_ADMIN
+    old_admin = User()
+    old_admin.register_admin("Administrator", email, published)
+    kept = User()
+    kept.register_admin("Other", "kept@example.com", published)  # same password, another email: not this account
+    signed_in = app.test_client()
+    login(signed_in, email, published)
+
+    _retire_v1_default_admin(app)
+
+    assert not old_admin.check_password(published) and old_admin.active
+    assert signed_in.get("/admin/dashboard").status_code == 302  # its sessions ended
+    resp = login(app.test_client(), email, published)
+    assert resp.headers["Location"].endswith("/login")
+    assert kept.check_password(published)
+    old_admin.set_password("a-new-long-password")  # what scripts/admin_manager.py does
+    assert old_admin.check_password("a-new-long-password")
+
+
 def test_no_default_admin_account_is_created(app):
     assert User.query.filter_by(role="admin").count() == 0
     assert User.query.filter_by(email="admin@email.com").first() is None

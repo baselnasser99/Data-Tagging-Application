@@ -120,6 +120,7 @@ def create_app(config_object=None):
     with app.app_context():
         db.create_all()
         _upgrade_schema(app)
+        _retire_v1_default_admin(app)
         _ensure_admin(app)
 
     if app.config.get("SECRET_KEY_IS_GENERATED") and not app.testing:
@@ -231,6 +232,29 @@ def _upgrade_schema(app):
                     conn.execute(text(f"CREATE UNIQUE INDEX {rule} ON annotation_task "
                                       "(project_id, image_id, question_id)"))
                     app.logger.info("Database upgraded: one task per item and question")
+
+
+# The graded version (tag v1.0-thesis-submitted) created this administrator on every start, with a
+# password written in its source. That source is public, so the password is known to anyone.
+_V1_DEFAULT_ADMIN = ("admin@email.com", "123")
+
+
+def _retire_v1_default_admin(app):
+    """A database first made by the graded version may still hold its default administrator.
+
+    _upgrade_schema keeps that account working, so if it still has the published password, the
+    password is replaced with a random one nobody knows and its sessions end. The account itself
+    stays, so its owner can set a new password with scripts/admin_manager.py.
+    """
+    import secrets
+
+    email, password = _V1_DEFAULT_ADMIN
+    user = User.query.filter_by(email=email).first()
+    if user and user.check_password(password):
+        user.set_password(secrets.token_urlsafe(32))  # also ends every session
+        db.session.commit()
+        app.logger.warning("%s still had the published default password from the graded version; it was "
+                           "replaced with a random one. Set a new one with: python scripts/admin_manager.py", email)
 
 
 def _ensure_admin(app):

@@ -5,7 +5,7 @@ import pytest
 
 from application.uploads import upload_dir, upload_path
 from application.models import GroupProject, Project, Question, UserGroup, UserGroupMembership
-from tests.conftest import login
+from tests.conftest import BufferedClient, login
 
 
 def _project_with_member(db, make_user, name, survey=False):
@@ -111,3 +111,45 @@ def test_survey_attachments_follow_the_same_rule(app, db, make_user):
 
     assert _client(app, member).get("/files/attached.png").status_code == 200
     assert _client(app, outsider).get("/files/attached.png").status_code == 403
+
+
+@pytest.fixture
+def static_uploads_app(tmp_path):
+    """The Docker layout: uploads inside the static folder (UPLOAD_ROOT not set)."""
+    from application import create_app
+    from application.config import TestingConfig
+    from application.extns import db as _db
+
+    class Config(TestingConfig):
+        UPLOAD_ROOT = None
+
+    app = create_app(Config)
+    app.test_client_class = BufferedClient
+    app.static_folder = str(tmp_path / "static")
+    for name, data in (("uploads/images/1/photo.png", b"private"), ("css/site.css", b"public")):
+        os.makedirs(os.path.dirname(tmp_path / "static" / name), exist_ok=True)
+        _write(tmp_path / "static" / name, data)
+    with app.app_context():
+        yield app
+        _db.session.remove()
+        _db.drop_all()
+        _db.engine.dispose()
+
+
+@pytest.mark.parametrize("path", [
+    "/static/uploads/images/1/photo.png",
+    "/static/./uploads/images/1/photo.png",
+    "/static/%2E/uploads/images/1/photo.png",
+    "/static/css/../uploads/images/1/photo.png",
+    "/static/css/%2e%2e/uploads/images/1/photo.png",
+    "/static/UPLOADS/images/1/photo.png",
+])
+def test_static_route_never_serves_uploads(static_uploads_app, path):
+    # The guard checked the raw name, while the static view resolves "./" and "../" before opening
+    # the file: anyone could read uploads with /static/./uploads/...
+    resp = static_uploads_app.test_client().get(path)
+    assert resp.status_code == 404 and b"private" not in resp.data
+
+
+def test_static_route_still_serves_other_files(static_uploads_app):
+    assert static_uploads_app.test_client().get("/static/css/site.css").data == b"public"

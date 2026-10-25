@@ -1,5 +1,6 @@
 import logging
 import os
+import posixpath
 from logging.handlers import RotatingFileHandler
 
 import pymysql
@@ -64,8 +65,13 @@ def create_app(config_object=None):
     @app.before_request
     def _hide_uploads_from_static():
         # Uploads live under static/ but are served only to signed-in people, below.
-        if request.endpoint == "static" and (request.view_args or {}).get("filename", "").startswith("uploads/"):
-            abort(404)
+        # The static view resolves "./", "../" and "%2E" before it opens the file, so the name is
+        # resolved the same way first: "js/../uploads/x" is an upload too. Lower case: Windows and
+        # macOS disks don't tell "UPLOADS" from "uploads".
+        if request.endpoint == "static":
+            name = posixpath.normpath((request.view_args or {}).get("filename", "").replace("\\", "/")).lower()
+            if name == "uploads" or name.startswith("uploads/"):
+                abort(404)
 
     @app.before_request
     def _replace_temporary_password():

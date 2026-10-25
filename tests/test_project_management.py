@@ -233,6 +233,55 @@ def test_import_users_into_survey_project_assigns_questions(admin_client, survey
     assert UserQuestionAssignment.query.filter_by(user_id=new_user.id).count() == 1
 
 
+def test_deleting_a_survey_removes_imported_assignments(app, admin_client, db, survey):
+    # They were left behind, and on SQLite the next question took the deleted one's id: the member
+    # then saw and answered an unrelated project's question through /user/group-project/imported-<old id>.
+    from application.models import UserQuestionAssignment
+
+    csv_data = "full_name,email,password\nNew,new@example.com,secret123\n"
+    admin_client.post("/admin/import-users", content_type="multipart/form-data",
+                      data={"csv_file": (io.BytesIO(csv_data.encode()), "u.csv"), "project_id": str(survey.id)})
+    member = User.query.filter_by(email="new@example.com").one()
+    old_key = f"imported-{survey.id}"
+    assert UserQuestionAssignment.query.filter_by(user_id=member.id, group_project_id=old_key).count() == 1
+
+    admin_client.post(f"/admin/delete-project/{survey.id}")
+    assert UserQuestionAssignment.query.filter_by(user_id=member.id).count() == 0
+
+    other = Project(name="Other", desc="d")
+    db.session.add(other)
+    db.session.flush()
+    secret = Question(question="Unrelated question", project_id=other.id)
+    db.session.add(secret)
+    db.session.commit()
+    client = app.test_client()
+    login(client, member.email, "secret123")
+    assert client.get(f"/user/group-project/{old_key}").status_code == 302
+    client.post(f"/user/group-project/{old_key}", data={f"answer_{secret.id}": "answer into Other"})
+    assert QuestionAnswer.query.filter_by(question_id=secret.id).count() == 0
+
+
+def test_a_survey_key_shows_only_its_own_projects_questions(app, db, survey, end_user):
+    from application.models import UserQuestionAssignment
+
+    other = Project(name="Other", desc="d")
+    db.session.add(other)
+    db.session.flush()
+    stray = Question(question="Not in this survey", project_id=other.id)
+    db.session.add(stray)
+    db.session.flush()
+    key = f"imported-{survey.id}"
+    db.session.add_all([UserQuestionAssignment(user_id=end_user.id, question_id=q.id, group_project_id=key)
+                        for q in (survey.questions[0], stray)])
+    db.session.commit()
+    client = app.test_client()
+    login(client, end_user.email)
+    page = client.get(f"/user/group-project/{key}").data
+    assert b"Original?" in page and b"Not in this survey" not in page
+    client.post(f"/user/group-project/{key}", data={f"answer_{stray.id}": "x"})
+    assert QuestionAnswer.query.filter_by(question_id=stray.id).count() == 0
+
+
 def test_import_into_survey_skips_questions_people_already_hold(admin_client, db, survey, end_user):
     """Someone who holds the question through a group isn't given it a second time by an import."""
     from application.models import UserQuestionAssignment

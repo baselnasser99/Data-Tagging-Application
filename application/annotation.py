@@ -139,11 +139,17 @@ def _still_holds_key(user_id, key):
 def view_group_project(group_project_id):
     user_id = current_user.id
 
-    # Get questions assigned to this user for this group project
+    # Get questions assigned to this user for this group project. A key ends in the project's id
+    # ("<group id>-<project id>", "imported-<project id>"): only that project's questions count.
     assigned_questions = UserQuestionAssignment.query.filter_by(
         user_id=user_id,
         group_project_id=str(group_project_id)  # Ensure it's a string
     ).all()
+    key_project = group_project_id.rpartition("-")[2]
+    if key_project.isdigit():
+        assigned_questions = [a for a in assigned_questions
+                              if a.question is not None and a.question.project_id == int(key_project)]
+    allowed = {a.question_id for a in assigned_questions}
 
     if not assigned_questions or not _still_holds_key(user_id, group_project_id):
         flash('No questions assigned to you for this project', 'warning')
@@ -160,14 +166,8 @@ def view_group_project(group_project_id):
                     continue  # a tampered field name; ignore it instead of crashing
                 question_id = int(question_id)
 
-                # Verify this question is assigned to the user
-                assignment = UserQuestionAssignment.query.filter_by(
-                    user_id=user_id,
-                    question_id=question_id,
-                    group_project_id=group_project_id
-                ).first()
-
-                if assignment:
+                # Only the questions assigned to this user, of this key's project (see above)
+                if question_id in allowed:
                     # Re-submitting replaces the earlier answer
                     existing_answer = QuestionAnswer.query.filter_by(user_id=user_id, question_id=question_id).first()
                     if existing_answer:

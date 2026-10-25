@@ -495,6 +495,13 @@ def delete_project(project_id):
             for assignment in assignments:
                 db.session.delete(assignment)
             db.session.delete(group_project)
+        # Every other row for these questions too, whatever its key: CSV imports use
+        # "imported-<project id>", and a row left behind would point at a question id that
+        # SQLite gives to the next question created, in any project.
+        question_ids = [q.id for q in project.questions]
+        if question_ids:
+            UserQuestionAssignment.query.filter(UserQuestionAssignment.question_id.in_(question_ids)).delete(
+                synchronize_session=False)
 
         # Delete regular question answers (not linked to task assignments)
         for question in project.questions:

@@ -406,9 +406,9 @@ def test_joiners_in_names_are_logged_as_they_are(app, caplog):
 
 def test_a_long_refused_address_is_cut_in_the_audit_log(caplog, user_client):
     # Up to 4 KB per anonymous request let a few thousand requests push older events out of the log.
-    caplog.set_level("INFO", logger="audit")
+    caplog.set_level("INFO", logger="refused")
     assert user_client.get("/files/" + "a" * 4000).status_code == 403
-    (line,) = [line for line in _audit_lines(caplog) if "ACCESS_DENIED" in line]
+    (line,) = [r.getMessage() for r in caplog.records if r.name == "refused"]
     assert len(line) < 400 and "(4007 characters)" in line
 
 

@@ -334,7 +334,7 @@ class _OneLinePerEvent(logging.Filter):
 def _configure_logging(app):
     level = getattr(logging, str(app.config.get("LOG_LEVEL", "INFO")).upper(), logging.INFO)
     app.logger.setLevel(level)
-    for logger in (app.logger, logging.getLogger("audit")):
+    for logger in (app.logger, logging.getLogger("audit"), logging.getLogger("refused")):
         if not any(isinstance(f, _OneLinePerEvent) for f in logger.filters):
             logger.addFilter(_OneLinePerEvent())
 
@@ -352,26 +352,29 @@ def _configure_logging(app):
     handler.setLevel(level)
     app.logger.addHandler(handler)
 
-    # Separate audit trail for security-relevant events (sign-ins etc.)
-    audit = logging.getLogger("audit")
-    audit.setLevel(logging.INFO)
-    if not audit.handlers:
-        audit_handler = RotatingFileHandler(
-            os.path.join(log_dir, "audit.log"), maxBytes=1_000_000, backupCount=10, encoding="utf-8"
-        )
-        audit_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
-        audit.addHandler(audit_handler)
+    # Separate audit trail for security-relevant events (sign-ins, account and project changes,
+    # exports), and a file of its own for refused requests: anyone can cause those by the thousand,
+    # so in one file they could push the sign-in history out of the size-limited log.
+    for name, filename in (("audit", "audit.log"), ("refused", "refused.log")):
+        trail = logging.getLogger(name)
+        trail.setLevel(logging.INFO)
+        if not trail.handlers:
+            trail_handler = RotatingFileHandler(
+                os.path.join(log_dir, filename), maxBytes=1_000_000, backupCount=10, encoding="utf-8"
+            )
+            trail_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+            trail.addHandler(trail_handler)
 
 
 MAX_LOGGED_PATH = 200
 
 
 def _register_error_handlers(app):
-    audit = logging.getLogger("audit")
+    refused = logging.getLogger("refused")  # refused.log, not audit.log: see _configure_logging
 
     def _who():
         # The address is the visitor's choice: a long one is cut, so a few thousand requests can't push
-        # older events out of the size-limited audit log. Its full length is still recorded.
+        # older events out of the size-limited log. Its full length is still recorded.
         path = request.path
         if len(path) > MAX_LOGGED_PATH:
             path = f"{path[:MAX_LOGGED_PATH]}... ({len(path)} characters)"
@@ -379,7 +382,7 @@ def _register_error_handlers(app):
 
     @app.errorhandler(403)
     def forbidden(error):
-        audit.warning("ACCESS_DENIED %s", _who())
+        refused.warning("ACCESS_DENIED %s", _who())
         return render_template("errors/403.html"), 403
 
     @app.errorhandler(404)
@@ -397,7 +400,7 @@ def _register_error_handlers(app):
 
     @app.errorhandler(CSRFError)
     def csrf_error(error):
-        audit.warning("CSRF_REJECTED %s", _who())
+        refused.warning("CSRF_REJECTED %s", _who())
         if request.endpoint == "auth.logout":  # an expired page's Sign out: nothing was done, just go to sign-in
             return redirect(url_for("auth.login"))
         return render_template("errors/400.html", reason=error.description), 400

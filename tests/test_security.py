@@ -240,6 +240,42 @@ def test_login_cookie_is_marked_secure():
             _close_database()
 
 
+def test_refused_requests_go_to_their_own_log_file(tmp_path):
+    # Anyone can cause refused requests by the thousand; in audit.log they could push the
+    # sign-in history out of the size-limited file.
+    import logging
+
+    class Config(TestingConfig):
+        TESTING = False
+        WTF_CSRF_ENABLED = True
+        SECRET_KEY = "k" * 48
+        LOG_DIR = str(tmp_path)
+
+    app = create_app(Config)
+    app.test_client_class = BufferedClient
+    trails = [logging.getLogger(name) for name in ("audit", "refused")]
+    try:
+        with app.app_context():
+            client = app.test_client()
+            for _ in range(3):
+                client.post("/user/group-project/1-1")  # no CSRF token
+            client.post("/login", data={"email": "nobody@example.com", "password": "x",
+                                        "csrf_token": _token(client.get("/login").data)})
+            for trail in trails:
+                for handler in trail.handlers:
+                    handler.flush()
+            audit = (tmp_path / "audit.log").read_text(encoding="utf-8")
+            refused = (tmp_path / "refused.log").read_text(encoding="utf-8")
+            assert "LOGIN_FAILED" in audit and "CSRF_REJECTED" not in audit
+            assert refused.count("CSRF_REJECTED") == 3 and "LOGIN_FAILED" not in refused
+            _close_database()
+    finally:
+        for trail in trails:  # the loggers are shared with the other tests
+            for handler in list(trail.handlers):
+                trail.removeHandler(handler)
+                handler.close()
+
+
 def _audited_ip(app, caplog, **environ):
     caplog.set_level("INFO", logger="audit")
     with app.app_context():

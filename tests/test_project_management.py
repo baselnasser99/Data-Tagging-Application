@@ -174,6 +174,37 @@ def test_new_question_gets_at_most_six_options(admin_client, survey):
     assert Question.query.filter_by(question="Pick one").one().number_of_options == 6
 
 
+def test_editing_a_question_keeps_at_most_six_options(admin_client, survey):
+    q = survey.questions[0]
+    admin_client.post(f"/admin/project/{survey.id}/edit-questions", data={
+        "action": "update_questions", f"question-{q.id}": q.question, f"dropdown-{q.id}": "mcq",
+        f"number_of_options-{q.id}": str(10**9), f"mcq-option-1-{q.id}": "Yes", f"mcq-option-2-{q.id}": "No"})
+    assert q.number_of_options == 6
+
+
+def test_a_huge_stored_option_count_breaks_neither_pages_nor_exports(app, db, admin_client, annotation_project,
+                                                                      end_user):
+    # Counts saved before the limit existed: the member page looped over them and the export crashed.
+    from application.models import UserQuestionAssignment
+
+    project, _, _ = annotation_project
+    q = project.questions[0]
+    q.answer_type, q.number_of_options, q.option1, q.option2 = AnswerType.MCQ, 10**7, "Yes", "No"
+    survey_q = Question(question="Pick", project_id=project.id, answer_type=AnswerType.MCQ,
+                        number_of_options=10**7, option1="Red", option2="Blue")
+    db.session.add(survey_q)
+    db.session.flush()
+    db.session.add(UserQuestionAssignment(user_id=end_user.id, question_id=survey_q.id, group_project_id="imported"))
+    db.session.commit()
+
+    for fmt in ("csv", "json"):
+        assert admin_client.get(f"/admin/project/{project.id}/export.{fmt}").status_code == 200
+    client = app.test_client()
+    login(client, end_user.email)
+    page = client.get("/user/group-project/imported")
+    assert page.status_code == 200 and b"Blue" in page.data and len(page.data) < 200_000
+
+
 def test_update_annotation_settings(admin_client, annotation_project):
     project, _, _ = annotation_project
     admin_client.post(

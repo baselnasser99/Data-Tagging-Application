@@ -383,6 +383,35 @@ def test_every_audit_message_stays_on_one_line(app, caplog):
     assert _audit_lines(caplog) == ["EVENT value=a\\r\\n2026-10-22 09:00:00 LOGIN_OK user_id=1"]
 
 
+@pytest.mark.parametrize("separator", ["\x0b", "\x0c", "\x1c", "\x1d", "\x1e", "\x85", " ", " ", "‮"])
+def test_other_line_breaks_cannot_add_a_fake_audit_line_either(app, caplog, separator):
+    # Only \r and \n were escaped, but str.splitlines() and some log viewers also break at these,
+    # and U+202E reverses how the rest of the line is shown.
+    import logging
+
+    caplog.set_level("INFO", logger="audit")
+    logging.getLogger("audit").info("EVENT value=%s", f"a{separator}2026-10-22 09:00:00 LOGIN_OK user_id=1")
+    (line,) = _audit_lines(caplog)
+    assert separator not in line and len(line.splitlines()) == 1 and "LOGIN_OK" in line
+
+
+def test_joiners_in_names_are_logged_as_they_are(app, caplog):
+    import logging
+
+    caplog.set_level("INFO", logger="audit")
+    name = "می‌خوام"  # a Persian word with a zero-width non-joiner
+    logging.getLogger("audit").info("EVENT name=%s", name)
+    assert _audit_lines(caplog) == [f"EVENT name={name}"]
+
+
+def test_a_long_refused_address_is_cut_in_the_audit_log(caplog, user_client):
+    # Up to 4 KB per anonymous request let a few thousand requests push older events out of the log.
+    caplog.set_level("INFO", logger="audit")
+    assert user_client.get("/files/" + "a" * 4000).status_code == 403
+    (line,) = [line for line in _audit_lines(caplog) if "ACCESS_DENIED" in line]
+    assert len(line) < 400 and "(4007 characters)" in line
+
+
 def test_text_typed_as_an_unknown_email_is_not_logged(caplog, client):
     # People sometimes type their password into the email box.
     caplog.set_level("INFO", logger="audit")

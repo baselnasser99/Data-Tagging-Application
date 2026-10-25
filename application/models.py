@@ -328,4 +328,6 @@ class LoginFailure(db.Model):
     id = Column(Integer, primary_key=True)
     address = Column(String(45), nullable=False, index=True)  # IPv6 needs up to 45 characters
     user_id = Column(Integer, nullable=True, index=True)  # no foreign key: deleting an account keeps working
+    # What was typed, in lower case: the pause counts per typed email, so unknown ones pause like real ones.
+    email = Column(String(255), nullable=True, index=True)
     at = Column(db.DateTime, nullable=False, index=True)  # UTC

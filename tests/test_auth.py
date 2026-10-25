@@ -252,6 +252,50 @@ def test_a_new_password_from_the_admin_lifts_the_pause(app, admin_client, make_u
     assert client.get("/user/dashboard").status_code == 200
 
 
+# ---- sign-in doesn't tell a stranger which emails have accounts -----------
+
+def test_an_unknown_email_pauses_like_a_real_one(app, make_user):
+    from application.auth import MAX_FAILED_LOGINS
+
+    make_user(email="real@example.com")
+    for email in ("real@example.com", "nobody@example.com"):
+        for _ in range(MAX_FAILED_LOGINS):
+            _login_from(app, ATTACKER, email, "wrong-guess")
+        _, resp = _login_from(app, ATTACKER, email, "wrong-guess")
+        assert b"Too many wrong passwords" in resp.data, email
+
+
+def test_every_failed_sign_in_checks_one_password_hash(app, make_user, monkeypatch):
+    # Skipping the slow hash for unknown emails made them answer about 40 times faster.
+    import application.auth as auth_module
+    from application import models
+
+    calls = []
+    for module in (auth_module, models):
+        real = module.check_password_hash
+        monkeypatch.setattr(module, "check_password_hash",
+                            lambda stored, given, real=real: calls.append(1) or real(stored, given))
+    removed = make_user(email="removed@example.com")
+    removed.active = False
+    make_user(email="real@example.com")
+    for email in ("real@example.com", "nobody@example.com", "removed@example.com"):
+        calls.clear()
+        _login_from(app, OWNER, email, "wrong-guess")
+        assert len(calls) == 1, email
+
+
+def test_older_databases_get_the_failure_email_column(app, db):
+    from sqlalchemy import inspect, text
+
+    from application import _upgrade_schema
+
+    with db.engine.begin() as conn:
+        conn.execute(text("DROP INDEX ix_login_failure_email"))
+        conn.execute(text("ALTER TABLE login_failure DROP COLUMN email"))
+    _upgrade_schema(app)
+    assert "email" in {c["name"] for c in inspect(db.engine).get_columns("login_failure")}
+
+
 # ---- a copied session cookie stops working --------------------------------
 
 def _copy_of_cookie(app, client):

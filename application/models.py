@@ -1,4 +1,5 @@
 import enum
+import secrets
 
 from flask_login import UserMixin
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Text
@@ -14,7 +15,9 @@ class User(UserMixin, db.Model):
     password_hash = Column(String(500), nullable=False)
     role = Column(String(20), nullable=False)  # 'admin', 'project-admin', or 'end-user'
     active = Column(db.Boolean, nullable=False, default=True, server_default=db.true())  # False = removed by an admin; answers kept
-    # Part of the id in the session cookie: raising it ends every session, copies included.
+    # Part of the id in the session cookie: changing it ends every session, copies included.
+    # A random number, not a count: on SQLite a new account can get a deleted account's id, and
+    # with a count both would start at 1, so the deleted person's old cookie would open the new account.
     session_version = Column(Integer, nullable=False, default=0, server_default="0")
     # True while they still sign in with a temporary password an admin was shown.
     must_change_password = Column(db.Boolean, nullable=False, default=False, server_default=db.false())
@@ -45,7 +48,9 @@ class User(UserMixin, db.Model):
 
     def end_all_sessions(self):
         """Every session cookie issued so far stops working, wherever it is."""
-        self.session_version = (self.session_version or 0) + 1
+        old = self.session_version
+        while self.session_version == old:
+            self.session_version = secrets.randbelow(2**31 - 1) + 1  # fits a signed INT column
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

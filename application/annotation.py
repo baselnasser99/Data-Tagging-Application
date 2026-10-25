@@ -5,7 +5,8 @@ from flask_login import current_user
 
 from .auth import change_own_password
 from .extns import db
-from .models import Project, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer
+from .models import (Project, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer,
+                     GroupProject, UserGroupMembership)
 from .permissions import user_required
 from .stats import count_answered
 
@@ -118,6 +119,20 @@ def change_password():
     return render_template('end-user/change_password.html')
 
 
+def _still_holds_key(user_id, key):
+    """May the member still use survey rows held under ``key``?
+
+    Answered rows are kept when someone leaves a group (see groups.py), so a
+    "<group id>-<project id>" key works only while they are still in that group
+    and the group still has the project. CSV-imported keys belong to no group.
+    """
+    group_id, _, project_id = key.partition("-")
+    if not (group_id.isdigit() and project_id.isdigit()):
+        return True
+    return (GroupProject.query.filter_by(group_id=int(group_id), project_id=int(project_id)).first() is not None
+            and UserGroupMembership.query.filter_by(user_id=user_id, group_id=int(group_id)).first() is not None)
+
+
 @annotation.route("/group-project/<group_project_id>", methods=['GET', 'POST'])
 @user_required
 def view_group_project(group_project_id):
@@ -129,7 +144,7 @@ def view_group_project(group_project_id):
         group_project_id=str(group_project_id)  # Ensure it's a string
     ).all()
 
-    if not assigned_questions:
+    if not assigned_questions or not _still_holds_key(user_id, group_project_id):
         flash('No questions assigned to you for this project', 'warning')
         return redirect(url_for('annotation.my_projects'))
 

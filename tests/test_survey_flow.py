@@ -84,6 +84,43 @@ def test_assign_survey_to_group_and_answer(app, db, admin_client, end_user):
     assert b"Opinions" in resp.data
 
 
+def test_removed_member_can_no_longer_open_or_change_the_survey(app, db, admin_client, end_user):
+    project = _make_survey(admin_client)
+    group = UserGroup(name="Panel")
+    db.session.add(group)
+    db.session.commit()
+    admin_client.post(f"/admin/manage-group/{group.id}", data={"action": "add_user", "user_id": end_user.id})
+    admin_client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": project.id})
+
+    client = app.test_client()
+    login(client, end_user.email)
+    gp_id = f"{group.id}-{project.id}"
+    q1, _q2 = project.questions
+    client.post(f"/user/group-project/{gp_id}", data={f"answer_{q1.id}": "Birdsong"})
+
+    admin_client.post(f"/admin/manage-group/{group.id}", data={"action": "remove_user", "user_id": end_user.id})
+    # The answered row is kept as history...
+    assert UserQuestionAssignment.query.filter_by(user_id=end_user.id, group_project_id=gp_id).count() == 1
+
+    # ...but it no longer opens the survey or changes the answer.
+    resp = client.get(f"/user/group-project/{gp_id}")
+    assert resp.status_code == 302 and "/user/my-projects" in resp.location
+    client.post(f"/user/group-project/{gp_id}", data={f"answer_{q1.id}": "Changed later"})
+    assert QuestionAnswer.query.filter_by(user_id=end_user.id, question_id=q1.id).one().answer == "Birdsong"
+
+
+def test_imported_survey_questions_still_open_without_a_group(app, db, admin_client, end_user):
+    project = _make_survey(admin_client)
+    key = f"imported-{project.id}"
+    db.session.add_all([UserQuestionAssignment(user_id=end_user.id, question_id=q.id, group_project_id=key)
+                        for q in project.questions])
+    db.session.commit()
+
+    client = app.test_client()
+    login(client, end_user.email)
+    assert client.get(f"/user/group-project/{key}").status_code == 200
+
+
 def test_assigning_same_project_twice_is_prevented(db, admin_client):
     project = Project(name="P", desc="d")
     group = UserGroup(name="G")

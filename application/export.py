@@ -23,7 +23,7 @@ import re
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
-from .models import AnnotationTask, AnswerType, Project, QuestionAnswer, TaskAssignment
+from .models import MAX_OPTIONS, AnnotationTask, AnswerType, Project, QuestionAnswer, TaskAssignment
 
 SHORT_TEXT_MAX_WORDS = 3
 
@@ -142,7 +142,7 @@ def build_project_export(project: Project) -> dict:
             "question_id": question.id,
             "question": question.question,
             "type": kind,
-            "options": [getattr(question, f"option{i}") for i in range(1, (question.number_of_options or 0) + 1)
+            "options": [getattr(question, f"option{i}") for i in range(1, min(question.number_of_options or 0, MAX_OPTIONS) + 1)
                         if getattr(question, f"option{i}")] if kind == "multiple_choice" else None,
             "answers": [
                 {

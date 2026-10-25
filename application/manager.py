@@ -310,7 +310,7 @@ def _update_question(question, text, form, files):
             question.number_of_options = 0
             question.answer = form.get(f'answer-{qid}', '')
         else:
-            question.number_of_options = int(request.form.get(f'number_of_options-{qid}', 0))
+            question.number_of_options = option_count(request.form.get(f'number_of_options-{qid}'))
             for i in range(1, 7):
                 setattr(question, f'option{i}', form.get(f'mcq-option-{i}-{qid}'))  # None clears a removed option
             question.answer = form.get(f'mcq-correct-answer-{qid}')

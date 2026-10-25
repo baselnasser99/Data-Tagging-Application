@@ -1,6 +1,7 @@
 import logging
 import os
 import posixpath
+import re
 from logging.handlers import RotatingFileHandler
 
 import pymysql
@@ -303,8 +304,21 @@ def _configure_https(app):
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxies, x_proto=proxies, x_host=proxies)
 
 
+# What a log viewer may show as a line break, or use to reorder text on screen: control characters
+# (\n and \r, but also \v, \f, \x1c-\x1e and \x85, which Python's splitlines() and some editors break
+# at), the Unicode line and paragraph separators, and the text-direction controls. Other invisible
+# characters, such as the joiners in Persian names and in emoji, are left as they are.
+_UNSAFE_IN_LOGS = re.compile("[\x00-\x1f\x7f-\x9f  ؜‎‏‪-‮⁦-⁩]")
+_ESCAPES = {"\n": "\\n", "\r": "\\r", "\t": "\\t"}
+
+
+def _escape_for_log(match):
+    ch = match.group()
+    return _ESCAPES.get(ch) or (f"\\x{ord(ch):02x}" if ord(ch) < 0x100 else f"\\u{ord(ch):04x}")
+
+
 class _OneLinePerEvent(logging.Filter):
-    """Write line breaks inside a message as \\r and \\n.
+    """Write line breaks, and other characters that could disguise a line, as escapes (\\n, \\x0b ...).
 
     Some logged values come from visitors (the address they asked for, say), and a
     line break in one would let them add a made-up line such as a LOGIN_OK.
@@ -312,8 +326,8 @@ class _OneLinePerEvent(logging.Filter):
 
     def filter(self, record):
         message = record.getMessage()
-        if "\n" in message or "\r" in message:
-            record.msg, record.args = message.replace("\r", "\\r").replace("\n", "\\n"), None
+        if _UNSAFE_IN_LOGS.search(message):
+            record.msg, record.args = _UNSAFE_IN_LOGS.sub(_escape_for_log, message), None
         return True
 
 
@@ -330,7 +344,7 @@ def _configure_logging(app):
 
     os.makedirs(log_dir, exist_ok=True)
     handler = RotatingFileHandler(
-        os.path.join(log_dir, "app.log"), maxBytes=1_000_000, backupCount=5
+        os.path.join(log_dir, "app.log"), maxBytes=1_000_000, backupCount=5, encoding="utf-8"
     )
     handler.setFormatter(
         logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s")
@@ -343,17 +357,25 @@ def _configure_logging(app):
     audit.setLevel(logging.INFO)
     if not audit.handlers:
         audit_handler = RotatingFileHandler(
-            os.path.join(log_dir, "audit.log"), maxBytes=1_000_000, backupCount=10
+            os.path.join(log_dir, "audit.log"), maxBytes=1_000_000, backupCount=10, encoding="utf-8"
         )
         audit_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
         audit.addHandler(audit_handler)
+
+
+MAX_LOGGED_PATH = 200
 
 
 def _register_error_handlers(app):
     audit = logging.getLogger("audit")
 
     def _who():
-        return f"user_id={getattr(current_user, 'id', None)} ip={request.remote_addr} path={request.path}"
+        # The address is the visitor's choice: a long one is cut, so a few thousand requests can't push
+        # older events out of the size-limited audit log. Its full length is still recorded.
+        path = request.path
+        if len(path) > MAX_LOGGED_PATH:
+            path = f"{path[:MAX_LOGGED_PATH]}... ({len(path)} characters)"
+        return f"user_id={getattr(current_user, 'id', None)} ip={request.remote_addr} path={path}"
 
     @app.errorhandler(403)
     def forbidden(error):

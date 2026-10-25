@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, abort
 from flask_login import current_user
+from sqlalchemy import update
 
 from .auth import change_own_password
 from .extns import db
@@ -243,15 +244,32 @@ def _save_answer(assignment, text, cant_tell=False):
 
     cant_tell=True: the member couldn't answer. It finishes the task all the same (simplest for
     everyone: nobody else is handed the task), and the export and results leave it out of agreement.
+
+    Returns False, storing nothing, when the assignment was already done: two submits at the same
+    moment (a double click, two tabs) both pass the callers' is_completed check, so the database
+    decides which one wins. Counts are added up in SQL for the same reason.
     """
+    claimed = db.session.execute(
+        update(TaskAssignment)
+        .where(TaskAssignment.id == assignment.id, TaskAssignment.is_completed == False)
+        .values(is_completed=True, completed_date=db.func.current_timestamp())
+        .execution_options(synchronize_session=False)).rowcount
+    if claimed != 1:
+        db.session.expire(assignment)
+        return False
     db.session.add(QuestionAnswer(user_id=assignment.user_id, question_id=assignment.task.question_id,
                                   answer=CANT_TELL if cant_tell else text, cant_tell=cant_tell,
                                   task_assignment_id=assignment.id))
-    assignment.is_completed = True
-    assignment.completed_date = db.func.current_timestamp()
-    assignment.task.current_answers += 1
-    if assignment.task.current_answers >= assignment.task.required_answers:
-        assignment.task.is_completed = True
+    task = AnnotationTask.__table__
+    # Two statements: MySQL would let a combined SET see the new count and close the task one answer early.
+    db.session.execute(update(task).where(task.c.id == assignment.task_id)
+                       .values(current_answers=task.c.current_answers + 1))
+    db.session.execute(update(task).where(task.c.id == assignment.task_id,
+                                          task.c.current_answers >= task.c.required_answers)
+                       .values(is_completed=True))
+    db.session.expire(assignment)
+    db.session.expire(assignment.task)
+    return True
 
 
 @annotation.route("/annotation-task/<int:assignment_id>", methods=["GET", "POST"])
@@ -272,22 +290,21 @@ def annotation_task(assignment_id):
     if request.method == "POST":
         answer_text = (request.form.get("answer") or "").strip()
 
+        cant_tell = bool(request.form.get("cant_tell"))
         if assignment.is_completed:
             flash("You have already answered this task.", "info")
             return redirect(url_for("annotation.annotation_tasks"))
-
-        if request.form.get("cant_tell"):
-            _save_answer(assignment, "", cant_tell=True)
-            db.session.commit()
-            flash("Marked as \"can't tell\". Your manager will see it.", "success")
-            return _next_item(current_user.id, project.id)
-        if answer_text:
-            _save_answer(assignment, answer_text)
-            db.session.commit()
-            flash("Answer submitted successfully!", "success")
-            return _next_item(current_user.id, project.id)
-        else:
+        if not cant_tell and not answer_text:
             flash("Please provide an answer!", "error")
+        elif not _save_answer(assignment, answer_text, cant_tell=cant_tell):
+            db.session.rollback()
+            flash("You have already answered this task.", "info")
+            return redirect(url_for("annotation.annotation_tasks"))
+        else:
+            db.session.commit()
+            flash("Marked as \"can't tell\". Your manager will see it." if cant_tell
+                  else "Answer submitted successfully!", "success")
+            return _next_item(current_user.id, project.id)
 
     done, total = _my_progress(current_user.id, project.id)
     return render_template("user/annotation_task.html",
@@ -338,8 +355,7 @@ def annotate_image(image_id, project_id, batch_index=0):
         answered = 0
         for assignment in current_batch_assignments:
             text = (request.form.get(f"answer_{assignment.id}") or "").strip()
-            if text:
-                _save_answer(assignment, text)
+            if text and _save_answer(assignment, text):
                 answered += 1
         db.session.commit()
 

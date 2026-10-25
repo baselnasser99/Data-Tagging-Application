@@ -171,6 +171,43 @@ def test_full_annotation_cycle_and_export(app, admin_client, group_with_members)
     assert resp.status_code == 200
 
 
+def test_a_submit_that_raced_past_the_check_stores_nothing(app, admin_client, group_with_members):
+    from sqlalchemy.orm.attributes import set_committed_value
+
+    group, members = group_with_members
+    project = _create_project(admin_client, answers_per_task=2)
+    _upload(admin_client, project, {"a.png": b"x"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+    annotator = members[0]
+    assignment = TaskAssignment.query.filter_by(user_id=annotator.id).first()
+    client = app.test_client()
+    login(client, annotator.email)
+    client.post(f"/user/annotation-task/{assignment.id}", data={"answer": "red"})
+
+    # A second request (another worker, a double click) read the row before the first one
+    # committed, so in its eyes the assignment is still open.
+    set_committed_value(assignment, "is_completed", False)
+    resp = client.post(f"/user/annotation-task/{assignment.id}", data={"answer": "blue"}, follow_redirects=True)
+    assert b"already answered" in resp.data
+    assert [a.answer for a in QuestionAnswer.query.filter_by(task_assignment_id=assignment.id)] == ["red"]
+    assert assignment.task.current_answers == 1 and not assignment.task.is_completed
+
+
+def test_task_is_done_only_when_it_has_all_its_answers(app, admin_client, group_with_members):
+    group, members = group_with_members
+    project = _create_project(admin_client, answers_per_task=2)
+    _upload(admin_client, project, {"a.png": b"x"})
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+    task = AnnotationTask.query.filter_by(project_id=project.id).first()
+
+    for count, member in enumerate(members, 1):
+        assignment = TaskAssignment.query.filter_by(task_id=task.id, user_id=member.id).one()
+        client = app.test_client()
+        login(client, member.email)
+        client.post(f"/user/annotation-task/{assignment.id}", data={"answer": "red"})
+        assert task.current_answers == count and task.is_completed == (count == 2)
+
+
 def test_export_for_user_without_answers(admin_client, end_user):
     resp = admin_client.get(f"/admin/download-answers/{end_user.id}")
     assert resp.status_code == 200

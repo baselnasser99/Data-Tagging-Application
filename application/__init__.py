@@ -160,7 +160,7 @@ def _refuse_known_secrets(app):
 
 @login_manager.user_loader
 def load_user(user_id):
-    # "<id>:<session version>" (User.get_id). Cookies holding an older version, or the
+    # "<id>:<session version>" (User.get_id). Cookies holding another version, or the
     # bare id stored before versions existed, no longer sign anyone in.
     uid, _, version = user_id.partition(":")
     if not uid.isdigit() or not version.isdigit():

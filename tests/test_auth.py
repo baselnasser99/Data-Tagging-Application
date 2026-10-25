@@ -334,6 +334,24 @@ def test_admin_setting_a_members_password_signs_the_member_out(app, admin_client
     assert user_client.get("/user/dashboard").status_code == 302
 
 
+def test_a_deleted_members_cookie_does_not_open_the_next_account(app, db, admin_client, make_user):
+    # SQLite gives the next account the deleted one's id. With a version that counted up from 1,
+    # the removed member's old cookie then opened the new account, an admin's too.
+    from application.models import User
+
+    member = make_user(email="leaving@example.com")
+    leaving = app.test_client()
+    login(leaving, member.email)
+    old_id = member.id
+    admin_client.post(f"/admin/users/{old_id}/remove")  # no finished work: the row is deleted
+    assert db.session.get(User, old_id) is None
+
+    newcomer = make_user(role="admin", email="newcomer@example.com")
+    assert newcomer.id == old_id  # the id was reused, as on SQLite in production
+    assert leaving.get("/admin/dashboard").status_code == 302
+    assert leaving.get("/user/dashboard").status_code == 302
+
+
 def test_cookies_from_before_session_versions_are_refused(app, end_user):
     old = app.test_client()
     with old.session_transaction() as sess:  # what Flask-Login stored until now: the bare id

@@ -91,7 +91,7 @@ def test_sign_out_needs_the_page_token(csrf_app):
     assert b'action="/logout"' in page
     client.post("/logout", data={"csrf_token": _token(page)})
     db.session.refresh(member)
-    assert member.session_version == version + 1
+    assert member.session_version != version
 
 
 def test_every_post_form_in_templates_has_csrf_token():

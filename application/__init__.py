@@ -4,6 +4,11 @@ import posixpath
 import re
 from logging.handlers import RotatingFileHandler
 
+try:
+    import fcntl
+except ImportError:  # Windows: only the development server runs there, as a single process
+    fcntl = None
+
 import pymysql
 from flask import Flask, abort, flash, redirect, render_template, request, send_from_directory, url_for
 from flask_login import current_user, login_required
@@ -331,6 +336,51 @@ class _OneLinePerEvent(logging.Filter):
         return True
 
 
+class SharedRotatingFileHandler(RotatingFileHandler):
+    """A RotatingFileHandler that several processes, the Gunicorn workers, can share.
+
+    Each worker opens its own handler on the same file. A plain RotatingFileHandler then rotates
+    whenever its own worker thinks the file is full and keeps writing to a file another worker has
+    already renamed, so files are rotated more often than needed and the oldest ones, with the
+    history in them, are deleted early. Here each write holds a lock on a side file, reopens the
+    log if another worker rotated it, and measures the file as it is on disk.
+    """
+
+    def __init__(self, filename, **kwargs):
+        super().__init__(filename, **kwargs)
+        self._lock_file = open(self.baseFilename + ".lock", "a")
+
+    def emit(self, record):
+        try:
+            if fcntl:
+                fcntl.flock(self._lock_file, fcntl.LOCK_EX)
+            try:
+                if self.stream is not None and self._renamed_by_another_process():
+                    self.stream.close()
+                    self.stream = None
+                if self.stream is None:
+                    self.stream = self._open()
+                self.stream.seek(0, os.SEEK_END)  # the size other workers' lines gave it, too
+                super().emit(record)  # rotates if needed, writes and flushes
+            finally:
+                if fcntl:
+                    fcntl.flock(self._lock_file, fcntl.LOCK_UN)
+        except Exception:
+            self.handleError(record)
+
+    def _renamed_by_another_process(self):
+        try:
+            on_disk = os.stat(self.baseFilename)
+        except FileNotFoundError:
+            return True
+        mine = os.fstat(self.stream.fileno())
+        return (on_disk.st_dev, on_disk.st_ino) != (mine.st_dev, mine.st_ino)
+
+    def close(self):
+        super().close()
+        self._lock_file.close()
+
+
 def _configure_logging(app):
     level = getattr(logging, str(app.config.get("LOG_LEVEL", "INFO")).upper(), logging.INFO)
     app.logger.setLevel(level)
@@ -343,7 +393,7 @@ def _configure_logging(app):
         return
 
     os.makedirs(log_dir, exist_ok=True)
-    handler = RotatingFileHandler(
+    handler = SharedRotatingFileHandler(
         os.path.join(log_dir, "app.log"), maxBytes=1_000_000, backupCount=5, encoding="utf-8"
     )
     handler.setFormatter(
@@ -359,7 +409,7 @@ def _configure_logging(app):
         trail = logging.getLogger(name)
         trail.setLevel(logging.INFO)
         if not trail.handlers:
-            trail_handler = RotatingFileHandler(
+            trail_handler = SharedRotatingFileHandler(
                 os.path.join(log_dir, filename), maxBytes=1_000_000, backupCount=10, encoding="utf-8"
             )
             trail_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))

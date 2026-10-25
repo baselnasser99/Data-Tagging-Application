@@ -23,6 +23,16 @@ def csrf_app(tmp_path):
 
     app = create_app(Config)
     app.test_client_class = BufferedClient
+
+    def _reset_request_cache():
+        # One app context stays open, so its g would otherwise carry the signed-in user and the
+        # CSRF token from one request into the next (see tests/conftest.py).
+        from flask import g
+
+        g.pop("_login_user", None)
+        g.pop("csrf_token", None)
+
+    app.before_request_funcs.setdefault(None, []).insert(0, _reset_request_cache)
     with app.app_context():
         yield app
         _close_database()
@@ -56,6 +66,32 @@ def test_post_with_csrf_token_is_accepted(csrf_app):
     )
     assert resp.status_code == 302
     assert resp.headers["Location"].endswith("/admin/dashboard")
+
+
+def test_sign_out_needs_the_page_token(csrf_app):
+    # A plain link from another site used to sign the person out on every device.
+    from application.extns import db
+
+    member = User(full_name="M", email="out@example.com", role="end-user")
+    member.set_password("password123")
+    db.session.add(member)
+    db.session.commit()
+    client = csrf_app.test_client()
+    client.post("/login", data={"email": member.email, "password": "password123",
+                                "csrf_token": _token(client.get("/login").data)})
+    version = member.session_version
+
+    assert client.get("/logout").status_code == 405
+    resp = client.post("/logout")  # no token: what a cross-site form would send
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/login")
+    db.session.refresh(member)
+    assert member.session_version == version
+
+    page = client.get("/user/dashboard").data
+    assert b'action="/logout"' in page
+    client.post("/logout", data={"csrf_token": _token(page)})
+    db.session.refresh(member)
+    assert member.session_version == version + 1
 
 
 def test_every_post_form_in_templates_has_csrf_token():

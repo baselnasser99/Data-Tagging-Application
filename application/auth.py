@@ -144,7 +144,8 @@ def login():
     return render_template("login.html")
 
 
-@auth.route("/logout")
+# POST only, with the CSRF token: a link from another site would otherwise sign people out everywhere.
+@auth.route("/logout", methods=["POST"])
 def logout():
     if current_user.is_authenticated:
         audit.info("LOGOUT user_id=%s", current_user.id)

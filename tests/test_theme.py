@@ -31,7 +31,7 @@ def test_every_layout_loads_the_shared_tokens(client, admin_client):
     tokens = '<link href="/static/css/tokens.css" rel="stylesheet">'
     for resp in (admin_client.get("/admin/dashboard"), admin_client.get("/no-such-page")):
         assert tokens in _head(resp.get_data(as_text=True))
-    admin_client.get("/logout")
+    admin_client.post("/logout")
     assert tokens in _head(client.get("/login").get_data(as_text=True))
 
 

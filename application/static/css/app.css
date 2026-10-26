@@ -993,6 +993,7 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .disagreement-text > .text-muted { flex-basis: 100%; }
 .disagreements.is-unclear > li { background: var(--marker-soft); }
 .result-note { margin: -4px 0 8px; font-size: 13px; }
+.result ul + .result-note { margin-top: 10px; }  /* a note under a list, not under a label */
 .answer-chip { padding: 1px 8px; border-radius: 3px; background: var(--surface); border: 1px solid var(--line); }
 .answer-chip b { font-weight: 700; margin-right: 2px; }
 @media (max-width: 991px) { .results-grid { grid-template-columns: 1fr; } }

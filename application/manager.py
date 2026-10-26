@@ -216,9 +216,19 @@ def create_project_admin(project_id):
         email = (request.form.get('email') or '').strip()
         password = request.form.get('password') or ''
 
-        # The same checks as admin.create_user
+        # Checked first: otherwise a manager, who can never pass it for their own project, could still
+        # learn from the email check which addresses have accounts.
+        existing_project_manager = ProjectAdmin.query.filter_by(project_id=project_id).first()
+        if existing_project_manager:
+            flash('This project already has a manager. Only one manager is allowed per project.', 'danger')
+            return redirect(url_for('manager.project_admins', project_id=project_id))
+
+        # The same checks as admin.create_user and Edit user
         if not fullname or not email:
             flash('Please enter a name and an email address.', 'danger')
+            return redirect(url_for('manager.create_project_admin', project_id=project_id))
+        if len(fullname) > 100 or len(email) > 255 or '@' not in email:
+            flash('Please enter a valid email address and a name of at most 100 characters.', 'danger')
             return redirect(url_for('manager.create_project_admin', project_id=project_id))
         if User.query.filter_by(email=email).first():
             flash('A user with this email already exists.', 'danger')
@@ -227,15 +237,11 @@ def create_project_admin(project_id):
             flash(f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.', 'danger')
             return redirect(url_for('manager.create_project_admin', project_id=project_id))
 
-        # Check if a project admin already exists for this project
-        existing_project_manager = ProjectAdmin.query.filter_by(project_id=project_id).first()
-        if existing_project_manager:
-            flash('This project already has a manager. Only one manager is allowed per project.', 'danger')
-            return redirect(url_for('manager.project_admins', project_id=project_id))
-
         # Create new user and assign as project admin
         new_user = User()
         new_user.register_project_admin(fullname, email, password, project_id, current_user.id)
+        new_user.must_change_password = True  # chosen by someone else: its owner picks their own
+        db.session.commit()
         audit.info("USER_CREATED user_id=%s role=%s by=%s", new_user.id, new_user.role, current_user.id)
 
         flash('New project admin created successfully.', 'success')

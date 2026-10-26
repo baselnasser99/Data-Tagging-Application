@@ -249,7 +249,73 @@ def test_a_new_password_from_the_admin_lifts_the_pause(app, admin_client, make_u
     admin_client.post(f"/admin/users/{user.id}/edit", data={
         "full_name": user.full_name, "email": user.email, "password": "a-fresh-password"})
     client, _ = _login_from(app, OWNER, user.email, "a-fresh-password")
-    assert client.get("/user/dashboard").status_code == 200
+    # Signed in again, and first asked to replace the password the admin chose.
+    resp = client.get("/user/dashboard")
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/user/change-password")
+
+
+# ---- passwords someone else chose are replaced by their owner -------------
+
+def test_a_password_chosen_by_the_admin_must_be_replaced(app, admin_client, make_user):
+    from application.models import User
+
+    admin_client.post("/admin/create-user", data={"full_name": "Dee", "email": "dee@example.com",
+                                                  "password": "chosen-by-admin"})
+    assert User.query.filter_by(email="dee@example.com").one().must_change_password
+    member = make_user(email="edited@example.com")
+    admin_client.post(f"/admin/users/{member.id}/edit", data={
+        "full_name": member.full_name, "email": member.email, "password": "set-by-admin"})
+    assert member.must_change_password
+
+
+def test_a_new_password_must_differ_from_the_current_one(app, user_client, end_user):
+    resp = user_client.post("/user/change-password", data={
+        "current_password": "password123", "new_password": "password123", "confirm_password": "password123"},
+        follow_redirects=True)
+    assert b"different from your current one" in resp.data
+
+
+def test_restoring_a_removed_member_does_not_revive_old_cookies(app, db, admin_client, end_user, user_client):
+    from application.models import QuestionAnswer, Project, Question
+
+    project = Project(name="P", desc="d")
+    db.session.add(project)
+    db.session.flush()
+    question = Question(question="Q", project_id=project.id)
+    db.session.add(question)
+    db.session.flush()
+    db.session.add(QuestionAnswer(user_id=end_user.id, question_id=question.id, answer="a"))  # finished work
+    db.session.commit()
+    admin_client.post(f"/admin/users/{end_user.id}/remove")
+    admin_client.post(f"/admin/users/{end_user.id}/restore")
+    assert end_user.active
+    assert user_client.get("/user/dashboard").status_code == 302  # the old cookie stays dead
+
+
+def test_changing_your_email_on_the_profile_is_checked_and_audited(app, caplog, admin_client, admin_user):
+    caplog.set_level("INFO", logger="audit")
+    admin_client.post("/admin/profile", data={"action": "update_email", "email": "not-an-address"})
+    assert admin_user.email == "admin@example.com"
+    admin_client.post("/admin/profile", data={"action": "update_email", "email": " new@example.com "})
+    assert admin_user.email == "new@example.com"
+    assert any(r.getMessage().startswith("EMAIL_CHANGED") and "old=admin@example.com" in r.getMessage()
+               for r in caplog.records if r.name == "audit")
+
+
+def test_create_manager_form_does_not_reveal_which_emails_exist(app, db, make_user, make_project_admin):
+    from application.models import Project
+    from tests.conftest import flashes
+
+    project = Project(name="P", desc="d")
+    db.session.add(project)
+    db.session.commit()
+    manager = make_project_admin(project)
+    taken = make_user(email="taken@example.com")
+    client = app.test_client()
+    login(client, manager.email)
+    client.post(f"/admin/project/{project.id}/admins/create",
+                data={"fullname": "X", "email": taken.email, "password": "long-enough-1"})
+    assert not any("already exists" in message for message in flashes(client))
 
 
 # ---- sign-in doesn't tell a stranger which emails have accounts -----------

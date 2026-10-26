@@ -81,6 +81,8 @@ def change_own_password(user, current_password, new_password, confirm_password):
         return 'New passwords do not match'
     if len(new_password) < MIN_PASSWORD_LENGTH:
         return f'Password must be at least {MIN_PASSWORD_LENGTH} characters long'
+    if user.check_password(new_password):  # a temporary one, say, which the admin has seen
+        return 'Choose a password different from your current one'
     user.set_password(new_password)  # ends every session, this one included
     user.must_change_password = False
     db.session.commit()

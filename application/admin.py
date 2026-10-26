@@ -132,11 +132,13 @@ def edit_user(user_id):
         user.full_name, user.email = full_name, email
         if password:
             user.set_password(password)
+            user.must_change_password = True  # the admin knows it, so its owner picks their own
         db.session.commit()
         if password:
             forget_failed_logins(user)  # a new password from the admin also lifts every pause
         audit.info("USER_UPDATED user_id=%s by=%s password_changed=%s", user.id, current_user.id, bool(password))
-        flash(f'{full_name} was updated.' + (' Share the new password with them.' if password else ''), 'success')
+        flash(f'{full_name} was updated.' + (' Share the new password with them; they choose their own the '
+                                             'first time they sign in.' if password else ''), 'success')
         return redirect(back)
     return render_template('admin/edit_user.html', user=user, form={}, back=back)
 
@@ -158,6 +160,7 @@ def remove_user(user_id):
         remove_pending_assignments_from_removed_group_member(user, group)
     if _has_finished_work(user):
         user.active = False
+        user.end_all_sessions()  # so a cookie from before can't come back to life if they are restored
         db.session.commit()
         audit.info("USER_DEACTIVATED user_id=%s by=%s", user.id, current_user.id)
         flash(f'{name} was removed and can no longer sign in. Their answers are kept; '
@@ -177,6 +180,7 @@ def remove_user(user_id):
 def restore_user(user_id):
     user = _member_or_404(user_id)
     user.active = True
+    user.end_all_sessions()  # they sign in afresh
     db.session.commit()
     audit.info("USER_RESTORED user_id=%s by=%s", user.id, current_user.id)
     flash(f'{user.full_name} can sign in again. Add them to a group to give them work.', 'success')
@@ -219,7 +223,7 @@ def create_user():
         as_manager = request.form.get('role') == 'manager'
         user = User()
         user.register_end_user(full_name, email, password)
-        user.must_change_password = temporary
+        user.must_change_password = True  # temporary or chosen by the admin: its owner picks their own
         if as_manager:
             user.role = 'project-admin'  # no project yet; one can be given on the Managers page
         db.session.commit()
@@ -327,7 +331,7 @@ def _create_users_from_rows(header, rows):
 
             user = User()
             user.register_end_user(full_name, email, password)
-            user.must_change_password = temporary
+            user.must_change_password = True  # temporary or from the file: its owner picks their own
             db.session.add(user)
             db.session.flush()  # gives the user an id for the group/project step
             created += 1
@@ -650,9 +654,12 @@ def admin_profile():
         action = request.form.get('action')
 
         if action == 'update_email':
-            new_email = request.form.get('email')
+            new_email = (request.form.get('email') or '').strip()
             if not new_email:
                 flash('Email cannot be empty', 'danger')
+                return redirect(url_for('admin.admin_profile'))
+            if len(new_email) > 255 or '@' not in new_email:  # same rule as Edit user
+                flash('Please enter a valid email address.', 'danger')
                 return redirect(url_for('admin.admin_profile'))
 
             # Check if email already exists
@@ -661,8 +668,9 @@ def admin_profile():
                 flash('Email already exists', 'danger')
                 return redirect(url_for('admin.admin_profile'))
 
-            admin_user.email = new_email
+            old_email, admin_user.email = admin_user.email, new_email
             db.session.commit()
+            audit.info("EMAIL_CHANGED user_id=%s old=%s new=%s", admin_user.id, old_email, new_email)
             flash('Email updated successfully', 'success')
 
         elif action == 'update_password':

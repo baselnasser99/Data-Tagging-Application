@@ -271,3 +271,52 @@ def test_progress_page_shows_results(admin_client, answered_project):
     page = admin_client.get(f"/admin/view-annotation-project/{answered_project.id}").data.decode()
     assert "Results" in page and "How often each answer was given" in page
     assert "Most common short answers" in page and "have the same answer from everyone" in page
+
+
+def _open_task(db, kind):
+    from application.models import AnnotationTask
+
+    assignment = (TaskAssignment.query.join(AnnotationTask).join(Question)
+                  .filter(Question.answer_type == kind).first())
+    assignment.is_completed = False
+    QuestionAnswer.query.filter_by(task_assignment_id=assignment.id).delete()
+    db.session.commit()
+    return assignment
+
+
+def test_an_answer_that_is_not_one_of_the_options_is_refused(app, db, answered_project):
+    # The page only offers the options, but a hand-made form could add a separate "vote".
+    from tests.conftest import login
+
+    assignment = _open_task(db, AnswerType.MCQ)
+    client = app.test_client()
+    login(client, assignment.user.email)
+    resp = client.post(f"/user/annotation-task/{assignment.id}", data={"answer": "Dusk"}, follow_redirects=True)
+    assert b"choose one of the options" in resp.data and not assignment.is_completed
+    client.post(f"/user/annotation-task/{assignment.id}", data={"answer": "Night"})
+    assert assignment.is_completed
+
+
+def test_an_endless_answer_is_refused(app, db, answered_project):
+    from tests.conftest import login
+    from application.models import MAX_ANSWER_LENGTH
+
+    assignment = _open_task(db, AnswerType.TEXT)
+    client = app.test_client()
+    login(client, assignment.user.email)
+    resp = client.post(f"/user/annotation-task/{assignment.id}", data={"answer": "a" * (MAX_ANSWER_LENGTH + 1)},
+                       follow_redirects=True)
+    assert b"at most" in resp.data and not assignment.is_completed
+
+
+def test_formulas_after_leading_spaces_are_neutralised_too():
+    from application.export import csv_cell
+
+    assert csv_cell(" =1+1") == "' =1+1" and csv_cell("  @SUM(A1)") == "'  @SUM(A1)"
+    assert csv_cell("plain text") == "plain text" and csv_cell(" a = b") == " a = b"
+
+
+def test_the_no_answers_row_is_neutralised_too(admin_client, make_user):
+    person = make_user(name="=HYPERLINK(\"x\")")
+    rows = list(csv.reader(io.StringIO(admin_client.get(f"/admin/download-answers/{person.id}").data.decode())))
+    assert rows[1][1].startswith("'=")

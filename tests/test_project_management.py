@@ -523,3 +523,18 @@ def test_member_made_manager_while_signed_in_manages_the_projects_they_create(pa
     mine = Project.query.filter_by(name="Mine").one()
     assert ProjectAdmin.query.filter_by(project_id=mine.id, user_id=end_user.id).count() == 1
     assert user_client.get(f"/admin/project/{mine.id}/dashboard").status_code == 200
+
+
+def test_project_settings_stay_within_bounds(admin_client, annotation_project):
+    project, _, _ = annotation_project
+    resp = admin_client.post(f"/admin/project/{project.id}/edit-questions", data={
+        "action": "update_project_settings", "questions_per_image": "-3", "max_questions_per_user": "0",
+        "answers_per_task": "lots"})
+    assert resp.status_code == 302
+    assert project.questions_per_image == 0 and project.max_questions_per_user == 1 and project.answers_per_task == 1
+
+
+def test_a_count_that_is_not_a_number_is_refused_not_a_crash(admin_client):
+    resp = admin_client.post("/admin/create-annotation-project", data={
+        "project_name": "Typo", "project_desc": "d", "total_questions": "two", "answers_per_task": "x"})
+    assert resp.status_code == 302 and Project.query.filter_by(name="Typo").first() is None

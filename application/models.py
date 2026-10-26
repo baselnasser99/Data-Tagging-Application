@@ -204,6 +204,32 @@ class UserQuestionAssignment(db.Model):
 # Form limits. The forms send these counts, and the server loops over them, so they are checked.
 MAX_QUESTIONS = 100  # questions in one new project
 MAX_OPTIONS = 6  # Question has option1 to option6
+MAX_ANSWER_LENGTH = 5000  # characters in one answer
+MAX_ANSWERS_PER_TASK = 100  # people asked about one item and question
+MAX_TASKS_PER_PERSON = 100_000  # tasks one person may hold in a project
+
+
+def answer_problem(question, text):
+    """What is wrong with storing ``text`` as an answer to ``question``, or None if nothing is.
+
+    The page offers only the question's options, but a form can be sent by hand: an answer that
+    is not one of them would count as a separate vote in the agreement score and the majority.
+    """
+    if len(text) > MAX_ANSWER_LENGTH:
+        return f"An answer can be at most {MAX_ANSWER_LENGTH} characters long."
+    if question.answer_type == AnswerType.MCQ:
+        options = {(getattr(question, f"option{i}") or "").strip() for i in range(1, MAX_OPTIONS + 1)} - {""}
+        if options and text.strip() not in options:
+            return "Please choose one of the options."
+    return None
+
+
+def form_int(value, default, low, high):
+    """A whole number from a form, kept between low and high; ``default`` if it isn't a number."""
+    try:
+        return max(low, min(int(value), high))
+    except (TypeError, ValueError):
+        return default
 
 
 def option_count(value):

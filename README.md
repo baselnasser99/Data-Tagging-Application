@@ -17,10 +17,12 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
 
 <table>
   <tr>
-    <td align="center" width="25%"><h3>1 task</h3><sub>loads stay within 1 task of each other, even after people join</sub></td>
-    <td align="center" width="25%"><h3>0 lost</h3><sub>finished answers lost across 25 benchmark runs</sub></td>
-    <td align="center" width="25%"><h3>300+</h3><sub>automated tests, ~94% line coverage</sub></td>
-    <td align="center" width="25%"><h3>294 ms</h3><sub>median response, 20 people answering at once, 0 errors</sub></td>
+    <td width="50%"><b>1 task</b><br><sub>Loads stay within 1 task of each other, even after people join</sub></td>
+    <td width="50%"><b>0 lost</b><br><sub>Finished answers lost across 25 benchmark runs</sub></td>
+  </tr>
+  <tr>
+    <td><b>300+ tests</b><br><sub>Automated, ~94% line coverage, on Python 3.11 and 3.12</sub></td>
+    <td><b>294 ms</b><br><sub>Median response with 20 people answering at once, 0 errors</sub></td>
   </tr>
 </table>
 
@@ -60,12 +62,12 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
 ## How the hand-out stays fair
 
 ```mermaid
-flowchart LR
-    U["Admin uploads items<br>and writes questions"] --> T["Every item × question<br>becomes a task"]
-    T --> H["Each task goes to the<br>lightest open load"]
+flowchart TB
+    U["Items and questions"] --> T["Every item × question is a task"]
+    T --> H["Each task goes to the lightest open load"]
     H --> L{"Team changes"}
-    L -- "someone leaves" --> R["Their unfinished tasks<br>are handed out again"]
-    L -- "someone joins" --> B["Unstarted tasks move from<br>the busiest to the least busy"]
+    L -- "someone leaves" --> R["Their unfinished tasks are handed out again"]
+    L -- "someone joins" --> B["Unstarted tasks move from the busiest to the least busy"]
     R --> H
     B --> H
 ```
@@ -86,15 +88,15 @@ The code is in [`application/distribution.py`](application/distribution.py), and
 
 ## Measured, not assumed
 
-[`scripts/benchmark.py`](scripts/benchmark.py) builds made-up teams and projects on a **MySQL 8** server in GitHub Actions ([workflow](.github/workflows/benchmark.yml)), then times the real distribution code and checks its fairness. Each setup runs 5 times; cells show the mean (min–max).
+[`scripts/benchmark.py`](scripts/benchmark.py) builds made-up teams and projects on a **MySQL 8** server in GitHub Actions ([workflow](.github/workflows/benchmark.yml)), then times the real distribution code and checks its fairness. Each setup runs 5 times; cells show the mean, with the fastest and slowest run below it.
 
 | Tasks | People | Setup | Hand out | 10% of people leave | 5% join | Load gap after joining |
 |---:|---:|---|---:|---:|---:|---:|
-| 1,000 | 20 | 1 group | 0.68 s (0.67–0.71) | 0.11 s (0.10–0.12) | 0.08 s (0.08–0.08) | 1 |
-| 10,000 | 50 | 1 group | 7.66 s (7.36–8.45) | 2.06 s (2.00–2.17) | 1.59 s (1.49–1.73) | 1 |
-| 50,000 | 100 | 1 group | 43.3 s (42.8–43.6) | 19.6 s (19.1–19.9) | 20.4 s (20.0–20.8) | 1 |
-| 10,000 | 50 | 2 answers per task | 11.44 s (11.39–11.52) | 2.48 s (2.44–2.51) | 2.39 s (2.33–2.45) | 1 |
-| 10,000 | 50 | 2 groups of 25 | 7.28 s (7.21–7.38) | 1.99 s (1.92–2.03) | 1.55 s (1.48–1.62) | 1 |
+| 1,000 | 20 | 1 group | 0.68 s<br><sub>0.67–0.71</sub> | 0.11 s<br><sub>0.10–0.12</sub> | 0.08 s<br><sub>0.08–0.08</sub> | 1 |
+| 10,000 | 50 | 1 group | 7.66 s<br><sub>7.36–8.45</sub> | 2.06 s<br><sub>2.00–2.17</sub> | 1.59 s<br><sub>1.49–1.73</sub> | 1 |
+| 50,000 | 100 | 1 group | 43.3 s<br><sub>42.8–43.6</sub> | 19.6 s<br><sub>19.1–19.9</sub> | 20.4 s<br><sub>20.0–20.8</sub> | 1 |
+| 10,000 | 50 | 2 answers per task | 11.44 s<br><sub>11.39–11.52</sub> | 2.48 s<br><sub>2.44–2.51</sub> | 2.39 s<br><sub>2.33–2.45</sub> | 1 |
+| 10,000 | 50 | 2 groups of 25 | 7.28 s<br><sub>7.21–7.38</sub> | 1.99 s<br><sub>1.92–2.03</sub> | 1.55 s<br><sub>1.48–1.62</sub> | 1 |
 
 - The load gap (most open tasks held by one person minus fewest) is **0** right after hand-out.
 - In all 25 runs, every task kept its owners and no finished answer was lost.
@@ -106,7 +108,7 @@ The code is in [`application/distribution.py`](application/distribution.py), and
 **Codespaces (no install):** on GitHub, click **Code → Codespaces → Create codespace**, then:
 
 ```bash
-cp .env.example .env          # set SECRET_KEY, ADMIN_EMAIL and ADMIN_PASSWORD
+cp .env.example .env          # set SECRET_KEY, ADMIN_EMAIL and ADMIN_PASSWORD: the example values are refused
 pip install -r requirements.txt
 flask --app app run --debug
 ```
@@ -144,7 +146,7 @@ python scripts/seed_demo.py
 flask --app app run --debug
 ```
 
-The script prints the demo sign-ins. It refuses to run on a database that already has people or projects in it.
+It needs `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`, as above, and prints the demo sign-ins. The demo accounts share a published password, so it only fills a new SQLite database: it refuses one that already has people or projects, and any other kind of database unless you add `--any-database`.
 
 </details>
 
@@ -174,18 +176,26 @@ On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest -
 
 ## Security
 
-- Passwords are hashed (Werkzeug scrypt); there are no default accounts, and secrets live only in `.env`.
-- Every form has a CSRF token. Cookies are HTTP-only, SameSite and sent over HTTPS only (except on the debug server), with an idle timeout. Pages are sent with `Cache-Control: no-store`.
-- Access is checked on every route: managers see only their own projects, and members only their own tasks.
-- All user-written text is escaped, including inside confirm dialogs.
-- After 5 wrong passwords for one account from one address, that address pauses for that account for 15 minutes; after 20 from one address across all accounts, the address pauses. A stranger's guesses never lock the owner out. Stored in the database, so it holds across server processes. Behind a reverse proxy, set `TRUSTED_PROXIES` (Docker Compose does), or every visitor shares the proxy's address.
-- Sign-ins, failed sign-ins, sign-outs, account and project changes and exports are written to `logs/audit.log`. Refused requests (a page someone's role may not open, a form without its CSRF token) go to `logs/refused.log` instead: anyone can cause those by the thousand, and in one file they could push the sign-in history out.
+- **Passwords:** hashed with Werkzeug scrypt. There are no default accounts, and secrets live only in `.env`. The app won't start with an example or short `SECRET_KEY` (under 32 characters) or `ADMIN_PASSWORD` (under 8). The graded version's published admin password stops working on upgrade.
+- **Passwords set by others:** a password an admin or manager chose for someone must be replaced by its owner at the next sign-in, and a new password must differ from the current one.
+- **Sign-in:** it doesn't reveal which emails have accounts: a wrong email and a wrong password take as long and say the same.
+- **Wrong passwords:** after 5 for one account from one address, that address pauses for that account for 15 minutes; after 20 from one address across all accounts, the address pauses. A stranger's guesses never lock the owner out. Stored in the database, so it holds across server processes. Behind a reverse proxy, set `TRUSTED_PROXIES` (Docker Compose does), or every visitor shares the proxy's address.
+- **Sessions:** removing a person ends every session they had, and a deleted member's old cookie can't open a newly created account.
+- **Forms and cookies:** every form has a CSRF token, signing out included, so another site can't sign anyone out. Cookies are HTTP-only, SameSite and sent over HTTPS only (except on the debug server), with an idle timeout. Pages are sent with `Cache-Control: no-store`.
+- **Access:** checked on every route. Managers see only their own projects, and members only their own tasks. Uploaded files are served only to the project's people (items by number, so a file name can't give the answer away), and never through the public `/static` route.
+- **No outside resources:** pages load nothing from other sites (the fonts are kept in the app), and the Content-Security-Policy allows only this server.
+- **Escaping:** all user-written text is escaped, including inside confirm dialogs.
+- **Server checks:** everything a form sends is checked on the server: a multiple-choice answer must be one of the options, an answer is at most 5,000 characters, settings and question counts stay within bounds, and two quick submits of one task store one answer.
+- **Uploads:** each project may keep at most 2,048 MB of items (`MAX_PROJECT_STORAGE_MB`). ZIPs are unpacked piece by piece, and a failed upload removes what it wrote.
+- **Exports:** cells a spreadsheet would run as a formula are neutralised in the CSV.
+- **Scripts and Docker:** the scripts ask before deleting a database and don't print its password, and in Docker Compose the app gets only the settings it reads, not the MySQL root password.
+- **Logs:** sign-ins, failed sign-ins, sign-outs, account and project changes and exports are written to `logs/audit.log`. Refused requests (a page someone's role may not open, a form without its CSRF token) go to `logs/refused.log` instead: anyone can cause those by the thousand, and in one file they could push the sign-in history out.
 
 ## Tech stack
 
 | | |
 |---|---|
-| **Backend** | Python 3.11, Flask (app factory and blueprints), SQLAlchemy 2, Flask-Login, Flask-WTF (CSRF) |
+| **Backend** | Python 3.11 and 3.12, Flask (app factory and blueprints), SQLAlchemy 2, Flask-Login, Flask-WTF (CSRF) |
 | **Database** | MySQL 8 in production, SQLite for development and tests; older databases are upgraded automatically on start |
 | **Frontend** | Jinja templates, Bootstrap 3 and AdminLTE 2, a custom design layer (`app.css`, `apple.css`) with reduced-motion and high-contrast fallbacks, Chart.js |
 | **Quality** | pytest with ~94% line coverage on Python 3.11 and 3.12, GitHub Actions, Dependabot |
@@ -200,9 +210,10 @@ application/
 ├── admin.py             dashboard, people, CSV import, surveys, downloads
 ├── groups.py            groups and their members
 ├── manager.py           managers and their pages
-├── annotation_admin.py  projects: create, upload, hand out, progress, export
+├── annotation_admin.py  projects: create, upload (files, ZIPs, storage limit), hand out, progress, export
 ├── annotation.py        members' tasks and answers
 ├── distribution.py      the fair hand-out algorithm
+├── uploads.py           where uploaded files live, survey attachments
 ├── surveys.py           handing out survey questions
 ├── export.py            CSV/JSON export and agreement scores
 └── permissions.py, models.py, templates/, static/

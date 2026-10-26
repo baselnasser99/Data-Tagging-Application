@@ -409,3 +409,49 @@ def test_task_page_shows_where_the_member_is(app, admin_client, group_with_membe
     client.post(f"/user/annotation-task/{mine[0].id}", data={"answer": "x"})
     page = client.get(f"/user/annotation-task/{mine[0].id}").data.decode()
     assert "You have already answered this one" in page and "<textarea" not in page
+
+
+def _stored_files(project):
+    from application.uploads import upload_dir
+
+    return sorted(os.listdir(upload_dir("images", str(project.id))))
+
+
+def test_names_in_other_alphabets_keep_their_extension(admin_client):
+    # secure_filename drops non-ASCII letters: "фото.png" used to be stored as "<uuid>_png".
+    project = _create_project(admin_client)
+    _upload(admin_client, project, {"фото.png": b"x", "写真.mp3": b"y", ("n" * 300) + ".jpg": b"z"})
+    names = _stored_files(project)
+    assert len(names) == 3 and all(n.endswith((".png", ".mp3", ".jpg")) for n in names)
+    assert all(len(n) < 160 for n in names)  # a 300-letter name used to fail the whole upload
+
+
+def test_a_project_stops_at_its_storage_limit(app, admin_client):
+    app.config["PROJECT_UPLOAD_QUOTA"] = 1000
+    project = _create_project(admin_client)
+    # A ZIP that unpacks to more than the room left is skipped before anything is written...
+    resp = _upload(admin_client, project, {"a.png": b"a" * 600, "b.png": b"b" * 600})
+    assert b"left in this project" in resp.data and _stored_files(project) == []
+    # ...and loose files are added until the room runs out.
+    resp = admin_client.post(f"/admin/upload-images/{project.id}", content_type="multipart/form-data",
+                             follow_redirects=True, data={"image_zip": [(io.BytesIO(b"c" * 600), "c.png"),
+                                                                       (io.BytesIO(b"d" * 600), "d.png")]})
+    assert b"reached its storage limit" in resp.data
+    assert len(_stored_files(project)) == 1 and ProjectImage.query.filter_by(project_id=project.id).count() == 1
+
+
+def test_a_failed_upload_leaves_no_files_behind(app, admin_client, monkeypatch):
+    from application.extns import db
+
+    project = _create_project(admin_client)
+    real_commit, calls = db.session.commit, []
+
+    def failing_commit():
+        calls.append(1)
+        raise RuntimeError("database went away")
+
+    monkeypatch.setattr(db.session, "commit", failing_commit)
+    resp = _upload(admin_client, project, {"a.png": b"a", "b.png": b"b"})
+    monkeypatch.setattr(db.session, "commit", real_commit)
+    assert calls and b"could not be saved" in resp.data
+    assert _stored_files(project) == [] and ProjectImage.query.filter_by(project_id=project.id).count() == 0

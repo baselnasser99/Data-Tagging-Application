@@ -50,6 +50,8 @@ class Config:
     # the upload pages, for admins and managers, accept up to MAX_UPLOAD_MB (see create_app).
     MAX_CONTENT_LENGTH = int(os.environ.get("MAX_REQUEST_MB", "2")) * 1024 * 1024
     MAX_UPLOAD_LENGTH = int(os.environ.get("MAX_UPLOAD_MB", "512")) * 1024 * 1024
+    # Most item files one project may keep (0: no limit), so one manager can't fill the shared disk.
+    PROJECT_UPLOAD_QUOTA = int(os.environ.get("MAX_PROJECT_STORAGE_MB", "2048")) * 1024 * 1024
 
     # Optional first administrator, created on startup if no admin exists yet.
     ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")

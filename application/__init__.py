@@ -117,9 +117,13 @@ def create_app(config_object=None):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "same-origin"
-        # Scripts only from our own static files: templates have no inline <script> or on* handlers.
+        # Everything from our own server only: scripts (templates have no inline <script> or on*
+        # handlers), stylesheets and fonts (the fonts are kept in static/vendor), images, audio, video.
+        # Inline style="" attributes are still allowed: about 50 templates use them.
         response.headers["Content-Security-Policy"] = (
-            "script-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+            "font-src 'self'; media-src 'self'; connect-src 'self'; object-src 'none'; "
+            "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         )
         return response
 

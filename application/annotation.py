@@ -251,11 +251,13 @@ def _save_answer(assignment, text, cant_tell=False):
 
     Returns False, storing nothing, when the assignment was already done: two submits at the same
     moment (a double click, two tabs) both pass the callers' is_completed check, so the database
-    decides which one wins. Counts are added up in SQL for the same reason.
+    decides which one wins. Counts are added up in SQL for the same reason. It is False too when a
+    rebalance has just moved the assignment to someone else, so the answer isn't filed under them.
     """
     claimed = db.session.execute(
         update(TaskAssignment)
-        .where(TaskAssignment.id == assignment.id, TaskAssignment.is_completed == False)
+        .where(TaskAssignment.id == assignment.id, TaskAssignment.user_id == assignment.user_id,
+               TaskAssignment.is_completed == False)
         .values(is_completed=True, completed_date=db.func.current_timestamp())
         .execution_options(synchronize_session=False)).rowcount
     if claimed != 1:

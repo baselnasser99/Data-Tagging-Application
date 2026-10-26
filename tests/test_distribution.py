@@ -3,8 +3,10 @@
 Each test states one guarantee from application/distribution.py.
 """
 from collections import Counter
+from contextlib import contextmanager
 
 import pytest
+from sqlalchemy import event, update
 
 from application import distribution
 from application.models import (
@@ -524,3 +526,118 @@ def test_projects_from_before_this_setting_keep_handing_out_items(app, db, setup
     _upgrade_schema(app)
     with db.engine.connect() as conn:
         assert conn.execute(text("SELECT hand_out_per_item FROM project")).scalar_one() in (1, True)
+
+
+# An annotator can finish a task while a distribution step is running: the step has read
+# the work as unfinished, then acts on it a moment later. These tests answer the work in
+# that gap, on the same connection, just before the step's own statement reaches the database.
+
+@contextmanager
+def answered_just_before(db, statement, assignment_ids):
+    """Mark these assignments finished right before the first SQL statement starting with `statement`."""
+    fired = []
+
+    def before(conn, cursor, sql, parameters, context, executemany):
+        if not fired and sql.lstrip().upper().startswith(statement):
+            fired.append(sql)
+            for aid in assignment_ids:
+                cursor.execute("UPDATE task_assignment SET is_completed = 1 WHERE id = ?", (aid,))
+
+    event.listen(db.engine, "before_cursor_execute", before)
+    try:
+        yield fired
+    finally:
+        event.remove(db.engine, "before_cursor_execute", before)
+    assert fired, f"no {statement} statement ran"
+
+
+def test_a_leaver_answering_at_the_last_moment_keeps_the_answer(db, setup):
+    project, group, users = setup(n_images=9, n_questions=2, n_users=3)
+    distribution.distribute(project)
+    leaver = users[0]
+    last_answer = [a for a in assignments(project) if a.user_id == leaver.id][0]
+    UserGroupMembership.query.filter_by(user_id=leaver.id, group_id=group.id).delete()
+    db.session.commit()
+
+    with answered_just_before(db, "DELETE FROM TASK_ASSIGNMENT", [last_answer.id]):
+        result = distribution.on_member_removed(leaver, group.id)
+
+    db.session.expire_all()
+    kept = db.session.get(TaskAssignment, last_answer.id)
+    assert kept is not None and kept.is_completed and kept.user_id == leaver.id
+    assert result.assignments_released == 5  # 6 held, 1 answered just in time
+
+
+def test_lowering_answers_per_task_keeps_an_answer_given_meanwhile(db, setup):
+    project, _, users = setup(n_images=2, n_questions=1, n_users=3, answers_per_task=3)
+    distribution.distribute(project)
+    newest = max(assignments(project), key=lambda a: a.id)  # first in line to be released
+
+    project.answers_per_task = 1
+    with answered_just_before(db, "DELETE FROM TASK_ASSIGNMENT", [newest.id]):
+        result = distribution.apply_answers_per_task(project)
+
+    db.session.expire_all()
+    assert db.session.get(TaskAssignment, newest.id).is_completed
+    assert result.assignments_released == 3  # 4 surplus, 1 answered just in time
+
+
+def test_lowering_the_cap_keeps_an_answer_given_meanwhile(db, setup):
+    project, _, users = setup(n_images=6, n_questions=2, n_users=2)
+    distribution.distribute(project)  # 12 tasks, 6 each
+    newest = max((a for a in assignments(project) if a.user_id == users[0].id), key=lambda a: a.id)
+
+    project.max_questions_per_user = 4
+    with answered_just_before(db, "DELETE FROM TASK_ASSIGNMENT", [newest.id]):
+        result = distribution.release_over_cap(project)
+
+    db.session.expire_all()
+    assert db.session.get(TaskAssignment, newest.id).is_completed
+    assert result.assignments_released == 3  # 2 over the cap each, 1 answered just in time
+
+
+def test_rebalancing_leaves_work_answered_meanwhile_with_whoever_answered_it(db, setup, make_user):
+    project, group, (busy,) = setup(n_images=6, n_questions=1, n_users=1)
+    distribution.distribute(project)
+    first_to_move = max(assignments(project), key=lambda a: a.task_id)  # bundles go largest key first
+    newcomer = make_user()
+    db.session.add(UserGroupMembership(user_id=newcomer.id, group_id=group.id))
+    db.session.commit()
+
+    with answered_just_before(db, "UPDATE TASK_ASSIGNMENT SET USER_ID", [first_to_move.id]):
+        result = distribution.rebalance(project)
+
+    db.session.expire_all()
+    answered = db.session.get(TaskAssignment, first_to_move.id)
+    assert answered.user_id == busy.id and answered.is_completed
+    assert open_load(project) == {busy.id: 3, newcomer.id: 2}  # 5 left open, shared as evenly as it goes
+    assert result.assignments_moved == 2
+
+
+def test_an_answer_to_work_just_moved_to_someone_else_is_not_saved(db, setup, make_user):
+    from application.annotation import _save_answer
+
+    project, _, (first,) = setup(n_images=1, n_questions=1, n_users=1)
+    distribution.distribute(project)
+    other = make_user()
+    assignment = assignments(project)[0]  # loaded as first's, like the request that shows the task
+    db.session.execute(update(TaskAssignment).where(TaskAssignment.id == assignment.id)
+                       .values(user_id=other.id).execution_options(synchronize_session=False))
+
+    assert not _save_answer(assignment, "yes")
+    db.session.rollback()
+    assert QuestionAnswer.query.count() == 0
+
+
+def test_changing_answers_per_task_reads_all_assignments_in_one_query(db, setup):
+    project, _, _ = setup(n_images=20, n_questions=2, n_users=3, answers_per_task=2)
+    distribution.distribute(project)
+    db.session.expire_all()
+    selects = []
+    listener = lambda conn, cursor, sql, *rest: selects.append(sql) if sql.lstrip().upper().startswith("SELECT") else None
+    event.listen(db.engine, "before_cursor_execute", listener)
+    try:
+        distribution.apply_answers_per_task(project)
+    finally:
+        event.remove(db.engine, "before_cursor_execute", listener)
+    assert len(selects) <= 3, selects  # tasks, their assignments; not one query per task

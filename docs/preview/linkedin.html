@@ -10,6 +10,19 @@
     --ink: #1C2733; --ink-soft: #2E3B4A; --canvas: #EDF0F3; --surface: #FFFFFF;
     --line: #D4DAE1; --line-strong: #AEB7C2; --muted: #56616F;
     --marker: #F5CF3A; --marker-soft: #FCF1C4; --accent: #3366CC;
+    --dots: #C9D0D8; --tag-in: #6B4E00; --shade: rgba(28,39,51,.4);
+    --hl-ink: currentColor; --hl-bottom: 8px; --hl-height: 36px;
+  }
+  /* Dark copy (linkedin-dark.png), rendered with the system set to dark: the app's dark
+     tokens from application/static/css/tokens.css, as in preview.html. */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #E6EAF0; --ink-soft: #C9D1DB; --canvas: #12171D; --surface: #1B222B;
+      --line: #2E3742; --line-strong: #5A6573; --muted: #9AA5B1;
+      --marker-soft: #3A3214; --accent: #6E9BF0;
+      --dots: #2A323C; --tag-in: #F5CF3A; --shade: rgba(0,0,0,.6);
+      --hl-ink: #1C2733; --hl-bottom: 3px; --hl-height: 86px;  /* the stroke covers the word, which is dark on yellow */
+    }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 1200px; height: 675px; overflow: hidden; }
@@ -20,19 +33,19 @@
   }
   body::before {
     content: ""; position: absolute; inset: 0; pointer-events: none;
-    background-image: radial-gradient(#C9D0D8 1.5px, transparent 1.5px); background-size: 24px 24px; opacity: .5;
+    background-image: radial-gradient(var(--dots) 1.5px, transparent 1.5px); background-size: 24px 24px; opacity: .5;
     mask-image: linear-gradient(90deg, transparent 0%, #000 55%);
   }
   .left, .panel { position: relative; }
   .brand { display: flex; align-items: center; gap: 14px; font-weight: 700; font-size: 34px; }
   h1 { font-size: 84px; line-height: 1.02; letter-spacing: -2.4px; margin-top: 44px; }
-  .hl { position: relative; white-space: nowrap; z-index: 0; }
-  .hl::after { content: ""; position: absolute; z-index: -1; left: -6px; right: -8px; bottom: 8px; height: 36px;
+  .hl { position: relative; white-space: nowrap; z-index: 0; color: var(--hl-ink); }
+  .hl::after { content: ""; position: absolute; z-index: -1; left: -6px; right: -8px; bottom: var(--hl-bottom); height: var(--hl-height);
     background: var(--marker); transform: skewX(-8deg); border-radius: 3px; }
   .sub { margin-top: 36px; font-size: 27px; line-height: 1.35; color: var(--ink-soft); }
 
   .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
-    padding: 28px 28px 24px; box-shadow: 0 24px 50px -28px rgba(28,39,51,.4); }
+    padding: 28px 28px 24px; box-shadow: 0 24px 50px -28px var(--shade); }
   .corner { position: absolute; width: 30px; height: 30px; border: 5px solid var(--ink); }
   .c1 { top: -17px; left: -17px; border-right: 0; border-bottom: 0; }
   .c2 { top: -17px; right: -17px; border-left: 0; border-bottom: 0; }
@@ -48,7 +61,7 @@
   .row.out .n { color: var(--muted); }
   .tag { font-size: 17px; font-weight: 700; padding: 3px 9px; border-radius: 5px; margin-left: 8px; white-space: nowrap; }
   .tag.out { color: var(--muted); background: var(--canvas); }
-  .tag.in { color: #6B4E00; background: var(--marker-soft); }
+  .tag.in { color: var(--tag-in); background: var(--marker-soft); }
   .pf { margin-top: 16px; padding-top: 18px; border-top: 1.5px solid var(--line);
         font-size: 23px; color: var(--muted); }
   .pf strong { color: var(--ink); }
@@ -58,7 +71,7 @@
   <section class="left">
     <div class="brand">
       <svg width="42" height="42" viewBox="0 0 28 28" aria-hidden="true">
-        <path d="M2 9V2h7M19 2h7v7M26 19v7h-7M9 26H2v-7" fill="none" stroke="#1C2733" stroke-width="2.5" stroke-linecap="square"/>
+        <path d="M2 9V2h7M19 2h7v7M26 19v7h-7M9 26H2v-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/>
         <rect x="10" y="10" width="8" height="8" rx="1" fill="#F5CF3A"/>
       </svg>
       Data Tagging

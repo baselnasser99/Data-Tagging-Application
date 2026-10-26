@@ -9,6 +9,19 @@
     --ink: #1C2733; --ink-soft: #2E3B4A; --canvas: #EDF0F3; --surface: #FFFFFF;
     --line: #D4DAE1; --line-strong: #AEB7C2; --muted: #56616F;
     --marker: #F5CF3A; --marker-soft: #FCF1C4; --accent: #3366CC;
+    --dots: #C9D0D8; --tag-in: #6B4E00; --shade: rgba(28,39,51,.35);
+    --hl-ink: currentColor; --hl-bottom: 6px; --hl-height: 30px;
+  }
+  /* Dark copy (social-preview-dark.png), rendered with the system set to dark: the app's dark
+     tokens from application/static/css/tokens.css, as in preview.html. */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #E6EAF0; --ink-soft: #C9D1DB; --canvas: #12171D; --surface: #1B222B;
+      --line: #2E3742; --line-strong: #5A6573; --muted: #9AA5B1;
+      --marker-soft: #3A3214; --accent: #6E9BF0;
+      --dots: #2A323C; --tag-in: #F5CF3A; --shade: rgba(0,0,0,.6);
+      --hl-ink: #1C2733; --hl-bottom: 3px; --hl-height: 74px;  /* the stroke covers the word, which is dark on yellow */
+    }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 1280px; height: 640px; overflow: hidden; }
@@ -21,7 +34,7 @@
   /* faint dot grid, like an empty labelling canvas */
   body::before {
     content: ""; position: absolute; inset: 0; pointer-events: none;
-    background-image: radial-gradient(#C9D0D8 1px, transparent 1px);
+    background-image: radial-gradient(var(--dots) 1px, transparent 1px);
     background-size: 20px 20px; opacity: .55;
     mask-image: linear-gradient(90deg, transparent 0%, #000 55%, #000 100%);
   }
@@ -30,9 +43,9 @@
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 24px; }
   .left { display: flex; flex-direction: column; }
   h1 { font-size: 72px; line-height: 1.02; letter-spacing: -2px; margin-top: 56px; font-weight: 700; }
-  .hl { position: relative; white-space: nowrap; z-index: 0; }
+  .hl { position: relative; white-space: nowrap; z-index: 0; color: var(--hl-ink); }
   .hl::after {
-    content: ""; position: absolute; z-index: -1; left: -4px; right: -6px; bottom: 6px; height: 30px;
+    content: ""; position: absolute; z-index: -1; left: -4px; right: -6px; bottom: var(--hl-bottom); height: var(--hl-height);
     background: var(--marker); transform: skewX(-8deg); border-radius: 2px;
   }
   .sub { margin-top: 28px; font-size: 22px; line-height: 1.45; color: var(--ink-soft); max-width: 540px; }
@@ -49,7 +62,7 @@
   /* the right side: a selection box around the fairness result */
   .panel {
     align-self: center; background: var(--surface); border: 1px solid var(--line);
-    border-radius: 8px; padding: 26px 28px 22px; box-shadow: 0 18px 40px -24px rgba(28,39,51,.35);
+    border-radius: 8px; padding: 26px 28px 22px; box-shadow: 0 18px 40px -24px var(--shade);
   }
   .corner { position: absolute; width: 24px; height: 24px; border: 4px solid var(--ink); }
   .c1 { top: -14px; left: -14px; border-right: 0; border-bottom: 0; }
@@ -72,7 +85,7 @@
   .row.left-team .who s { text-decoration-thickness: 1px; }
   .tag { font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 3px; margin-left: 8px; align-self: center; white-space: nowrap; }
   .tag.out { color: var(--muted); background: var(--canvas); }
-  .tag.in { color: #6B4E00; background: var(--marker-soft); }
+  .tag.in { color: var(--tag-in); background: var(--marker-soft); }
 
   .pf { margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--line);
         display: flex; justify-content: space-between; align-items: baseline; font-size: 15.5px; color: var(--muted); }
@@ -85,7 +98,7 @@
   <section class="left">
     <div class="brand">
       <svg width="34" height="34" viewBox="0 0 28 28" aria-hidden="true">
-        <path d="M2 9V2h7M19 2h7v7M26 19v7h-7M9 26H2v-7" fill="none" stroke="#1C2733" stroke-width="2.5" stroke-linecap="square"/>
+        <path d="M2 9V2h7M19 2h7v7M26 19v7h-7M9 26H2v-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/>
         <rect x="10" y="10" width="8" height="8" rx="1" fill="#F5CF3A"/>
       </svg>
       Data Tagging
@@ -106,8 +119,8 @@
     <div id="rows"></div>
     <div class="pf">
       <div class="key">
-        <span><i style="background:#3366CC"></i>open</span>
-        <span><i style="background:#F5CF3A"></i>moved to them</span>
+        <span><i style="background:var(--accent)"></i>open</span>
+        <span><i style="background:var(--marker)"></i>moved to them</span>
       </div>
       <span>Busiest vs. lightest: <strong>1 task</strong></span>
     </div>

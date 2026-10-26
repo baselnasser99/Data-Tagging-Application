@@ -1,6 +1,6 @@
 # Defence questions and answers
 
-Short, honest answers that match the code on `master` and the revised thesis.
+Short, honest answers about the revised thesis, which describes release v3.0. The thesis doesn't follow every later change on `master`: figures such as test counts and coverage are as of that release, and features added since (for example the percent agreement for short free text) are in the README.
 
 ## The algorithm
 

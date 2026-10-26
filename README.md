@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12-1C2733" alt="Python 3.11 and 3.12">
   <img src="https://img.shields.io/badge/flask-3-1C2733" alt="Flask 3">
   <img src="https://img.shields.io/badge/MySQL-8-1C2733" alt="MySQL 8">
-  <img src="https://img.shields.io/badge/coverage-~92%25-3366CC" alt="About 92% line coverage">
+  <img src="https://img.shields.io/badge/coverage-~94%25-3366CC" alt="About 94% line coverage">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-F5CF3A" alt="MIT license"></a>
 </p>
 
@@ -19,7 +19,7 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
   <tr>
     <td align="center" width="25%"><h3>1 task</h3><sub>loads stay within 1 task of each other, even after people join</sub></td>
     <td align="center" width="25%"><h3>0 lost</h3><sub>finished answers lost across 25 benchmark runs</sub></td>
-    <td align="center" width="25%"><h3>300+</h3><sub>automated tests, ~92% line coverage</sub></td>
+    <td align="center" width="25%"><h3>300+</h3><sub>automated tests, ~94% line coverage</sub></td>
     <td align="center" width="25%"><h3>294 ms</h3><sub>median response, 20 people answering at once, 0 errors</sub></td>
   </tr>
 </table>
@@ -51,8 +51,8 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
 | **Fair hand-out** | Every *item × question* becomes a task. Each task goes to the person with the lightest open workload, never twice to the same person, up to a per-person cap. Optionally, several people can answer each task. |
 | **People come and go** | When someone leaves a group, their unfinished tasks are handed to the rest; when someone joins, workloads are rebalanced. Finished answers are never lost. |
 | **Three roles** | **Admin** (everything), **Manager** (runs their own projects), **Member** (answers their tasks). Each role gets its own home page. |
-| **Progress and results** | Status and progress for every project, each person's share of the work, answers per week and progress per group. Each project's results page shows agreement per question (Fleiss' kappa), how often each answer was given, the items people disagreed on, and the items marked "can't tell". The side panel lists what needs the admin or manager next. |
-| **Export** | CSV or JSON per project, with who answered what and when, the majority answer, and **Fleiss' kappa** for inter-annotator agreement. Every export is logged. |
+| **Progress and results** | Status and progress for every project, each person's share of the work, answers per week and progress per group. Each project's results page shows agreement per question (Fleiss' kappa for multiple choice, percent agreement for short free text), how often each answer was given, the items people disagreed on, and the items marked "can't tell". For longer free text it shows the most common words and a few example answers. The side panel lists what needs the admin or manager next. |
+| **Export** | CSV or JSON per project, with who answered what and when, the majority answer, **Fleiss' kappa** for inter-annotator agreement, and percent agreement (not chance-corrected) for short free-text answers. Every export is logged. |
 | **"Can't tell"** | A member who can't answer an item (blurry, cut off, ambiguous) marks it instead of guessing. It finishes the task, is flagged in the export (`cant_tell`), and is left out of the majority answer and the agreement score. |
 | **People admin** | Add people one at a time or from a CSV file, search and filter them, edit details, and remove people safely: their open work is handed on and their answers are kept. |
 | **Surveys** | A simpler mode in which every member answers every question. |
@@ -188,7 +188,7 @@ On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest -
 | **Backend** | Python 3.11, Flask (app factory and blueprints), SQLAlchemy 2, Flask-Login, Flask-WTF (CSRF) |
 | **Database** | MySQL 8 in production, SQLite for development and tests; older databases are upgraded automatically on start |
 | **Frontend** | Jinja templates, Bootstrap 3 and AdminLTE 2, a custom design layer (`app.css`, `apple.css`) with reduced-motion and high-contrast fallbacks, Chart.js |
-| **Quality** | pytest with ~92% line coverage on Python 3.11 and 3.12, GitHub Actions, Dependabot |
+| **Quality** | pytest with ~94% line coverage on Python 3.11 and 3.12, GitHub Actions, Dependabot |
 | **Deployment** | Docker Compose (Gunicorn and MySQL) |
 
 <details>

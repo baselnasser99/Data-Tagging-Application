@@ -396,8 +396,44 @@ def test_every_page_sends_security_headers(client):
 @pytest.mark.parametrize("path", ["/login", "/admin/dashboard"])
 def test_csp_allows_only_our_own_scripts(admin_client, path):
     csp = admin_client.get(path).headers["Content-Security-Policy"]
-    assert "script-src 'self'" in csp
-    assert "unsafe-inline" not in csp
+    directives = dict(d.strip().split(" ", 1) for d in csp.split(";"))
+    assert directives["script-src"] == "'self'"  # no inline scripts, no other sites
+
+
+@pytest.mark.parametrize("path", ["/login", "/admin/dashboard", "/no-such-page"])
+def test_csp_allows_nothing_from_other_sites(admin_client, path):
+    # Stylesheets and fonts used to come from Google Fonts and a CDN; they are kept in static/vendor now.
+    csp = admin_client.get(path).headers["Content-Security-Policy"]
+    directives = dict(d.strip().split(" ", 1) for d in csp.split(";"))
+    assert directives["default-src"] == "'self'"
+    assert directives["style-src"] == "'self' 'unsafe-inline'"  # inline style="" attributes only
+    assert directives["font-src"] == "'self'" and directives["img-src"] == "'self' data:"
+    assert directives["object-src"] == "'none'" and directives["frame-ancestors"] == "'none'"
+
+
+def test_pages_and_stylesheets_link_nothing_from_other_sites():
+    import glob
+
+    external = re.compile(r"""(?:href|src)=["']https?://|@import\s+url\(\s*["']?https?://|url\(\s*["']?https?://""")
+    files = glob.glob("application/templates/**/*.html", recursive=True) + glob.glob("application/static/**/*.css",
+                                                                                       recursive=True)
+    offenders = []
+    for path in files:
+        with open(path, encoding="utf-8") as f:
+            if external.search(f.read()):
+                offenders.append(path)
+    assert offenders == []
+
+
+def test_bundled_fonts_are_served(client):
+    for path in ("/static/vendor/atkinson-hyperlegible/fonts.css",
+                 "/static/vendor/atkinson-hyperlegible/atkinson-400-latin.woff2",
+                 "/static/vendor/atkinson-hyperlegible/atkinson-700-latin-ext.woff2",
+                 "/static/vendor/font-awesome/css/font-awesome.min.css",
+                 "/static/vendor/font-awesome/fonts/fontawesome-webfont.woff2"):
+        resp = client.get(path)
+        assert resp.status_code == 200, path
+        resp.close()
 
 
 # Oldest versions without published vulnerabilities: jQuery 3.5.0 fixed CVE-2020-11022/-11023 (and

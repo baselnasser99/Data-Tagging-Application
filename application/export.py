@@ -10,8 +10,14 @@ Agreement (thesis ch. 3.1: inter-annotator agreement as a quality signal)
   * Multiple-choice questions: Fleiss' kappa across all tasks that received
     at least two answers, plus the majority answer and its share per task.
   * Short free-text answers (up to three words): answers are compared after
-    normalising case, spacing and punctuation, giving a percent agreement.
-  * Longer free text: no score; the answers are listed for a human to read.
+    normalising case, spacing and punctuation, giving a majority per task and,
+    per question, a percent agreement (not chance-corrected): the share of
+    tasks with two or more answers where everyone gave the same answer.
+  * Longer free text: a task with any answer over three words isn't compared,
+    so it counts neither for nor against agreement (the results page shows how
+    many such tasks there are). Instead the page shows the question's most
+    common words, filler words left out, and a few example answers; every
+    answer is in the download for a person to read.
   * "Can't tell" answers (cant_tell: true) are exported but left out of all of
     the above: they say nothing about which answer is right.
 """
@@ -26,6 +32,13 @@ from datetime import datetime, timezone
 from .models import MAX_OPTIONS, AnnotationTask, AnswerType, Project, QuestionAnswer, TaskAssignment
 
 SHORT_TEXT_MAX_WORDS = 3
+COMMON_WORDS_SHOWN = 8
+# Left out of the common words; normalise() has already dropped apostrophes ("it's" -> "its").
+FILLER_WORDS = frozenset(
+    "a an the and or but of to in on at by for with from as is are was were be been being it its this that "
+    "these those there here i im you we they he she his her their our my me some any very just so not no "
+    "can could would should will do does did has have had into over under up down out than then also".split()
+)
 
 
 def normalise(answer: str) -> str:
@@ -111,6 +124,7 @@ def build_project_export(project: Project) -> dict:
 
     images: dict[int, dict] = {}
     per_question_ratings: dict[int, list[list[str]]] = defaultdict(list)
+    text_agreed: dict[int, list[bool]] = defaultdict(list)  # per comparable free-text task: did everyone agree?
 
     for task in tasks:
         question = task.question
@@ -130,6 +144,8 @@ def build_project_export(project: Project) -> dict:
             summary["majority_share"] = round(count / len(compared), 3)
             if kind == "multiple_choice":
                 per_question_ratings[question.id].append(compared)
+            elif len(compared) >= 2:
+                text_agreed[question.id].append(len(set(compared)) == 1)
 
         image = images.setdefault(task.image_id, {
             "image_id": task.image_id,
@@ -166,7 +182,10 @@ def build_project_export(project: Project) -> dict:
             entry["fleiss_kappa"] = kappa
             entry["agreement"] = interpret_kappa(kappa)
         else:
-            entry["agreement"] = "not computed for free text (see per-task majority for short answers)"
+            agreed = text_agreed.get(question.id, [])
+            entry["agreement"] = "percent agreement (not chance-corrected)"
+            entry["percent_agreement"] = round(100 * sum(agreed) / len(agreed), 1) if agreed else None
+            entry["percent_agreement_tasks"] = len(agreed)
         question_summaries.append(entry)
 
     return {
@@ -194,7 +213,9 @@ def question_results(data: dict, disagreements_shown: int = 6) -> list[dict]:
     Built from build_project_export() so the page and the downloads agree.
     For each question: the agreement (Fleiss' kappa for multiple choice), how
     often each answer was given, how many tasks with two or more answers
-    agree completely, and a few tasks where people disagreed.
+    agree completely, and a few tasks where people disagreed. Free text over
+    three words isn't compared; its most common words and a few examples are
+    shown instead.
     """
     results = []
     for summary in data["questions"]:
@@ -203,26 +224,36 @@ def question_results(data: dict, disagreements_shown: int = 6) -> list[dict]:
         tasks = [task for _, task in pairs]
         kind = summary["type"]
         counts: Counter = Counter()
-        compared = agreed = 0
-        disagreements, unclear = [], []
+        compared = agreed = not_compared = 0
+        disagreements, unclear, long_answers = [], [], []
         for image, task in pairs:
             given = [a for a in task["answers"] if not a["cant_tell"]]
             not_sure = [a for a in task["answers"] if a["cant_tell"]]
             if not_sure and len(unclear) < disagreements_shown:
                 unclear.append({"image_id": image["image_id"], "file_name": image["file_name"], "answers": not_sure})
             counts.update(compared_answers(kind, [a["answer"] for a in given]) or [])
-            if len(given) >= 2:
-                compared += 1
-                if task["summary"].get("majority_share") == 1:
-                    agreed += 1
-                elif len(disagreements) < disagreements_shown:
-                    disagreements.append({"image_id": image["image_id"], "file_name": image["file_name"],
-                                          "answers": given})
+            if kind == "text":
+                long_answers += [{**a, "file_name": image["file_name"]} for a in given
+                                 if len(a["answer"].split()) > SHORT_TEXT_MAX_WORDS]
+            if len(given) < 2:
+                continue
+            if "majority_share" not in task["summary"]:  # long free text: read, not scored
+                not_compared += 1
+                continue
+            compared += 1
+            if task["summary"]["majority_share"] == 1:
+                agreed += 1
+            elif len(disagreements) < disagreements_shown:
+                disagreements.append({"image_id": image["image_id"], "file_name": image["file_name"],
+                                      "answers": given})
         options = (tasks[0]["options"] if tasks and tasks[0]["options"] else []) if kind == "multiple_choice" else []
         # Choices in the order the question lists them, then anything else people answered.
         order = options + [v for v, _ in counts.most_common() if v not in options]
         top = order if kind == "multiple_choice" else [v for v, _ in counts.most_common(5)]
         total = sum(counts.values())
+        # Each word counts once per answer, so one long-winded person can't fill the list.
+        words = Counter(w for a in long_answers for w in set(normalise(a["answer"]).split()) if w not in FILLER_WORDS)
+        common = sorted(words.items(), key=lambda wc: (-wc[1], wc[0]))[:COMMON_WORDS_SHOWN]
         results.append({
             **summary,
             "answers": sum(len(t["answers"]) for t in tasks),
@@ -232,7 +263,11 @@ def question_results(data: dict, disagreements_shown: int = 6) -> list[dict]:
             "distribution": [{"answer": v, "count": counts[v], "share": counts[v] / total if total else 0} for v in top],
             "compared": compared,
             "agreed": agreed,
+            "not_compared": not_compared,
             "disagreements": disagreements,
+            "long_answers": len(long_answers),
+            "common_words": [{"word": w, "count": c, "share": c / len(long_answers)} for w, c in common],
+            "examples": long_answers[:3],
         })
     return results
 

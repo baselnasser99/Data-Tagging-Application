@@ -71,6 +71,18 @@
           <div class="kappa-labels" aria-hidden="true"><span>slight</span><span>fair</span><span>moderate</span><span>substantial</span><span>almost perfect</span></div>
           {% endif %}
         </div>
+        {% elif r.answers %}
+        <div class="agreement">
+          <div class="agreement-head">
+            <span>Agreement</span>
+            {% if r.percent_agreement is not none %}
+            <strong>{{ "%g"|format(r.percent_agreement) }}%</strong>
+            <span class="text-muted">{{ r.agreement|capitalize }}, over {{ plural(r.percent_agreement_tasks, "task") }}</span>
+            {% else %}
+            <span class="text-muted">Not enough data yet: it needs tasks with at least two short answers.</span>
+            {% endif %}
+          </div>
+        </div>
         {% endif %}
 
         {% if r.distribution %}
@@ -85,8 +97,29 @@
           </li>
           {% endfor %}
         </ul>
-        {% elif r.type != "multiple_choice" %}
-        <p class="text-muted">{{ "No answers yet." if not r.answers else "Answers are longer than a few words, so they are not counted here; see the download." }}</p>
+        {% elif r.type != "multiple_choice" and not r.answers %}
+        <p class="text-muted">No answers yet.</p>
+        {% endif %}
+
+        {% if r.common_words %}
+        <p class="result-label">Most common words in longer answers</p>
+        <p class="text-muted result-note">Word counts give an overview; they don't measure agreement.</p>
+        {% set most = r.common_words|map(attribute="count")|max %}
+        <ul class="answer-bars">
+          {% for w in r.common_words %}
+          <li{% if w.count == most %} class="is-top"{% endif %}>
+            <span class="answer-bars-label">{{ w.word }}</span>
+            <span class="answer-bars-track" aria-hidden="true"><span style="width: {{ (w.share * 100)|round(1) }}%"></span></span>
+            <span class="answer-bars-count" title="answers using this word">{{ w.count }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="result-label">For example</p>
+        <ul class="disagreements">
+          {% for a in r.examples %}
+          <li><span class="disagreement-text"><span class="text-muted">{{ a.file_name }}</span><span class="answer-chip"><b>{{ a.annotator_name.split(' ')[0] }}</b> {{ a.answer }}</span></span></li>
+          {% endfor %}
+        </ul>
         {% endif %}
 
         {% if r.compared %}
@@ -105,6 +138,9 @@
           {% endfor %}
         </ul>
         {% endif %}
+        {% endif %}
+        {% if r.not_compared %}
+        <p class="text-muted result-note">{{ plural(r.not_compared, "task") }} not compared (answers longer than three words).</p>
         {% endif %}
 
         {% if r.unclear %}

@@ -264,8 +264,71 @@ def test_long_free_text_is_listed_not_scored(db, answered_project):
 
     text = question_results(data)[1]
     assert text["distribution"] == []
-    assert (text["compared"], text["agreed"]) == (2, 0)
-    assert len(text["disagreements"]) == 2  # shown for a person to read
+    # Not compared, so not shown as disagreements either.
+    assert (text["compared"], text["agreed"], text["not_compared"]) == (0, 0, 2)
+    assert text["disagreements"] == []
+
+
+def _set_text_answers(db, answers_by_image):
+    """Give each image's free-text task the listed answers, in answer order."""
+    from application.models import AnnotationTask
+
+    text = (QuestionAnswer.query.join(TaskAssignment).join(AnnotationTask).join(Question)
+            .filter(Question.answer_type == AnswerType.TEXT).order_by(QuestionAnswer.id).all())
+    images = sorted({a.task_assignment.task.image_id for a in text})
+    for image_id, values in zip(images, answers_by_image):
+        for answer, value in zip([a for a in text if a.task_assignment.task.image_id == image_id], values):
+            answer.answer = value
+    db.session.commit()
+
+
+def test_a_task_with_a_long_answer_is_not_a_disagreement(db, answered_project):
+    from application.export import build_project_export, question_results
+
+    _set_text_answers(db, [["Bicycle", "bicycle!"], ["Car", "a red car parked by the kerb"]])
+    text = question_results(build_project_export(answered_project))[1]
+    assert text["disagreements"] == []
+    assert (text["compared"], text["agreed"], text["not_compared"]) == (1, 1, 1)
+
+
+def test_short_free_text_gets_a_percent_agreement(db, admin_client, answered_project):
+    from application.export import build_project_export
+
+    _set_text_answers(db, [["Bicycle", "bicycle!"], ["Car", "Bus"]])
+    data = build_project_export(answered_project)
+    summary = next(q for q in data["questions"] if q["type"] == "text")
+    assert summary["agreement"] == "percent agreement (not chance-corrected)"
+    assert (summary["percent_agreement"], summary["percent_agreement_tasks"]) == (50.0, 2)
+    page = admin_client.get(f"/admin/view-annotation-project/{answered_project.id}").data.decode()
+    assert "50%" in page and "Percent agreement (not chance-corrected), over 2 tasks" in page
+
+    # A task with a long answer is left out of the score, not counted against it.
+    _set_text_answers(db, [["Bicycle", "bicycle!"], ["Car", "a red car parked by the kerb"]])
+    summary = next(q for q in build_project_export(answered_project)["questions"] if q["type"] == "text")
+    assert (summary["percent_agreement"], summary["percent_agreement_tasks"]) == (100.0, 1)
+
+    _set_text_answers(db, [["a bicycle leaning on the wall"] * 2, ["a red car parked by the kerb"] * 2])
+    summary = next(q for q in build_project_export(answered_project)["questions"] if q["type"] == "text")
+    assert (summary["percent_agreement"], summary["percent_agreement_tasks"]) == (None, 0)
+
+
+def test_long_free_text_shows_its_common_words(db, admin_client, answered_project):
+    from application.export import build_project_export, question_results
+
+    _set_text_answers(db, [["A rusty bicycle by the wall.", "Bicycle, rusty, rusty and old"],
+                           ["Red car near a wall", "Car"]])
+    text = question_results(build_project_export(answered_project))[1]
+    assert text["long_answers"] == 3
+    # Filler words ("a", "the", "and", "by") are dropped; a word counts once per answer.
+    assert [(w["word"], w["count"]) for w in text["common_words"]][:3] == [("bicycle", 2), ("rusty", 2), ("wall", 2)]
+    assert {w["word"] for w in text["common_words"]}.isdisjoint({"a", "the", "and", "by"})
+    assert len(text["common_words"]) <= 8 and text["common_words"][0]["share"] == 2 / 3
+    assert len(text["examples"]) == 3
+
+    page = admin_client.get(f"/admin/view-annotation-project/{answered_project.id}").data.decode()
+    assert "Most common words in longer answers" in page and "rusty" in page
+    assert "they don&#39;t measure agreement" in page or "they don't measure agreement" in page
+    assert "2 tasks not compared (answers longer than three words)" in page
 
 def test_progress_page_shows_results(admin_client, answered_project):
     page = admin_client.get(f"/admin/view-annotation-project/{answered_project.id}").data.decode()

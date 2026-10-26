@@ -327,6 +327,30 @@ def test_database_container_gets_only_its_own_settings():
     assert "MYSQL_ROOT_PASSWORD:" in database
 
 
+def test_app_container_gets_only_the_settings_it_reads():
+    # env_file handed the app MYSQL_ROOT_PASSWORD too, which it never uses.
+    with open("docker-compose.yml", encoding="utf-8") as f:
+        web = f.read().split("\n  web:")[1].split("\nvolumes:")[0]
+    assert "env_file:" not in web and "MYSQL_ROOT_PASSWORD" not in web
+    assert "SECRET_KEY:" in web and "ADMIN_PASSWORD:" in web
+
+
+def test_docker_image_leaves_out_local_env_files_and_example_accounts():
+    with open(".dockerignore", encoding="utf-8") as f:
+        ignored = {line.strip().rstrip("/") for line in f if line.strip() and not line.startswith("#")}
+    assert {".env", ".env.*", ".claude", ".idea", ".vscode", "scripts/sample_users.csv"} <= ignored
+
+
+def test_workflows_get_a_read_only_token():
+    import glob
+
+    for path in glob.glob(".github/workflows/*.yml"):
+        with open(path, encoding="utf-8") as f:
+            workflow = f.read()
+        assert "permissions:\n  contents: read" in workflow, path
+        assert "persist-credentials: false" in workflow, path
+
+
 @pytest.mark.parametrize("path", ["/admin/delete-project/1", "/admin/delete-group/1"])
 def test_destructive_actions_do_not_accept_get(admin_client, path):
     assert admin_client.get(path).status_code == 405

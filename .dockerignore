@@ -2,6 +2,7 @@
 
 # Secrets and local environments
 .env
+.env.*
 venv/
 .venv/
 
@@ -29,3 +30,11 @@ __pycache__/
 *.pyo
 *.pyd
 .DS_Store
+
+# Editors, assistants and local leftovers
+.claude/
+.idea/
+.vscode/
+*.log
+# Example accounts with example passwords
+scripts/sample_users.csv

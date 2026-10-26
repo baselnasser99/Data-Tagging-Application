@@ -97,6 +97,10 @@ def mcq(project, text, options):
 def main(app=None):
     rng = random.Random(7)  # the same demo every time
     app = app or create_app()
+    if (not app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite")
+            and "--any-database" not in sys.argv):
+        sys.exit("The demo has accounts with a published password, so it only goes into a SQLite file "
+                 "(see the top of this file). Add --any-database if you really mean this database.")
     with app.app_context():
         if Project.query.first() or User.query.filter(User.role != "admin").first():
             sys.exit("This database already has projects or people. Point DATABASE_URL at a new database "

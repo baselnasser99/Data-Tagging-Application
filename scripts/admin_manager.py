@@ -12,6 +12,7 @@ from getpass import getpass
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # the repo root, where application/ lives
 
 from application import create_app
+from application.auth import MIN_PASSWORD_LENGTH  # the same rule as the web pages
 from application.models import User
 from application.extns import db
 
@@ -93,8 +94,8 @@ def change_admin_password():
             print("❌ Passwords don't match!")
             return
         
-        if len(new_password) < 6:
-            print("❌ Password must be at least 6 characters!")
+        if len(new_password) < MIN_PASSWORD_LENGTH:
+            print(f"❌ Password must be at least {MIN_PASSWORD_LENGTH} characters!")
             return
         
         admin.set_password(new_password)
@@ -136,8 +137,8 @@ def create_new_admin():
             print("❌ Passwords don't match!")
             return
         
-        if len(password) < 6:
-            print("❌ Password must be at least 6 characters!")
+        if len(password) < MIN_PASSWORD_LENGTH:
+            print(f"❌ Password must be at least {MIN_PASSWORD_LENGTH} characters!")
             return
         
         # Create new admin

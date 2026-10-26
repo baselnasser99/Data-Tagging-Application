@@ -174,10 +174,18 @@ On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest -
 
 ## Security
 
-- Passwords are hashed (Werkzeug scrypt); there are no default accounts, and secrets live only in `.env`.
-- Every form has a CSRF token. Cookies are HTTP-only, SameSite and sent over HTTPS only (except on the debug server), with an idle timeout. Pages are sent with `Cache-Control: no-store`.
-- Access is checked on every route: managers see only their own projects, and members only their own tasks.
+- Passwords are hashed (Werkzeug scrypt); there are no default accounts, and secrets live only in `.env`. The app won't start with an example or short `SECRET_KEY` (under 32 characters) or `ADMIN_PASSWORD` (under 8). The graded version's published admin password stops working on upgrade.
+- A password an admin or manager chose for someone must be replaced by its owner at the next sign-in, and a new password must differ from the current one.
+- Every form has a CSRF token, signing out included, so another site can't sign anyone out. Cookies are HTTP-only, SameSite and sent over HTTPS only (except on the debug server), with an idle timeout. Pages are sent with `Cache-Control: no-store`.
+- Removing a person ends every session they had, and a deleted member's old cookie can't open a newly created account.
+- Pages load nothing from other sites (the fonts are kept in the app), and the Content-Security-Policy allows only this server.
+- Access is checked on every route: managers see only their own projects, and members only their own tasks. Uploaded files are served only to the project's people (items by number, so a file name can't give the answer away), and never through the public `/static` route.
 - All user-written text is escaped, including inside confirm dialogs.
+- Everything a form sends is checked on the server: a multiple-choice answer must be one of the options, an answer is at most 5,000 characters, settings and question counts stay within bounds, and two quick submits of one task store one answer.
+- Each project may keep at most 2,048 MB of items (`MAX_PROJECT_STORAGE_MB`). ZIPs are unpacked piece by piece, and a failed upload removes what it wrote.
+- CSV exports neutralise cells that a spreadsheet would run as a formula.
+- The scripts ask before deleting a database and don't print its password, and in Docker Compose the app gets only the settings it reads, not the MySQL root password.
+- Sign-in doesn't reveal which emails have accounts: a wrong email and a wrong password take as long and say the same.
 - After 5 wrong passwords for one account from one address, that address pauses for that account for 15 minutes; after 20 from one address across all accounts, the address pauses. A stranger's guesses never lock the owner out. Stored in the database, so it holds across server processes. Behind a reverse proxy, set `TRUSTED_PROXIES` (Docker Compose does), or every visitor shares the proxy's address.
 - Sign-ins, failed sign-ins, sign-outs, account and project changes and exports are written to `logs/audit.log`. Refused requests (a page someone's role may not open, a form without its CSRF token) go to `logs/refused.log` instead: anyone can cause those by the thousand, and in one file they could push the sign-in history out.
 

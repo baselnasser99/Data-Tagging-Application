@@ -245,8 +245,11 @@ CSV_COLUMNS = [
 
 
 def csv_cell(value):
-    """Stop spreadsheet apps running a cell as a formula (CSV injection): text starting with = + - @ gets a leading '."""
-    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
+    """Stop spreadsheet apps running a cell as a formula (CSV injection): text starting with = + - @ gets a leading '.
+
+    Also after leading spaces: some spreadsheet apps skip them when deciding what a cell is.
+    """
+    if isinstance(value, str) and (value[:1] in ("\t", "\r") or value.lstrip(" ")[:1] in ("=", "+", "-", "@")):
         return "'" + value
     return value
 

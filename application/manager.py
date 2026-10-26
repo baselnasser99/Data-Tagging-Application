@@ -11,7 +11,9 @@ from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
 from .feedback import flash_distribution
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
-                     QuestionAnswer, TaskAssignment, User, UserQuestionAssignment, option_count)
+                     QuestionAnswer, TaskAssignment, User, UserQuestionAssignment, MAX_ANSWERS_PER_TASK, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
+                     form_int,
+                     option_count)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
 from .uploads import save_attachment
@@ -374,9 +376,13 @@ def _update_settings(project):
     if 'project_desc' in request.form:
         project.desc = request.form['project_desc']
     if project.is_annotation_project:
-        project.questions_per_image = int(request.form.get('questions_per_image', project.questions_per_image))
-        project.max_questions_per_user = int(request.form.get('max_questions_per_user', project.max_questions_per_user))
-        project.answers_per_task = int(request.form.get('answers_per_task', 1))
+        # Kept within bounds: 0 or a negative count, or text, used to break the hand-out or the page.
+        project.questions_per_image = form_int(request.form.get('questions_per_image'), project.questions_per_image,
+                                               0, MAX_QUESTIONS)
+        project.max_questions_per_user = form_int(request.form.get('max_questions_per_user'),
+                                                  project.max_questions_per_user, 1, MAX_TASKS_PER_PERSON)
+        project.answers_per_task = form_int(request.form.get('answers_per_task'), project.answers_per_task,
+                                            1, MAX_ANSWERS_PER_TASK)
         if 'hand_out' in request.form:
             project.hand_out_per_item = request.form['hand_out'] == 'item'
     db.session.commit()

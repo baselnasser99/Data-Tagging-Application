@@ -630,7 +630,8 @@ def download_answers(user_id):
                 'Yes' if is_completed_assignment else 'No'
             ]])
     else:
-        writer.writerow([user.email, user.full_name, '', '', 'No answers found for this user', '', '', '', '', ''])
+        writer.writerow([csv_cell(v) for v in [user.email, user.full_name, '', '', 'No answers found for this user',
+                                               '', '', '', '', '']])
 
     mem = io.BytesIO(output.getvalue().encode('utf-8'))
     return make_response(send_file(

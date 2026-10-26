@@ -6,7 +6,7 @@ from sqlalchemy import update
 
 from .auth import change_own_password
 from .extns import db
-from .models import (Project, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer,
+from .models import (answer_problem, Project, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer,
                      GroupProject, UserGroupMembership)
 from .permissions import user_required
 from .stats import count_answered
@@ -149,7 +149,7 @@ def view_group_project(group_project_id):
     if key_project.isdigit():
         assigned_questions = [a for a in assigned_questions
                               if a.question is not None and a.question.project_id == int(key_project)]
-    allowed = {a.question_id for a in assigned_questions}
+    allowed = {a.question_id: a.question for a in assigned_questions}
 
     if not assigned_questions or not _still_holds_key(user_id, group_project_id):
         flash('No questions assigned to you for this project', 'warning')
@@ -167,7 +167,11 @@ def view_group_project(group_project_id):
                 question_id = int(question_id)
 
                 # Only the questions assigned to this user, of this key's project (see above)
-                if question_id in allowed:
+                question = allowed.get(question_id)
+                problem = question is not None and answer_problem(question, value)
+                if problem:
+                    flash(f'"{question.question}": {problem}', 'danger')
+                elif question is not None:
                     # Re-submitting replaces the earlier answer
                     existing_answer = QuestionAnswer.query.filter_by(user_id=user_id, question_id=question_id).first()
                     if existing_answer:
@@ -294,8 +298,11 @@ def annotation_task(assignment_id):
         if assignment.is_completed:
             flash("You have already answered this task.", "info")
             return redirect(url_for("annotation.annotation_tasks"))
+        problem = None if cant_tell else answer_problem(question, answer_text)
         if not cant_tell and not answer_text:
             flash("Please provide an answer!", "error")
+        elif problem:
+            flash(problem, "error")
         elif not _save_answer(assignment, answer_text, cant_tell=cant_tell):
             db.session.rollback()
             flash("You have already answered this task.", "info")
@@ -355,7 +362,10 @@ def annotate_image(image_id, project_id, batch_index=0):
         answered = 0
         for assignment in current_batch_assignments:
             text = (request.form.get(f"answer_{assignment.id}") or "").strip()
-            if text and _save_answer(assignment, text):
+            problem = text and answer_problem(assignment.task.question, text)
+            if problem:
+                flash(f'"{assignment.task.question.question}": {problem}', "error")
+            elif text and _save_answer(assignment, text):
                 answered += 1
         db.session.commit()
 

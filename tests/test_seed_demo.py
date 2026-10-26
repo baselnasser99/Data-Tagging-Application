@@ -29,3 +29,13 @@ def test_seed_demo_refuses_a_database_with_people(app, make_user):
     make_user()
     with pytest.raises(SystemExit):
         seed_demo.main(app)
+
+
+def test_seed_demo_refuses_a_database_that_is_not_sqlite(app, monkeypatch):
+    # The demo accounts share a published password: never into the real (MySQL) database by accident.
+    import pytest
+
+    monkeypatch.setitem(app.config, "SQLALCHEMY_DATABASE_URI", "mysql+pymysql://u:p@db/real")
+    monkeypatch.setattr(seed_demo.sys, "argv", ["seed_demo.py"])
+    with pytest.raises(SystemExit, match="SQLite"):
+        seed_demo.main(app)

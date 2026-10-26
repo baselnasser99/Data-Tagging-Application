@@ -4,9 +4,11 @@ import sys
 # Add the application directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # the repo root, where application/ lives
 
-from application import create_app
-from application.extns import db
-from application.models import User
+from sqlalchemy.engine import make_url  # noqa: E402
+
+from application import create_app  # noqa: E402
+from application.extns import db  # noqa: E402
+from application.models import User  # noqa: E402
 
 def recreate_database():
     """
@@ -20,13 +22,22 @@ def recreate_database():
     with app.app_context():
         # Get database URI from app config
         db_uri = app.config['SQLALCHEMY_DATABASE_URI']
-        print(f"Database URI: {db_uri}")
+        print(f"Database URI: {make_url(db_uri).render_as_string(hide_password=True)}")
         
         # Extract the database file path from the URI
         if db_uri.startswith('sqlite:///'):
             db_path = db_uri[10:]  # Remove 'sqlite:///'
             print(f"Database path: {db_path}")
             
+            instance_dir = os.path.join(os.getcwd(), 'instance')
+            instance_db_path = os.path.join(instance_dir, 'database.db')
+            doomed = [p for p in (db_path, instance_db_path) if os.path.exists(p)]
+            if doomed and '--yes' not in sys.argv:
+                answer = input(f"This deletes {', '.join(doomed)} and everything in it. Type yes to go on: ")
+                if answer.strip().lower() != 'yes':
+                    print("Nothing was deleted.")
+                    return
+
             # Check if the database file exists in the current directory
             if os.path.exists(db_path):
                 print(f"Removing existing database file: {db_path}")
@@ -34,8 +45,6 @@ def recreate_database():
                 print("Database file removed.")
             
             # Check if the database file exists in the instance directory
-            instance_dir = os.path.join(os.getcwd(), 'instance')
-            instance_db_path = os.path.join(instance_dir, 'database.db')
             if os.path.exists(instance_db_path):
                 print(f"Removing existing database file in instance directory: {instance_db_path}")
                 os.remove(instance_db_path)

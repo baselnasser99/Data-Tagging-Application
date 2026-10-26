@@ -17,13 +17,23 @@ services:
 
   web:
     build: .
-    env_file: .env
+    # Only the settings the app reads, named here, not all of .env: that also holds the database root password.
     environment:
       # Required: each Gunicorn worker would otherwise make up its own key and reject the others' cookies.
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       DATABASE_URL: mysql+pymysql://${MYSQL_USER:-tagging}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-tagging_db}
       # Gunicorn speaks plain http: browsers reach it only through an HTTPS reverse proxy on this machine.
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-1}
+      APP_NAME: ${APP_NAME:-Data Tagging}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrator}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-}
+      SESSION_IDLE_MINUTES: ${SESSION_IDLE_MINUTES:-60}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-512}
+      MAX_REQUEST_MB: ${MAX_REQUEST_MB:-2}
+      MAX_PROJECT_STORAGE_MB: ${MAX_PROJECT_STORAGE_MB:-2048}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "127.0.0.1:5000:5000"
     depends_on:

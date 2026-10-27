@@ -393,3 +393,21 @@ class LoginFailure(db.Model):
     # What was typed, in lower case: the pause counts per typed email, so unknown ones pause like real ones.
     email = Column(String(255), nullable=True, index=True)
     at = Column(db.DateTime, nullable=False, index=True)  # UTC
+
+
+def delete_question_data(question_ids):
+    """Delete everything hanging off these questions: answers, tasks, their assignments, survey rows.
+
+    The questions themselves stay; the caller deletes them. One DELETE per table, not one per row:
+    a project with thousands of items has tens of thousands of these rows.
+    """
+    if not question_ids:
+        return
+    tasks = db.select(AnnotationTask.id).where(AnnotationTask.question_id.in_(question_ids))
+    for statement in (
+        db.delete(QuestionAnswer).where(QuestionAnswer.question_id.in_(question_ids)),  # task answers too
+        db.delete(TaskAssignment).where(TaskAssignment.task_id.in_(tasks)),
+        db.delete(AnnotationTask).where(AnnotationTask.question_id.in_(question_ids)),
+        db.delete(UserQuestionAssignment).where(UserQuestionAssignment.question_id.in_(question_ids)),
+    ):
+        db.session.execute(statement)

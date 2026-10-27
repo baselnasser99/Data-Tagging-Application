@@ -455,3 +455,48 @@ def test_a_failed_upload_leaves_no_files_behind(app, admin_client, monkeypatch):
     monkeypatch.setattr(db.session, "commit", real_commit)
     assert calls and b"could not be saved" in resp.data
     assert _stored_files(project) == [] and ProjectImage.query.filter_by(project_id=project.id).count() == 0
+
+
+def test_deleting_an_annotation_project_removes_all_its_data_and_files(app, db, admin_client, group_with_members):
+    from sqlalchemy import event
+
+    from application.models import GroupProject, Question, UserQuestionAssignment
+
+    group, members = group_with_members
+    project = _create_project(admin_client)
+    _upload(admin_client, project, IMAGES)
+    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
+    done = TaskAssignment.query.first()
+    done.is_completed = True
+    db.session.add(QuestionAnswer(user_id=done.user_id, question_id=done.task.question_id, answer="a cat",
+                                  task_assignment_id=done.id))
+    keep = Project(name="Keep", desc="d")  # another project's rows must survive
+    db.session.add(keep)
+    db.session.flush()
+    kept_question = Question(question="Still here?", project_id=keep.id)
+    db.session.add(kept_question)
+    db.session.flush()
+    db.session.add(UserQuestionAssignment(user_id=members[0].id, question_id=kept_question.id,
+                                          group_project_id=f"{group.id}-{keep.id}"))
+    db.session.commit()
+    files = [i.file_path for i in project.images]
+    project_id = project.id
+
+    statements = []
+    listener = lambda conn, cursor, sql, *rest: statements.append(sql)
+    event.listen(db.engine, "before_cursor_execute", listener)
+    try:
+        resp = admin_client.post(f"/admin/delete-project/{project_id}", follow_redirects=True)
+    finally:
+        event.remove(db.engine, "before_cursor_execute", listener)
+
+    assert b"Project Deleted Successfully" in resp.data
+    db.session.expire_all()
+    assert db.session.get(Project, project_id) is None
+    for model in (AnnotationTask, ProjectImage, Question, GroupProject):
+        assert model.query.filter_by(project_id=project_id).count() == 0
+    assert TaskAssignment.query.count() == 0 and QuestionAnswer.query.count() == 0
+    assert not any(os.path.exists(f) for f in files)
+    assert UserQuestionAssignment.query.filter_by(question_id=kept_question.id).count() == 1
+    # one DELETE per table, not one per answer, assignment and task
+    assert sum(s.lstrip().upper().startswith("DELETE") for s in statements) <= 12

@@ -18,9 +18,10 @@ from .feedback import flash_distribution, warn_idle_members
 from .groups import (assign_questions_to_new_group_member, remove_pending_assignments_from_removed_group_member,
                      set_up_new_project)
 from .jinja_utils import plural
-from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, ProjectAdmin, Question,
+from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, ProjectAdmin, ProjectImage, Question,
                      QuestionAnswer, TaskAssignment, User, UserGroup, UserGroupMembership, UserQuestionAssignment,
-                     MAX_OPTIONS, MAX_QUESTIONS, form_int, person_problem)
+                     MAX_OPTIONS, MAX_QUESTIONS, delete_question_data, form_int,
+                     person_problem)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
 from .uploads import public_file_url, save_attachment
@@ -464,60 +465,19 @@ def delete_project(project_id):
     project = db.get_or_404(Project, project_id)
 
     try:
-        # Delete annotation-related data if this is an annotation project
-        if project.is_annotation_project:
-            # Delete task assignments first
-            for task in project.annotation_tasks:
-                for assignment in task.assignments:
-                    # Delete answers linked to this assignment
-                    answers = QuestionAnswer.query.filter_by(task_assignment_id=assignment.id).all()
-                    for answer in answers:
-                        db.session.delete(answer)
-                    db.session.delete(assignment)
-                db.session.delete(task)
-
-            # Delete project images
-            for image in project.images:
-                # Delete image file from filesystem
-                try:
-                    if os.path.exists(image.file_path):
-                        os.remove(image.file_path)
-                except OSError:
-                    pass  # Continue even if file deletion fails
-                db.session.delete(image)
-
-        ExportLog.query.filter_by(project_id=project_id).delete()
-        ProjectAdmin.query.filter_by(project_id=project_id).delete()  # its manager stays a manager, without a project
-
-        # Delete group project assignments
-        group_projects = GroupProject.query.filter_by(project_id=project_id).all()
-        for group_project in group_projects:
-            # Delete user question assignments for this group project
-            group_project_id = f"{group_project.group_id}-{group_project.project_id}"
-            assignments = UserQuestionAssignment.query.filter_by(group_project_id=group_project_id).all()
-            for assignment in assignments:
-                db.session.delete(assignment)
-            db.session.delete(group_project)
-        # Every other row for these questions too, whatever its key: CSV imports use
+        # Every survey row for these questions goes too, whatever its key: CSV imports use
         # "imported-<project id>", and a row left behind would point at a question id that
         # SQLite gives to the next question created, in any project.
-        question_ids = [q.id for q in project.questions]
-        if question_ids:
-            UserQuestionAssignment.query.filter(UserQuestionAssignment.question_id.in_(question_ids)).delete(
-                synchronize_session=False)
-
-        # Delete regular question answers (not linked to task assignments)
-        for question in project.questions:
-            qas = QuestionAnswer.query.filter_by(
-                question_id=question.id,
-                task_assignment_id=None
-            ).all()
-            for qa in qas:
-                db.session.delete(qa)
-
-        # Delete questions
-        delete_stmt = delete(Question).where(Question.project_id == project.id)
-        db.session.execute(delete_stmt)
+        delete_question_data([q.id for q in project.questions])
+        for image in project.images:
+            try:
+                if os.path.exists(image.file_path):
+                    os.remove(image.file_path)
+            except OSError:
+                pass  # a file already gone must not stop the delete
+        for model in (ProjectImage, ExportLog, GroupProject, Question):
+            db.session.execute(delete(model).where(model.project_id == project_id))
+        ProjectAdmin.query.filter_by(project_id=project_id).delete()  # its manager stays a manager, without a project
 
         # Finally delete the project
         db.session.delete(project)

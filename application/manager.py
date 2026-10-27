@@ -11,8 +11,8 @@ from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
 from .feedback import flash_distribution
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
-                     QuestionAnswer, TaskAssignment, User, UserGroupMembership, UserQuestionAssignment, MAX_ANSWERS_PER_TASK, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
-                     db_now, form_int, person_problem,
+                     QuestionAnswer, TaskAssignment, User, UserGroupMembership, MAX_ANSWERS_PER_TASK, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
+                     db_now, delete_question_data, form_int, person_problem,
                      option_count)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
@@ -360,12 +360,7 @@ def _delete_question(project):
         flash('Error deleting question.', 'danger')
         return redirect(url_for('manager.edit_project_questions', project_id=project.id))
 
-    QuestionAnswer.query.filter_by(question_id=question.id).delete()
-    if project.is_annotation_project:
-        for task in AnnotationTask.query.filter_by(question_id=question.id).all():
-            TaskAssignment.query.filter_by(task_id=task.id).delete()
-            db.session.delete(task)
-    UserQuestionAssignment.query.filter_by(question_id=question.id).delete()
+    delete_question_data([question.id])
     db.session.delete(question)
     db.session.commit()
     flash('Question deleted.', 'success')

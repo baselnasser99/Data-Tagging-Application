@@ -34,6 +34,19 @@ def project_progress(project):
     return count_answered(assigned), len(assigned)
 
 
+def answer_totals(projects, progress):
+    """(answers given, answers needed) across these projects, for the dashboards' "Answers given".
+
+    A project's tasks need answers_per_task answers each (one per assignment);
+    a survey's questions one answer per member. ``progress`` is project_progress per project id.
+    """
+    held = TaskAssignment.query.join(AnnotationTask).filter(
+        AnnotationTask.project_id.in_([p.id for p in projects if p.is_annotation_project]))
+    surveys = [p for p in projects if not p.is_annotation_project]
+    return (held.filter(TaskAssignment.is_completed.is_(True)).count() + sum(progress[p.id][0] for p in surveys),
+            held.count() + sum(progress[p.id][1] for p in surveys))
+
+
 def group_progress(group, project_ids):
     """(done, total) of the work the group's members hold in these projects.
 

@@ -15,7 +15,7 @@ from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectI
                      db_now, delete_question_data, form_int, person_problem,
                      option_count)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
-from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
+from .stats import answer_totals, group_stats_for, project_progress, weekly_answers, workload_balance
 from .uploads import save_attachment
 
 audit = logging.getLogger("audit")
@@ -36,14 +36,11 @@ def my_projects():
         Question.project_id.in_(project_ids), QuestionAnswer.submitted_date >= week_ago).count() if project_ids else 0
     groups = {gp.group.id: gp.group for p in projects for gp in p.assigned_groups if gp.group}
     weeks_data = weekly_answers(project_ids)
-    # Answers, as on the admin dashboard: a project's tasks need answers_per_task answers each,
-    # a survey's questions one answer per member (project_progress already counts those).
-    held = TaskAssignment.query.join(AnnotationTask).filter(AnnotationTask.project_id.in_(project_ids))
-    surveys = [p for p in projects if not p.is_annotation_project]
+    done, total = answer_totals(projects, progress)  # the same figure as on the admin dashboard
     figures = {
         "projects": len(projects),
-        "done": held.filter(TaskAssignment.is_completed.is_(True)).count() + sum(progress[p.id][0] for p in surveys),
-        "total": held.count() + sum(progress[p.id][1] for p in surveys),
+        "done": done,
+        "total": total,
         "people": len(people),
         "groups": len(groups),
         "recent": recent,

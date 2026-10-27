@@ -23,7 +23,7 @@ from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Projec
                      MAX_OPTIONS, MAX_QUESTIONS, delete_question_data, form_int,
                      person_problem)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
-from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
+from .stats import answer_totals, group_stats_for, project_progress, weekly_answers, workload_balance
 from .uploads import public_file_url, save_attachment
 
 audit = logging.getLogger("audit")
@@ -40,9 +40,7 @@ def dashboard():
 
     projects = Project.query.order_by(Project.id.desc()).all()
     progress = {p.id: project_progress(p) for p in projects}
-    assignments = TaskAssignment.query
-    tasks_total = assignments.count()
-    tasks_done = assignments.filter(TaskAssignment.is_completed.is_(True)).count()
+    tasks_done, tasks_total = answer_totals(projects, progress)
 
     weeks_data = weekly_answers()
     group_stats = group_stats_for(UserGroup.query.all())

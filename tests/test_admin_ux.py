@@ -433,3 +433,27 @@ def test_this_weeks_answers_are_counted_on_the_database_clock(db, make_user):
         db.session.add(QuestionAnswer(user_id=person.id, question_id=question.id, answer="x", submitted_date=when))
     db.session.commit()
     assert weekly_answers()[-1]["answers"] == 2  # both inside the last seven days
+
+
+def test_both_dashboards_count_survey_answers_the_same_way(app, db, admin_client, make_user, make_project_admin):
+    """A fully answered survey: 3 members x 2 questions. The admin dashboard used to say 0 of 0."""
+    from application.models import GroupProject, Project, Question, QuestionAnswer, UserQuestionAssignment
+
+    survey, group = Project(name="Poll", desc="d"), UserGroup(name="Team")
+    db.session.add_all([survey, group])
+    db.session.flush()
+    questions = [Question(question=f"Q{i}?", project_id=survey.id) for i in range(2)]
+    db.session.add_all(questions + [GroupProject(group_id=group.id, project_id=survey.id)])
+    db.session.flush()
+    for member in (make_user() for _ in range(3)):
+        db.session.add(UserGroupMembership(user_id=member.id, group_id=group.id))
+        for q in questions:
+            db.session.add(UserQuestionAssignment(user_id=member.id, question_id=q.id,
+                                                  group_project_id=f"{group.id}-{survey.id}"))
+            db.session.add(QuestionAnswer(user_id=member.id, question_id=q.id, answer="yes"))
+    db.session.commit()
+
+    manager = app.test_client()
+    login(manager, make_project_admin(survey).email)
+    for page in (admin_client.get("/admin/dashboard"), manager.get("/admin/my-projects")):
+        assert "6<small> of 6</small>" in page.data.decode()

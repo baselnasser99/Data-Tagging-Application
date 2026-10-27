@@ -139,6 +139,12 @@ class Question(db.Model):
     question_answers = db.relationship(
         "QuestionAnswer", backref="question", lazy=True)
 
+    @property
+    def options(self):
+        """The choices members see: the first ``number_of_options`` columns that aren't blank."""
+        shown = (getattr(self, f"option{i}") for i in range(1, min(self.number_of_options or 0, MAX_OPTIONS) + 1))
+        return [o.strip() for o in shown if o and o.strip()]
+
 
 class QuestionAnswer(db.Model):
     id = Column(Integer, primary_key=True)
@@ -218,7 +224,7 @@ def answer_problem(question, text):
     if len(text) > MAX_ANSWER_LENGTH:
         return f"An answer can be at most {MAX_ANSWER_LENGTH} characters long."
     if question.answer_type == AnswerType.MCQ:
-        options = {(getattr(question, f"option{i}") or "").strip() for i in range(1, MAX_OPTIONS + 1)} - {""}
+        options = question.options
         if options and text.strip() not in options:
             return "Please choose one of the options."
     return None

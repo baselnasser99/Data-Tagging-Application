@@ -11,7 +11,7 @@ from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
 from .feedback import flash_distribution
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
-                     QuestionAnswer, TaskAssignment, User, UserGroupMembership, MAX_ANSWERS_PER_TASK, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
+                     QuestionAnswer, TaskAssignment, User, UserGroupMembership, MAX_ANSWERS_PER_TASK, MAX_OPTIONS, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
                      db_now, delete_question_data, form_int, person_problem,
                      option_count)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
@@ -313,14 +313,15 @@ def _update_question(question, text, form, files):
         question.answer_type = new_type
 
         if new_type == AnswerType.TEXT:
-            for i in range(1, 7):
+            for i in range(1, MAX_OPTIONS + 1):
                 setattr(question, f'option{i}', None)
             question.number_of_options = 0
             question.answer = form.get(f'answer-{qid}', '')
         else:
             question.number_of_options = option_count(request.form.get(f'number_of_options-{qid}'))
-            for i in range(1, 7):
-                setattr(question, f'option{i}', form.get(f'mcq-option-{i}-{qid}'))  # None clears a removed option
+            for i in range(1, MAX_OPTIONS + 1):  # boxes past the count are cleared, even if sent (no JavaScript)
+                setattr(question, f'option{i}',
+                        form.get(f'mcq-option-{i}-{qid}') if i <= question.number_of_options else None)
             question.answer = form.get(f'mcq-correct-answer-{qid}')
 
     filename = save_attachment(files.get(f'questionfile-{qid}'))

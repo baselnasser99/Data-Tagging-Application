@@ -66,18 +66,12 @@
   {% if question.answer_type.name == 'MCQ' %}
   <fieldset class="choices" data-choices>
     <legend class="sr-only">{{ question.question }}</legend>
-    {% set n = namespace(i=0) %}
-    {# At most the six option columns: a larger stored count used to make this loop run millions of times #}
-    {% for i in range(1, [question.number_of_options or 0, 6]|min + 1) %}
-      {% set option_value = getattr_safe(question, 'option' + i|string) %}
-      {% if option_value %}
-      {% set n.i = n.i + 1 %}
+    {% for option_value in question.options %}
       <label class="choice">
         <input type="radio" name="{{ name }}" value="{{ option_value }}" required>
-        <span class="choice-key" aria-hidden="true">{{ n.i if n.i < 10 else '' }}</span>
+        <span class="choice-key" aria-hidden="true">{{ loop.index if loop.index < 10 else '' }}</span>
         <span class="choice-text">{{ option_value }}</span>
       </label>
-      {% endif %}
     {% endfor %}
   </fieldset>
   {% else %}

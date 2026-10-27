@@ -571,3 +571,19 @@ def test_a_survey_saves_its_questions_and_options_in_one_go(admin_client):
     text, mcq = sorted(Project.query.filter_by(name="Poll").one().questions, key=lambda q: q.id)
     assert text.answer_type == AnswerType.TEXT and text.number_of_options == 0
     assert mcq.answer_type == AnswerType.MCQ and (mcq.number_of_options, mcq.option1, mcq.option2) == (2, "Yes", "No")
+
+
+def test_only_the_options_members_see_count_as_options(admin_client, survey):
+    """Without JavaScript the editor sends every option box, also those past the chosen count."""
+    from application.models import answer_problem
+
+    q = survey.questions[0]
+    admin_client.post(f"/admin/project/{survey.id}/edit-questions", data={
+        "action": "update_questions", f"question-{q.id}": q.question, f"dropdown-{q.id}": "mcq",
+        f"number_of_options-{q.id}": "2", f"mcq-option-1-{q.id}": "Yes", f"mcq-option-2-{q.id}": "No",
+        f"mcq-option-3-{q.id}": "Maybe"})
+    assert q.options == ["Yes", "No"] and q.option3 is None
+    q.option3 = "Maybe"  # a database from before this fix may still hold one
+    assert q.options == ["Yes", "No"]
+    assert answer_problem(q, "Maybe") == "Please choose one of the options."
+    assert answer_problem(q, "No") is None

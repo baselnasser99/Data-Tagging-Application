@@ -139,6 +139,12 @@ class Question(db.Model):
     question_answers = db.relationship(
         "QuestionAnswer", backref="question", lazy=True)
 
+    @property
+    def options(self):
+        """The choices members see: the first ``number_of_options`` columns that aren't blank."""
+        shown = (getattr(self, f"option{i}") for i in range(1, min(self.number_of_options or 0, MAX_OPTIONS) + 1))
+        return [o.strip() for o in shown if o and o.strip()]
+
 
 class QuestionAnswer(db.Model):
     id = Column(Integer, primary_key=True)
@@ -180,7 +186,7 @@ class GroupProject(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('user_group.id'), primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), primary_key=True)
     assigned_date = db.Column(db.DateTime, default=db.func.current_timestamp())
-    questions_distributed = db.Column(db.Boolean, default=False)  # still written, but no page reads it
+    questions_distributed = db.Column(db.Boolean, default=False)  # unused; kept so existing databases match
 
     # Relationships
     group = db.relationship("UserGroup", back_populates="assigned_projects")
@@ -218,9 +224,18 @@ def answer_problem(question, text):
     if len(text) > MAX_ANSWER_LENGTH:
         return f"An answer can be at most {MAX_ANSWER_LENGTH} characters long."
     if question.answer_type == AnswerType.MCQ:
-        options = {(getattr(question, f"option{i}") or "").strip() for i in range(1, MAX_OPTIONS + 1)} - {""}
+        options = question.options
         if options and text.strip() not in options:
             return "Please choose one of the options."
+    return None
+
+
+def person_problem(full_name, email):
+    """Why an account can't have this name and email, or None: the same rule on every form and script."""
+    if not full_name or not email:
+        return 'Please enter a name and an email address.'
+    if len(full_name) > 100 or len(email) > 255 or '@' not in email:  # the column sizes
+        return 'Please enter a valid email address and a name of at most 100 characters.'
     return None
 
 
@@ -239,14 +254,6 @@ def form_int(value, default, low, high):
         return max(low, min(int(value), high))
     except (TypeError, ValueError):
         return default
-
-
-def option_count(value):
-    """A multiple-choice option count from a form, kept to the 2 to 6 the Question columns hold."""
-    try:
-        return max(2, min(int(value), MAX_OPTIONS))
-    except (TypeError, ValueError):
-        return 2
 
 
 IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
@@ -384,3 +391,21 @@ class LoginFailure(db.Model):
     # What was typed, in lower case: the pause counts per typed email, so unknown ones pause like real ones.
     email = Column(String(255), nullable=True, index=True)
     at = Column(db.DateTime, nullable=False, index=True)  # UTC
+
+
+def delete_question_data(question_ids):
+    """Delete everything hanging off these questions: answers, tasks, their assignments, survey rows.
+
+    The questions themselves stay; the caller deletes them. One DELETE per table, not one per row:
+    a project with thousands of items has tens of thousands of these rows.
+    """
+    if not question_ids:
+        return
+    tasks = db.select(AnnotationTask.id).where(AnnotationTask.question_id.in_(question_ids))
+    for statement in (
+        db.delete(QuestionAnswer).where(QuestionAnswer.question_id.in_(question_ids)),  # task answers too
+        db.delete(TaskAssignment).where(TaskAssignment.task_id.in_(tasks)),
+        db.delete(AnnotationTask).where(AnnotationTask.question_id.in_(question_ids)),
+        db.delete(UserQuestionAssignment).where(UserQuestionAssignment.question_id.in_(question_ids)),
+    ):
+        db.session.execute(statement)

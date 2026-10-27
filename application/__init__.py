@@ -50,7 +50,7 @@ def create_app(config_object=None):
     from .annotation_admin import annotation_admin
     from .permissions import can_open_upload, can_see_project
     from .uploads import upload_dir
-    from .jinja_utils import getattr_safe, plural
+    from .jinja_utils import plural
     from .sidebar import sidebar_summary
 
     app.register_blueprint(auth)
@@ -60,7 +60,6 @@ def create_app(config_object=None):
     app.register_blueprint(annotation_admin)
     app.register_blueprint(annotation)
 
-    app.jinja_env.globals["getattr_safe"] = getattr_safe
     app.jinja_env.globals["plural"] = plural
     app.jinja_env.globals["min_password_length"] = MIN_PASSWORD_LENGTH
     app.jinja_env.globals["sidebar_summary"] = sidebar_summary

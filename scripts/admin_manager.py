@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 
 from application import create_app
 from application.auth import MIN_PASSWORD_LENGTH  # the same rule as the web pages
-from application.models import User
+from application.models import User, person_problem
 from application.extns import db
 
 def print_banner():
@@ -52,8 +52,9 @@ def change_admin_email():
         print(f"Current email: {admin.email}")
         
         new_email = input("Enter new email: ").strip()
-        if not new_email:
-            print("❌ Email cannot be empty!")
+        problem = person_problem(admin.full_name, new_email)  # the same rule as the web pages
+        if problem:
+            print(f"❌ {problem}")
             return
         
         # Check if email already exists
@@ -115,13 +116,10 @@ def create_new_admin():
     
     try:
         full_name = input("Enter full name: ").strip()
-        if not full_name:
-            print("❌ Full name cannot be empty!")
-            return
-        
         email = input("Enter email: ").strip()
-        if not email:
-            print("❌ Email cannot be empty!")
+        problem = person_problem(full_name, email)  # the same rule as the web pages
+        if problem:
+            print(f"❌ {problem}")
             return
         
         # Check if email already exists

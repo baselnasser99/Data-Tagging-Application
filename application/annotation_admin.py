@@ -6,7 +6,6 @@ import logging
 import os
 import uuid
 import zipfile
-from collections import Counter
 
 from flask import Blueprint, current_app, request, redirect, url_for, flash, render_template, abort, send_file
 from flask_login import current_user
@@ -17,11 +16,12 @@ from . import export as dataset_export
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
 from .jinja_utils import plural
-from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, ProjectImage,
-                     Question, TaskAssignment, UserGroup, MAX_ANSWERS_PER_TASK, MAX_QUESTIONS,
+from .models import (AnswerType, ExportLog, GroupProject, Project, ProjectImage,
+                     Question, UserGroup, MAX_ANSWERS_PER_TASK, MAX_QUESTIONS,
                      MAX_TASKS_PER_PERSON, form_int, media_type_for)
 from .groups import set_up_new_project, usable_groups
 from .permissions import project_admin_access_required, project_admin_required
+from .stats import task_counts
 from .uploads import upload_dir
 
 audit = logging.getLogger("audit")
@@ -49,7 +49,6 @@ def create_annotation_project():
         project = Project(
             name=project_name,
             desc=project_desc,
-            user_id=current_user.id,
             is_annotation_project=True,
             max_questions_per_user=max_questions_per_user,
             answers_per_task=answers_per_task,
@@ -289,7 +288,7 @@ def generate_annotation_tasks(project_id):
         # Record that this group works on the project, so the project shows up
         # on the group's dashboards and in later redistribution.
         if not GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first():
-            db.session.add(GroupProject(group_id=group.id, project_id=project.id, questions_distributed=True))
+            db.session.add(GroupProject(group_id=group.id, project_id=project.id))
             db.session.commit()
 
         if not group.members:
@@ -313,11 +312,6 @@ def generate_annotation_tasks(project_id):
                          default_group_id=default_group_id)
 
 
-def _completion(total, completed):
-    return {'total': total, 'completed': completed,
-            'percentage': round((completed / total * 100) if total else 0, 1)}
-
-
 @annotation_admin.route("/view-annotation-project/<int:project_id>")
 @project_admin_required
 def view_annotation_project(project_id):
@@ -330,41 +324,14 @@ def view_annotation_project(project_id):
 
     images = ProjectImage.query.filter_by(project_id=project_id).all()
     questions = Question.query.filter_by(project_id=project_id).all()
-    tasks = AnnotationTask.query.filter_by(project_id=project_id).all()
-    assignments = TaskAssignment.query.join(AnnotationTask).filter(AnnotationTask.project_id == project_id).all()
-    
-    # Calculate detailed statistics
-    total_assignments = len(assignments)
-    completed_assignments = len([a for a in assignments if a.is_completed])
-    unique_users = {a.user_id for a in assignments}
-    total_tasks = len(tasks)
-
-    completed_tasks = sum(1 for task in tasks if task.is_completed)
-
-    # Per-item and per-person completion, counted in one pass over each list
-    tasks_per_item = Counter(t.image_id for t in tasks)
-    done_per_item = Counter(t.image_id for t in tasks if t.is_completed)
-    image_completion = {img.id: _completion(tasks_per_item[img.id], done_per_item[img.id]) for img in images}
-
-    held = Counter(a.user_id for a in assignments)
-    answered = Counter(a.user_id for a in assignments if a.is_completed)
-    user_assignments = {user_id: _completion(held[user_id], answered[user_id]) for user_id in unique_users}
-
+    counts = task_counts(project_id)
     stats = {
         'total_images': len(images),
-        'total_audio': len([i for i in images if i.is_audio]),
+        'total_audio': sum(1 for i in images if i.is_audio),
         'total_questions': len(questions),
-        'total_tasks': total_tasks,
-        'completed_tasks': completed_tasks,
-        'completion_percentage': round((completed_tasks / total_tasks * 100) if total_tasks > 0 else 0, 1),
-        'total_assignments': total_assignments,
-        'completed_assignments': completed_assignments,
-        'assignment_completion': round((completed_assignments / total_assignments * 100) if total_assignments > 0 else 0, 1),
-        'unique_users': len(unique_users),
-        'avg_answers_per_task': round(total_assignments / total_tasks if total_tasks > 0 else 0, 1),
-        'image_completion': image_completion,
-        'questions_per_image': project.questions_per_image,
-        'user_assignments': user_assignments
+        'completion_percentage': round(counts['completed_tasks'] / counts['total_tasks'] * 100, 1)
+                                 if counts['total_tasks'] else 0,
+        **counts,
     }
 
     data = dataset_export.build_project_export(project)

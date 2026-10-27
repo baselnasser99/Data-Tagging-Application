@@ -101,7 +101,7 @@ def test_csv_import_skips_bad_emails_and_long_names_but_keeps_the_rest(admin_cli
     rows = "full_name,email,password\nAda,ada@example.com,secret123\nNo At,not-an-email,secret123\n" + "x" * 101 + ",long@example.com,secret123\n"
     resp = admin_client.post("/admin/import-users", data={"csv_file": _csv(rows)},
                              content_type="multipart/form-data", follow_redirects=True)
-    assert b"Row 3: needs a valid email address" in resp.data and b"Row 4: needs a valid email address" in resp.data
+    assert b"Row 3: Please enter a valid email address" in resp.data and b"Row 4: Please enter a valid email address" in resp.data
     assert User.query.filter_by(email="ada@example.com").one()
     assert not User.query.filter(User.email.in_(["not-an-email", "long@example.com"])).count()
 

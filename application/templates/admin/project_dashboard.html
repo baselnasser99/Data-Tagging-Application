@@ -6,7 +6,7 @@
 
 {% block content %}
 {% if project.is_annotation_project %}
-{% set done, total = annotation_stats.completed_tasks, annotation_stats.tasks_count %}
+{% set done, total = annotation_stats.completed_tasks, annotation_stats.total_tasks %}
 {% else %}
 {% set done, total = survey_progress %}
 {% endif %}

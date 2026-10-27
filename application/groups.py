@@ -11,7 +11,7 @@ from . import distribution, surveys
 from .extns import db
 from .feedback import flash_distribution, warn_idle_members
 from .models import GroupProject, Project, ProjectAdmin, User, UserGroup, UserGroupMembership, UserQuestionAssignment
-from .permissions import admin_required, is_project_admin, project_admin_access_required, project_admin_required
+from .permissions import admin_required, project_admin_access_required, project_admin_required
 from .stats import answered, group_progress
 
 groups = Blueprint("groups", __name__, url_prefix="/admin")
@@ -135,7 +135,7 @@ def _other_managers_projects(group):
     a manager may change it, or give the group more work, only when all of those are theirs.
     """
     return [gp.project for gp in group.assigned_projects
-            if current_user.role != 'admin' and not is_project_admin(gp.project_id)]
+            if current_user.role != 'admin' and not current_user.is_project_admin(gp.project_id)]
 
 
 def can_use_group(group):
@@ -206,7 +206,7 @@ def assign_project_to_group():
         group = db.session.get(UserGroup, group_id)
         project = db.session.get(Project, project_id)
 
-        if project and current_user.role != 'admin' and not is_project_admin(project.id):
+        if project and current_user.role != 'admin' and not current_user.is_project_admin(project.id):
             abort(403)  # managers may only attach their own projects
         if group and project:
             # Check if project is already assigned to group

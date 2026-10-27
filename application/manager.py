@@ -10,12 +10,11 @@ from . import distribution, surveys
 from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
 from .feedback import flash_distribution
-from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
-                     QuestionAnswer, TaskAssignment, User, UserGroupMembership, UserQuestionAssignment, MAX_ANSWERS_PER_TASK, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
-                     db_now, form_int,
-                     option_count)
+from .models import (AnswerType, Project, ProjectAdmin, ProjectImage, Question,
+                     QuestionAnswer, User, UserGroupMembership, MAX_ANSWERS_PER_TASK, MAX_OPTIONS, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
+                     db_now, delete_question_data, form_int, person_problem)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
-from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
+from .stats import answer_totals, group_stats_for, project_progress, task_counts, weekly_answers, workload_balance
 from .uploads import save_attachment
 
 audit = logging.getLogger("audit")
@@ -36,14 +35,11 @@ def my_projects():
         Question.project_id.in_(project_ids), QuestionAnswer.submitted_date >= week_ago).count() if project_ids else 0
     groups = {gp.group.id: gp.group for p in projects for gp in p.assigned_groups if gp.group}
     weeks_data = weekly_answers(project_ids)
-    # Answers, as on the admin dashboard: a project's tasks need answers_per_task answers each,
-    # a survey's questions one answer per member (project_progress already counts those).
-    held = TaskAssignment.query.join(AnnotationTask).filter(AnnotationTask.project_id.in_(project_ids))
-    surveys = [p for p in projects if not p.is_annotation_project]
+    done, total = answer_totals(projects, progress)  # the same figure as on the admin dashboard
     figures = {
         "projects": len(projects),
-        "done": held.filter(TaskAssignment.is_completed.is_(True)).count() + sum(progress[p.id][0] for p in surveys),
-        "total": held.count() + sum(progress[p.id][1] for p in surveys),
+        "done": done,
+        "total": total,
         "people": len(people),
         "groups": len(groups),
         "recent": recent,
@@ -65,28 +61,8 @@ def project_dashboard(project_id):
     # For annotation projects, get additional statistics
     annotation_stats = None
     if project.is_annotation_project:
-        images_count = ProjectImage.query.filter_by(project_id=project_id).count()
-        tasks_count = AnnotationTask.query.filter_by(project_id=project_id).count()
-        completed_tasks = AnnotationTask.query.filter_by(project_id=project_id, is_completed=True).count()
-        
-        # Get assignment statistics
-        assignments = TaskAssignment.query.join(AnnotationTask).filter(AnnotationTask.project_id == project_id).all()
-        total_assignments = len(assignments)
-        completed_assignments = len([a for a in assignments if a.is_completed])
-        
-        # Calculate completion percentages
-        completion_percentage = (completed_tasks / tasks_count * 100) if tasks_count > 0 else 0
-        assignment_completion = (completed_assignments / total_assignments * 100) if total_assignments > 0 else 0
-        
-        annotation_stats = {
-            'images_count': images_count,
-            'tasks_count': tasks_count,
-            'completed_tasks': completed_tasks,
-            'completion_percentage': round(completion_percentage, 1),
-            'total_assignments': total_assignments,
-            'completed_assignments': completed_assignments,
-            'assignment_completion': round(assignment_completion, 1)
-        }
+        annotation_stats = {'images_count': ProjectImage.query.filter_by(project_id=project_id).count(),
+                            **task_counts(project_id)}
     
     # Get assigned groups
     assigned_groups = [gp.group for gp in project.assigned_groups]
@@ -231,12 +207,9 @@ def create_project_admin(project_id):
             flash('This project already has a manager. Only one manager is allowed per project.', 'danger')
             return redirect(url_for('manager.project_admins', project_id=project_id))
 
-        # The same checks as admin.create_user and Edit user
-        if not fullname or not email:
-            flash('Please enter a name and an email address.', 'danger')
-            return redirect(url_for('manager.create_project_admin', project_id=project_id))
-        if len(fullname) > 100 or len(email) > 255 or '@' not in email:
-            flash('Please enter a valid email address and a name of at most 100 characters.', 'danger')
+        problem = person_problem(fullname, email)
+        if problem:
+            flash(problem, 'danger')
             return redirect(url_for('manager.create_project_admin', project_id=project_id))
         if User.query.filter_by(email=email).first():
             flash('A user with this email already exists.', 'danger')
@@ -319,14 +292,15 @@ def _update_question(question, text, form, files):
         question.answer_type = new_type
 
         if new_type == AnswerType.TEXT:
-            for i in range(1, 7):
+            for i in range(1, MAX_OPTIONS + 1):
                 setattr(question, f'option{i}', None)
             question.number_of_options = 0
             question.answer = form.get(f'answer-{qid}', '')
         else:
-            question.number_of_options = option_count(request.form.get(f'number_of_options-{qid}'))
-            for i in range(1, 7):
-                setattr(question, f'option{i}', form.get(f'mcq-option-{i}-{qid}'))  # None clears a removed option
+            question.number_of_options = form_int(request.form.get(f'number_of_options-{qid}'), 2, 2, MAX_OPTIONS)
+            for i in range(1, MAX_OPTIONS + 1):  # boxes past the count are cleared, even if sent (no JavaScript)
+                setattr(question, f'option{i}',
+                        form.get(f'mcq-option-{i}-{qid}') if i <= question.number_of_options else None)
             question.answer = form.get(f'mcq-correct-answer-{qid}')
 
     filename = save_attachment(files.get(f'questionfile-{qid}'))
@@ -342,7 +316,7 @@ def _add_question(project):
         answer_type=AnswerType.TEXT if kind == 'text' else AnswerType.MCQ,
     )
     if kind == 'mcq':
-        question.number_of_options = option_count(request.form.get('new_question_num_options'))
+        question.number_of_options = form_int(request.form.get('new_question_num_options'), 2, 2, MAX_OPTIONS)
         for i in range(1, question.number_of_options + 1):
             setattr(question, f'option{i}', request.form.get(f'new_question_option_{i}', ''))
     db.session.add(question)
@@ -363,12 +337,7 @@ def _delete_question(project):
         flash('Error deleting question.', 'danger')
         return redirect(url_for('manager.edit_project_questions', project_id=project.id))
 
-    QuestionAnswer.query.filter_by(question_id=question.id).delete()
-    if project.is_annotation_project:
-        for task in AnnotationTask.query.filter_by(question_id=question.id).all():
-            TaskAssignment.query.filter_by(task_id=task.id).delete()
-            db.session.delete(task)
-    UserQuestionAssignment.query.filter_by(question_id=question.id).delete()
+    delete_question_data([question.id])
     db.session.delete(question)
     db.session.commit()
     flash('Question deleted.', 'success')

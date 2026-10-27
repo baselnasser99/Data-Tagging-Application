@@ -18,11 +18,12 @@ from .feedback import flash_distribution, warn_idle_members
 from .groups import (assign_questions_to_new_group_member, remove_pending_assignments_from_removed_group_member,
                      set_up_new_project)
 from .jinja_utils import plural
-from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, ProjectAdmin, Question,
+from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, ProjectAdmin, ProjectImage, Question,
                      QuestionAnswer, TaskAssignment, User, UserGroup, UserGroupMembership, UserQuestionAssignment,
-                     MAX_OPTIONS, MAX_QUESTIONS, form_int)
+                     MAX_OPTIONS, MAX_QUESTIONS, delete_question_data, form_int,
+                     person_problem)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
-from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
+from .stats import answer_totals, group_stats_for, project_progress, weekly_answers, workload_balance
 from .uploads import public_file_url, save_attachment
 
 audit = logging.getLogger("audit")
@@ -39,9 +40,7 @@ def dashboard():
 
     projects = Project.query.order_by(Project.id.desc()).all()
     progress = {p.id: project_progress(p) for p in projects}
-    assignments = TaskAssignment.query
-    tasks_total = assignments.count()
-    tasks_done = assignments.filter(TaskAssignment.is_completed.is_(True)).count()
+    tasks_done, tasks_total = answer_totals(projects, progress)
 
     weeks_data = weekly_answers()
     group_stats = group_stats_for(UserGroup.query.all())
@@ -117,14 +116,10 @@ def edit_user(user_id):
         full_name = (request.form.get('full_name') or '').strip()
         email = (request.form.get('email') or '').strip()
         password = request.form.get('password') or ''
-        error = None
-        if not full_name or not email:
-            error = 'Please enter a name and an email address.'
-        elif len(full_name) > 100 or len(email) > 255 or '@' not in email:
-            error = 'Please enter a valid email address and a name of at most 100 characters.'
-        elif User.query.filter(User.email == email, User.id != user.id).first():
+        error = person_problem(full_name, email)
+        if not error and User.query.filter(User.email == email, User.id != user.id).first():
             error = f'Someone else already uses {email}.'
-        elif password and len(password) < MIN_PASSWORD_LENGTH:
+        elif not error and password and len(password) < MIN_PASSWORD_LENGTH:
             error = f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.'
         if error:
             flash(error, 'danger')
@@ -166,6 +161,7 @@ def remove_user(user_id):
         flash(f'{name} was removed and can no longer sign in. Their answers are kept; '
               'their unfinished tasks went to the rest of their groups.', 'success')
     else:
+        Project.query.filter_by(user_id=user.id).update({'user_id': None})  # an old creator link would block it
         for model in (TaskAssignment, UserQuestionAssignment, ExportLog):
             model.query.filter_by(user_id=user.id).delete()
         audit.info("USER_DELETED user_id=%s by=%s", user.id, current_user.id)
@@ -206,14 +202,10 @@ def create_user():
         full_name = (request.form.get('full_name') or '').strip()
         email = (request.form.get('email') or '').strip()
         password = request.form.get('password') or ''
-        error = None
-        if not full_name or not email:
-            error = 'Please enter a name and an email address.'
-        elif len(full_name) > 100 or len(email) > 255 or '@' not in email:  # same rule as Edit user
-            error = 'Please enter a valid email address and a name of at most 100 characters.'
-        elif User.query.filter_by(email=email).first():
+        error = person_problem(full_name, email)
+        if not error and User.query.filter_by(email=email).first():
             error = f'A user with the email {email} already exists.'
-        elif password and len(password) < MIN_PASSWORD_LENGTH:
+        elif not error and password and len(password) < MIN_PASSWORD_LENGTH:
             error = f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.'
         if error:
             flash(error, 'danger')
@@ -311,13 +303,10 @@ def _create_users_from_rows(header, rows):
             email = row[email_col].strip()
             password = row[password_col].strip() if password_col < len(row) else ''
 
-            if not full_name or not email:
+            problem = person_problem(full_name, email)
+            if problem:
                 invalid += 1
-                messages.append(f"Row {line}: Missing full name or email. Skipped.")
-                continue
-            if len(full_name) > 100 or len(email) > 255 or '@' not in email:  # same rule as Edit user
-                invalid += 1
-                messages.append(f"Row {line}: needs a valid email address and a name of at most 100 characters. Skipped.")
+                messages.append(f"Row {line}: {problem} Skipped.")
                 continue
 
             existing = User.query.filter_by(email=email).first()
@@ -475,60 +464,19 @@ def delete_project(project_id):
     project = db.get_or_404(Project, project_id)
 
     try:
-        # Delete annotation-related data if this is an annotation project
-        if project.is_annotation_project:
-            # Delete task assignments first
-            for task in project.annotation_tasks:
-                for assignment in task.assignments:
-                    # Delete answers linked to this assignment
-                    answers = QuestionAnswer.query.filter_by(task_assignment_id=assignment.id).all()
-                    for answer in answers:
-                        db.session.delete(answer)
-                    db.session.delete(assignment)
-                db.session.delete(task)
-
-            # Delete project images
-            for image in project.images:
-                # Delete image file from filesystem
-                try:
-                    if os.path.exists(image.file_path):
-                        os.remove(image.file_path)
-                except OSError:
-                    pass  # Continue even if file deletion fails
-                db.session.delete(image)
-
-        ExportLog.query.filter_by(project_id=project_id).delete()
-        ProjectAdmin.query.filter_by(project_id=project_id).delete()  # its manager stays a manager, without a project
-
-        # Delete group project assignments
-        group_projects = GroupProject.query.filter_by(project_id=project_id).all()
-        for group_project in group_projects:
-            # Delete user question assignments for this group project
-            group_project_id = f"{group_project.group_id}-{group_project.project_id}"
-            assignments = UserQuestionAssignment.query.filter_by(group_project_id=group_project_id).all()
-            for assignment in assignments:
-                db.session.delete(assignment)
-            db.session.delete(group_project)
-        # Every other row for these questions too, whatever its key: CSV imports use
+        # Every survey row for these questions goes too, whatever its key: CSV imports use
         # "imported-<project id>", and a row left behind would point at a question id that
         # SQLite gives to the next question created, in any project.
-        question_ids = [q.id for q in project.questions]
-        if question_ids:
-            UserQuestionAssignment.query.filter(UserQuestionAssignment.question_id.in_(question_ids)).delete(
-                synchronize_session=False)
-
-        # Delete regular question answers (not linked to task assignments)
-        for question in project.questions:
-            qas = QuestionAnswer.query.filter_by(
-                question_id=question.id,
-                task_assignment_id=None
-            ).all()
-            for qa in qas:
-                db.session.delete(qa)
-
-        # Delete questions
-        delete_stmt = delete(Question).where(Question.project_id == project.id)
-        db.session.execute(delete_stmt)
+        delete_question_data([q.id for q in project.questions])
+        for image in project.images:
+            try:
+                if os.path.exists(image.file_path):
+                    os.remove(image.file_path)
+            except OSError:
+                pass  # a file already gone must not stop the delete
+        for model in (ProjectImage, ExportLog, GroupProject, Question):
+            db.session.execute(delete(model).where(model.project_id == project_id))
+        ProjectAdmin.query.filter_by(project_id=project_id).delete()  # its manager stays a manager, without a project
 
         # Finally delete the project
         db.session.delete(project)
@@ -666,11 +614,9 @@ def admin_profile():
 
         if action == 'update_email':
             new_email = (request.form.get('email') or '').strip()
-            if not new_email:
-                flash('Email cannot be empty', 'danger')
-                return redirect(url_for('admin.admin_profile'))
-            if len(new_email) > 255 or '@' not in new_email:  # same rule as Edit user
-                flash('Please enter a valid email address.', 'danger')
+            problem = person_problem(admin_user.full_name, new_email)  # their name is already saved
+            if problem:
+                flash(problem, 'danger')
                 return redirect(url_for('admin.admin_profile'))
 
             # Check if email already exists

@@ -18,9 +18,9 @@ from .feedback import flash_distribution, warn_idle_members
 from .groups import (assign_questions_to_new_group_member, remove_pending_assignments_from_removed_group_member,
                      set_up_new_project)
 from .jinja_utils import plural
-from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, Question, QuestionAnswer,
-                     TaskAssignment, User, UserGroup, UserGroupMembership, UserQuestionAssignment,
-                     MAX_OPTIONS, MAX_QUESTIONS)
+from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, ProjectAdmin, Question,
+                     QuestionAnswer, TaskAssignment, User, UserGroup, UserGroupMembership, UserQuestionAssignment,
+                     MAX_OPTIONS, MAX_QUESTIONS, form_int)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
 from .uploads import public_file_url, save_attachment
@@ -209,6 +209,8 @@ def create_user():
         error = None
         if not full_name or not email:
             error = 'Please enter a name and an email address.'
+        elif len(full_name) > 100 or len(email) > 255 or '@' not in email:  # same rule as Edit user
+            error = 'Please enter a valid email address and a name of at most 100 characters.'
         elif User.query.filter_by(email=email).first():
             error = f'A user with the email {email} already exists.'
         elif password and len(password) < MIN_PASSWORD_LENGTH:
@@ -269,7 +271,11 @@ def import_users():
         flash('Invalid file type. Please upload a CSV file.', 'danger')
         return back
 
-    rows = list(csv.reader(io.StringIO(csv_file.stream.read().decode("UTF8"))))
+    try:  # utf-8-sig: Excel's "CSV UTF-8" starts with a byte-order mark that would hide the first column's name
+        rows = list(csv.reader(io.StringIO(csv_file.stream.read().decode("utf-8-sig"))))
+    except UnicodeDecodeError:
+        flash('The file is not UTF-8. In Excel, save it as "CSV UTF-8 (Comma delimited)" and try again.', 'danger')
+        return back
     header = rows[0] if rows else None
     if not header or not all(col in header for col in ['full_name', 'email', 'password']):
         flash('CSV must contain "full_name", "email", and "password" columns.', 'danger')
@@ -317,6 +323,10 @@ def _create_users_from_rows(header, rows):
             existing = User.query.filter_by(email=email).first()
             if existing:
                 duplicates += 1
+                if existing.role != 'end-user' or not existing.active:  # the same people the group page accepts
+                    messages.append(f"Row {line}: {email} is an admin, a manager or a removed person, so they "
+                                    "were not added to the group or project.")
+                    continue
                 messages.append(f"Row {line}: User with email '{email}' already exists. Skipped creation, but will attempt assignment.")
                 users.append(existing)
                 continue
@@ -405,47 +415,46 @@ def create_project():
         project_name = request.form.get("project_name")
         project_desc = request.form.get("project_desc")
         assigned_group_id = request.form.get("assigned_group_id")
-        total_questions = int(request.form.get("total_questions") or 0)
+        total_questions = form_int(request.form.get("total_questions") or 0, -1, -1, MAX_QUESTIONS + 1)  # -1: not a number
         if not 0 <= total_questions <= MAX_QUESTIONS:  # checked first: the project is saved right below
             flash(f"A project can have at most {MAX_QUESTIONS} questions.", "danger")
             return redirect(url_for("admin.create_project"))
 
+        # Every question is checked before anything is saved, so a mistake leaves nothing half made.
+        parsed = []
+        for i in range(1, total_questions + 1):
+            text = (request.form.get(f"question-{i}") or "").strip()
+            mcq = request.form.get(f"dropdown-{i}") == 'mcq'
+            count = form_int(request.form.get(f"number_of_options-{i}"), 0, 0, MAX_OPTIONS)
+            options = [(request.form.get(f"mcq-option-{n}-{i}") or "").strip() for n in range(1, count + 1)]
+            options = [o for o in options if o]
+            if not text:
+                flash(f"Question {i} needs its text.", "danger")
+                return redirect(url_for("admin.create_project"))
+            if mcq and len(options) < 2:
+                flash(f"Question {i} is multiple choice, so it needs between 2 and {MAX_OPTIONS} options.", "danger")
+                return redirect(url_for("admin.create_project"))
+            parsed.append((i, text, mcq, options))
+
         project = Project(name=project_name,
                           desc=project_desc)
         db.session.add(project)
-        db.session.commit()
-
+        db.session.flush()  # its id, for the questions
         set_up_new_project(project, assigned_group_id)
 
-        # Save questions if any are provided
-        if total_questions > 0:
-            for i in range(1, total_questions + 1):
-                question_text = request.form.get(f"question-{i}")
-                filename = save_attachment(request.files.get(f"question-{i}-file"))
-
-                answer_type_value = request.form.get(f"dropdown-{i}")
-                answer_type = AnswerType.TEXT if answer_type_value == 'text' else AnswerType.MCQ
-                number_of_options = max(0, min(int(request.form.get(f"number_of_options-{i}", 0)), MAX_OPTIONS))
-                answer = request.form.get(f"answer-{i}")
-
-                # Create and save question
-                question = Question(
-                    question=question_text,
-                    file_path=filename,
-                    project_id=project.id,
-                    answer_type=answer_type,
-                    number_of_options=number_of_options,
-                    answer=answer
-                )
-
-                # Save MCQ options if applicable
-                if answer_type == AnswerType.MCQ:
-                    for opt_num in range(1, number_of_options + 1):
-                        setattr(question, f"option{opt_num}", request.form.get(
-                            f"mcq-option-{opt_num}-{i}"))
-
-                db.session.add(question)
-            db.session.commit() # Commit questions separately if needed, or after main project commit
+        for i, text, mcq, options in parsed:
+            question = Question(
+                question=text,
+                file_path=save_attachment(request.files.get(f"question-{i}-file")),
+                project_id=project.id,
+                answer_type=AnswerType.MCQ if mcq else AnswerType.TEXT,
+                number_of_options=len(options) if mcq else 0,
+                answer=request.form.get(f"answer-{i}"),
+            )
+            for n, option in enumerate(options if mcq else [], start=1):
+                setattr(question, f"option{n}", option[:50])
+            db.session.add(question)
+        db.session.commit()  # one commit: the project, its manager and group, and its questions
 
         flash("Form data saved successfully!", "success")
         return redirect(url_for("admin.view_projects"))
@@ -489,6 +498,7 @@ def delete_project(project_id):
                 db.session.delete(image)
 
         ExportLog.query.filter_by(project_id=project_id).delete()
+        ProjectAdmin.query.filter_by(project_id=project_id).delete()  # its manager stays a manager, without a project
 
         # Delete group project assignments
         group_projects = GroupProject.query.filter_by(project_id=project_id).all()

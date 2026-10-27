@@ -224,6 +224,15 @@ def answer_problem(question, text):
     return None
 
 
+def db_now():
+    """The database's clock, which stamps every *_date column: compare those with this.
+
+    datetime.now() is the web server's local time; SQLite's clock is UTC, so a
+    week counted from datetime.now() is off by the time-zone difference.
+    """
+    return db.session.scalar(db.select(db.func.current_timestamp()))
+
+
 def form_int(value, default, low, high):
     """A whole number from a form, kept between low and high; ``default`` if it isn't a number."""
     try:

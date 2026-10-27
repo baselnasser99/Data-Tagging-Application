@@ -1,5 +1,5 @@
 """The side panel's card, shown on every page: base.html calls sidebar_summary()."""
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from flask import url_for
 from sqlalchemy import distinct, func
@@ -7,7 +7,7 @@ from sqlalchemy import distinct, func
 from .extns import db
 from .jinja_utils import plural
 from .models import (AnnotationTask, GroupProject, Project, ProjectAdmin, ProjectImage, Question, QuestionAnswer,
-                     TaskAssignment, User, UserGroup, UserGroupMembership)
+                     TaskAssignment, User, UserGroup, UserGroupMembership, db_now)
 
 
 SIDEBAR_TODO_SHOWN = 2   # the panel is short on a laptop screen
@@ -63,7 +63,7 @@ def needs_attention(user):
                    .join(TaskAssignment, TaskAssignment.task_id == AnnotationTask.id)
                    .join(QuestionAnswer, QuestionAnswer.task_assignment_id == TaskAssignment.id)
                    .filter(QuestionAnswer.cant_tell.is_(True),
-                           QuestionAnswer.submitted_date >= datetime.now() - timedelta(days=7))
+                           QuestionAnswer.submitted_date >= db_now() - timedelta(days=7))
                    .group_by(AnnotationTask.project_id))
 
     todo = []

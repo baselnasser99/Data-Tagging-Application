@@ -28,8 +28,11 @@ def view_groups():
 @admin_required
 def create_group():
     if request.method == 'POST':
-        group_name = request.form.get("group_name")
+        group_name = (request.form.get("group_name") or "").strip()
         group_desc = request.form.get("group_desc")
+        if not group_name or len(group_name) > 100:
+            flash('Please enter a group name of at most 100 characters.', 'danger')
+            return redirect(url_for("groups.create_group"))
 
         # Check if group name already exists
         existing_group = UserGroup.query.filter_by(name=group_name).first()

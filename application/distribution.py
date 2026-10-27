@@ -25,14 +25,18 @@ Guarantees, each covered by tests in tests/test_distribution.py:
     6. Settings changes: lowering ``answers_per_task`` or ``max_questions_per_user``
        releases unfinished assignments that are no longer needed or allowed, and
        hands them to others where possible; finished work is never removed.
+    7. Answers given while a step runs: every release and move re-checks, in the
+       statement that makes it, that the work is still unfinished, so a task
+       answered in the moment between our read and our write stays answered,
+       with whoever answered it.
 """
 from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
 
-from sqlalchemy import case, func, insert
-from sqlalchemy.orm import joinedload
+from sqlalchemy import case, func, insert, update
+from sqlalchemy.orm import joinedload, selectinload
 
 from .extns import db
 from .models import (
@@ -91,6 +95,19 @@ def eligible_users(project: Project) -> list[User]:
 
 def _project_assignments(project_id: int):
     return TaskAssignment.query.join(AnnotationTask).filter(AnnotationTask.project_id == project_id)
+
+
+def _delete_unfinished(assignment_ids) -> int:
+    """Delete these assignments, skipping any answered since they were read; returns how many went.
+
+    An annotator can finish one between our read and this delete; checking
+    is_completed in the DELETE itself keeps their answer.
+    """
+    if not assignment_ids:
+        return 0
+    return TaskAssignment.query.filter(
+        TaskAssignment.id.in_(assignment_ids), TaskAssignment.is_completed.is_(False),
+    ).delete(synchronize_session=False)
 
 
 def user_loads(project: Project, users: list[User]) -> dict[int, tuple[int, int]]:
@@ -154,14 +171,16 @@ def apply_answers_per_task(project: Project) -> DistributionResult:
     already covered. Finished answers are always kept.
     """
     result = DistributionResult()
-    for task in AnnotationTask.query.filter_by(project_id=project.id).all():
+    surplus_ids = []
+    tasks = (AnnotationTask.query.filter_by(project_id=project.id)
+             .options(selectinload(AnnotationTask.assignments)).all())  # one query, not one per task
+    for task in tasks:
         task.required_answers = project.answers_per_task or 1
         task.is_completed = task.current_answers >= task.required_answers
         surplus = len(task.assignments) - task.required_answers
         unfinished = sorted((a for a in task.assignments if not a.is_completed), key=lambda a: -a.id)
-        for assignment in unfinished[:max(0, surplus)]:
-            db.session.delete(assignment)
-            result.assignments_released += 1
+        surplus_ids += [a.id for a in unfinished[:max(0, surplus)]]
+    result.assignments_released = _delete_unfinished(surplus_ids)
     db.session.commit()
     return result
 
@@ -373,16 +392,26 @@ def rebalance(project: Project, users: list[User] | None = None) -> Distribution
                 break
         if move is None:
             break  # no pair with a gap of 2 or more can make a move
+        moved = 0
         for assignment in move:
-            assignment.user_id = light
             open_work[heavy].remove(assignment)
+            # Moved only if still unfinished: one answered meanwhile stays with whoever answered it.
+            if not db.session.execute(
+                update(TaskAssignment)
+                .where(TaskAssignment.id == assignment.id, TaskAssignment.user_id == heavy,
+                       TaskAssignment.is_completed.is_(False))
+                .values(user_id=light)
+                .execution_options(synchronize_session=False)).rowcount:
+                continue
             open_work[light].append(assignment)
             held[heavy].discard(assignment.task_id)
             held[light].add(assignment.task_id)
-        total[heavy] -= len(move)
-        total[light] += len(move)
-        result.assignments_moved += len(move)
-        result.moves[(names[heavy], names[light])] += len(move)
+            moved += 1
+        total[heavy] -= moved
+        total[light] += moved
+        result.assignments_moved += moved
+        if moved:
+            result.moves[(names[heavy], names[light])] += moved
     db.session.commit()
     return result
 
@@ -405,10 +434,8 @@ def release_user(user: User, project: Project) -> DistributionResult:
     open_ids = [aid for (aid,) in db.session.query(TaskAssignment.id).join(AnnotationTask).filter(
         AnnotationTask.project_id == project.id,
         TaskAssignment.user_id == user.id, TaskAssignment.is_completed.is_(False))]
-    if open_ids:  # one DELETE instead of loading and deleting each assignment
-        TaskAssignment.query.filter(TaskAssignment.id.in_(open_ids)).delete(synchronize_session=False)
+    result.assignments_released = _delete_unfinished(open_ids)  # one DELETE, not one per assignment
     db.session.commit()
-    result.assignments_released = len(open_ids)
     return result
 
 
@@ -481,9 +508,7 @@ def release_over_cap(project: Project) -> DistributionResult:
             .limit(excess)
             .all()
         )
-        for assignment in surplus:
-            db.session.delete(assignment)
-        result.assignments_released += len(surplus)
+        result.assignments_released += _delete_unfinished([a.id for a in surplus])
     db.session.commit()
     return result
 

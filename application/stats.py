@@ -34,6 +34,19 @@ def project_progress(project):
     return count_answered(assigned), len(assigned)
 
 
+def task_counts(project_id):
+    """A project's tasks and task assignments, done and in all, and how many people hold any; counted in SQL."""
+    tasks = AnnotationTask.query.filter_by(project_id=project_id)
+    held = TaskAssignment.query.join(AnnotationTask).filter(AnnotationTask.project_id == project_id)
+    return {
+        'total_tasks': tasks.count(),
+        'completed_tasks': tasks.filter_by(is_completed=True).count(),
+        'total_assignments': held.count(),
+        'completed_assignments': held.filter(TaskAssignment.is_completed.is_(True)).count(),
+        'unique_users': held.with_entities(TaskAssignment.user_id).distinct().count(),
+    }
+
+
 def answer_totals(projects, progress):
     """(answers given, answers needed) across these projects, for the dashboards' "Answers given".
 

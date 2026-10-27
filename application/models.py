@@ -186,7 +186,7 @@ class GroupProject(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('user_group.id'), primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), primary_key=True)
     assigned_date = db.Column(db.DateTime, default=db.func.current_timestamp())
-    questions_distributed = db.Column(db.Boolean, default=False)  # still written, but no page reads it
+    questions_distributed = db.Column(db.Boolean, default=False)  # unused; kept so existing databases match
 
     # Relationships
     group = db.relationship("UserGroup", back_populates="assigned_projects")
@@ -254,14 +254,6 @@ def form_int(value, default, low, high):
         return max(low, min(int(value), high))
     except (TypeError, ValueError):
         return default
-
-
-def option_count(value):
-    """A multiple-choice option count from a form, kept to the 2 to 6 the Question columns hold."""
-    try:
-        return max(2, min(int(value), MAX_OPTIONS))
-    except (TypeError, ValueError):
-        return 2
 
 
 IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')

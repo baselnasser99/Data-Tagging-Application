@@ -161,6 +161,7 @@ def remove_user(user_id):
         flash(f'{name} was removed and can no longer sign in. Their answers are kept; '
               'their unfinished tasks went to the rest of their groups.', 'success')
     else:
+        Project.query.filter_by(user_id=user.id).update({'user_id': None})  # an old creator link would block it
         for model in (TaskAssignment, UserQuestionAssignment, ExportLog):
             model.query.filter_by(user_id=user.id).delete()
         audit.info("USER_DELETED user_id=%s by=%s", user.id, current_user.id)

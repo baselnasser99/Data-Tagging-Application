@@ -78,10 +78,6 @@ def user_required(func):
     return wrapper
 
 
-def is_project_admin(project_id):
-    return current_user.is_authenticated and current_user.is_project_admin(project_id)
-
-
 def project_for_upload(name):
     """The id of the project an uploaded file belongs to, or None if it belongs to none.
 

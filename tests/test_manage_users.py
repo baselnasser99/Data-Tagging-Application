@@ -203,3 +203,14 @@ def test_profile_shows_details_an_admin_changed_while_signed_in(admin_client, us
     page = user_client.get("/user/profile").data  # the member stayed signed in the whole time
     assert b"Renamed Person" in page and b"renamed@example.com" in page
     assert b"annotator@example.com" not in page
+
+
+def test_removing_a_former_manager_who_created_a_project_unlinks_it(admin_client, make_user, db):
+    """Project.user_id (who created it) is a foreign key: on MySQL a link left behind blocks the delete."""
+    creator = make_user()  # once a manager who made this project, an annotator again since
+    project = Project(name="Theirs", desc="d", user_id=creator.id)
+    db.session.add(project)
+    db.session.commit()
+    admin_client.post(f"/admin/users/{creator.id}/remove")
+    db.session.expire_all()
+    assert db.session.get(User, creator.id) is None and project.user_id is None

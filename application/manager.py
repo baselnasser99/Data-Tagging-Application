@@ -10,12 +10,11 @@ from . import distribution, surveys
 from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
 from .feedback import flash_distribution
-from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
-                     QuestionAnswer, TaskAssignment, User, UserGroupMembership, MAX_ANSWERS_PER_TASK, MAX_OPTIONS, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
-                     db_now, delete_question_data, form_int, person_problem,
-                     option_count)
+from .models import (AnswerType, Project, ProjectAdmin, ProjectImage, Question,
+                     QuestionAnswer, User, UserGroupMembership, MAX_ANSWERS_PER_TASK, MAX_OPTIONS, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
+                     db_now, delete_question_data, form_int, person_problem)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
-from .stats import answer_totals, group_stats_for, project_progress, weekly_answers, workload_balance
+from .stats import answer_totals, group_stats_for, project_progress, task_counts, weekly_answers, workload_balance
 from .uploads import save_attachment
 
 audit = logging.getLogger("audit")
@@ -62,28 +61,8 @@ def project_dashboard(project_id):
     # For annotation projects, get additional statistics
     annotation_stats = None
     if project.is_annotation_project:
-        images_count = ProjectImage.query.filter_by(project_id=project_id).count()
-        tasks_count = AnnotationTask.query.filter_by(project_id=project_id).count()
-        completed_tasks = AnnotationTask.query.filter_by(project_id=project_id, is_completed=True).count()
-        
-        # Get assignment statistics
-        assignments = TaskAssignment.query.join(AnnotationTask).filter(AnnotationTask.project_id == project_id).all()
-        total_assignments = len(assignments)
-        completed_assignments = len([a for a in assignments if a.is_completed])
-        
-        # Calculate completion percentages
-        completion_percentage = (completed_tasks / tasks_count * 100) if tasks_count > 0 else 0
-        assignment_completion = (completed_assignments / total_assignments * 100) if total_assignments > 0 else 0
-        
-        annotation_stats = {
-            'images_count': images_count,
-            'tasks_count': tasks_count,
-            'completed_tasks': completed_tasks,
-            'completion_percentage': round(completion_percentage, 1),
-            'total_assignments': total_assignments,
-            'completed_assignments': completed_assignments,
-            'assignment_completion': round(assignment_completion, 1)
-        }
+        annotation_stats = {'images_count': ProjectImage.query.filter_by(project_id=project_id).count(),
+                            **task_counts(project_id)}
     
     # Get assigned groups
     assigned_groups = [gp.group for gp in project.assigned_groups]
@@ -318,7 +297,7 @@ def _update_question(question, text, form, files):
             question.number_of_options = 0
             question.answer = form.get(f'answer-{qid}', '')
         else:
-            question.number_of_options = option_count(request.form.get(f'number_of_options-{qid}'))
+            question.number_of_options = form_int(request.form.get(f'number_of_options-{qid}'), 2, 2, MAX_OPTIONS)
             for i in range(1, MAX_OPTIONS + 1):  # boxes past the count are cleared, even if sent (no JavaScript)
                 setattr(question, f'option{i}',
                         form.get(f'mcq-option-{i}-{qid}') if i <= question.number_of_options else None)
@@ -337,7 +316,7 @@ def _add_question(project):
         answer_type=AnswerType.TEXT if kind == 'text' else AnswerType.MCQ,
     )
     if kind == 'mcq':
-        question.number_of_options = option_count(request.form.get('new_question_num_options'))
+        question.number_of_options = form_int(request.form.get('new_question_num_options'), 2, 2, MAX_OPTIONS)
         for i in range(1, question.number_of_options + 1):
             setattr(question, f'option{i}', request.form.get(f'new_question_option_{i}', ''))
     db.session.add(question)

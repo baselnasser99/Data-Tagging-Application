@@ -57,7 +57,4 @@ def give_to_group(group, project):
     UserQuestionAssignment.query.filter_by(group_project_id=key).delete()
     db.session.commit()
     give_questions(members, project, key)
-    link = GroupProject.query.filter_by(group_id=group.id, project_id=project.id).first()
-    if link:
-        link.questions_distributed = True  # no page reads it any more
     db.session.commit()

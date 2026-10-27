@@ -55,7 +55,7 @@ def test_assign_survey_to_group_and_answer(app, db, admin_client, end_user):
         follow_redirects=True,
     )
     assert b"distributed successfully" in resp.data
-    assert GroupProject.query.filter_by(group_id=group.id, project_id=project.id).one().questions_distributed
+    assert GroupProject.query.filter_by(group_id=group.id, project_id=project.id).count() == 1
     assert UserQuestionAssignment.query.filter_by(user_id=end_user.id).count() == 2
 
     client = app.test_client()

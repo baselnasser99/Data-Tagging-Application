@@ -12,7 +12,7 @@ from .extns import db
 from .feedback import flash_distribution
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
                      QuestionAnswer, TaskAssignment, User, UserGroupMembership, UserQuestionAssignment, MAX_ANSWERS_PER_TASK, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
-                     db_now, form_int,
+                     db_now, form_int, person_problem,
                      option_count)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
@@ -231,12 +231,9 @@ def create_project_admin(project_id):
             flash('This project already has a manager. Only one manager is allowed per project.', 'danger')
             return redirect(url_for('manager.project_admins', project_id=project_id))
 
-        # The same checks as admin.create_user and Edit user
-        if not fullname or not email:
-            flash('Please enter a name and an email address.', 'danger')
-            return redirect(url_for('manager.create_project_admin', project_id=project_id))
-        if len(fullname) > 100 or len(email) > 255 or '@' not in email:
-            flash('Please enter a valid email address and a name of at most 100 characters.', 'danger')
+        problem = person_problem(fullname, email)
+        if problem:
+            flash(problem, 'danger')
             return redirect(url_for('manager.create_project_admin', project_id=project_id))
         if User.query.filter_by(email=email).first():
             flash('A user with this email already exists.', 'danger')

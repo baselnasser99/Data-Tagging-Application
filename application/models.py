@@ -224,6 +224,15 @@ def answer_problem(question, text):
     return None
 
 
+def person_problem(full_name, email):
+    """Why an account can't have this name and email, or None: the same rule on every form and script."""
+    if not full_name or not email:
+        return 'Please enter a name and an email address.'
+    if len(full_name) > 100 or len(email) > 255 or '@' not in email:  # the column sizes
+        return 'Please enter a valid email address and a name of at most 100 characters.'
+    return None
+
+
 def db_now():
     """The database's clock, which stamps every *_date column: compare those with this.
 

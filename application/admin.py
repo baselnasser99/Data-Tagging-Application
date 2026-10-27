@@ -20,7 +20,7 @@ from .groups import (assign_questions_to_new_group_member, remove_pending_assign
 from .jinja_utils import plural
 from .models import (AnnotationTask, AnswerType, ExportLog, GroupProject, Project, ProjectAdmin, Question,
                      QuestionAnswer, TaskAssignment, User, UserGroup, UserGroupMembership, UserQuestionAssignment,
-                     MAX_OPTIONS, MAX_QUESTIONS, form_int)
+                     MAX_OPTIONS, MAX_QUESTIONS, form_int, person_problem)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
 from .uploads import public_file_url, save_attachment
@@ -117,14 +117,10 @@ def edit_user(user_id):
         full_name = (request.form.get('full_name') or '').strip()
         email = (request.form.get('email') or '').strip()
         password = request.form.get('password') or ''
-        error = None
-        if not full_name or not email:
-            error = 'Please enter a name and an email address.'
-        elif len(full_name) > 100 or len(email) > 255 or '@' not in email:
-            error = 'Please enter a valid email address and a name of at most 100 characters.'
-        elif User.query.filter(User.email == email, User.id != user.id).first():
+        error = person_problem(full_name, email)
+        if not error and User.query.filter(User.email == email, User.id != user.id).first():
             error = f'Someone else already uses {email}.'
-        elif password and len(password) < MIN_PASSWORD_LENGTH:
+        elif not error and password and len(password) < MIN_PASSWORD_LENGTH:
             error = f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.'
         if error:
             flash(error, 'danger')
@@ -206,14 +202,10 @@ def create_user():
         full_name = (request.form.get('full_name') or '').strip()
         email = (request.form.get('email') or '').strip()
         password = request.form.get('password') or ''
-        error = None
-        if not full_name or not email:
-            error = 'Please enter a name and an email address.'
-        elif len(full_name) > 100 or len(email) > 255 or '@' not in email:  # same rule as Edit user
-            error = 'Please enter a valid email address and a name of at most 100 characters.'
-        elif User.query.filter_by(email=email).first():
+        error = person_problem(full_name, email)
+        if not error and User.query.filter_by(email=email).first():
             error = f'A user with the email {email} already exists.'
-        elif password and len(password) < MIN_PASSWORD_LENGTH:
+        elif not error and password and len(password) < MIN_PASSWORD_LENGTH:
             error = f'The password must be at least {MIN_PASSWORD_LENGTH} characters long.'
         if error:
             flash(error, 'danger')
@@ -311,13 +303,10 @@ def _create_users_from_rows(header, rows):
             email = row[email_col].strip()
             password = row[password_col].strip() if password_col < len(row) else ''
 
-            if not full_name or not email:
+            problem = person_problem(full_name, email)
+            if problem:
                 invalid += 1
-                messages.append(f"Row {line}: Missing full name or email. Skipped.")
-                continue
-            if len(full_name) > 100 or len(email) > 255 or '@' not in email:  # same rule as Edit user
-                invalid += 1
-                messages.append(f"Row {line}: needs a valid email address and a name of at most 100 characters. Skipped.")
+                messages.append(f"Row {line}: {problem} Skipped.")
                 continue
 
             existing = User.query.filter_by(email=email).first()
@@ -666,11 +655,9 @@ def admin_profile():
 
         if action == 'update_email':
             new_email = (request.form.get('email') or '').strip()
-            if not new_email:
-                flash('Email cannot be empty', 'danger')
-                return redirect(url_for('admin.admin_profile'))
-            if len(new_email) > 255 or '@' not in new_email:  # same rule as Edit user
-                flash('Please enter a valid email address.', 'danger')
+            problem = person_problem(admin_user.full_name, new_email)  # their name is already saved
+            if problem:
+                flash(problem, 'danger')
                 return redirect(url_for('admin.admin_profile'))
 
             # Check if email already exists

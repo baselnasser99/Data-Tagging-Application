@@ -1,8 +1,8 @@
 """Progress and workload figures shown on the admin, manager and group pages."""
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from .extns import db
-from .models import AnnotationTask, Question, QuestionAnswer, TaskAssignment, UserQuestionAssignment
+from .models import AnnotationTask, Question, QuestionAnswer, TaskAssignment, UserQuestionAssignment, db_now
 
 
 def answered(assignments):
@@ -72,7 +72,7 @@ def workload_balance(project):
 
 def weekly_answers(project_ids=None):
     """Answers submitted per week over the last 12 weeks, oldest first; only these projects if given."""
-    now = datetime.now()
+    now = db_now()
     weeks = []
     for i in range(11, -1, -1):
         start, end = now - timedelta(weeks=i + 1), now - timedelta(weeks=i)

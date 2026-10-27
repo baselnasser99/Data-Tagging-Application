@@ -11,8 +11,8 @@ from .auth import MIN_PASSWORD_LENGTH
 from .extns import db
 from .feedback import flash_distribution
 from .models import (AnnotationTask, AnswerType, Project, ProjectAdmin, ProjectImage, Question,
-                     QuestionAnswer, TaskAssignment, User, UserQuestionAssignment, MAX_ANSWERS_PER_TASK, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
-                     form_int,
+                     QuestionAnswer, TaskAssignment, User, UserGroupMembership, UserQuestionAssignment, MAX_ANSWERS_PER_TASK, MAX_QUESTIONS, MAX_TASKS_PER_PERSON,
+                     db_now, form_int,
                      option_count)
 from .permissions import admin_required, project_admin_access_required, project_admin_required
 from .stats import group_stats_for, project_progress, weekly_answers, workload_balance
@@ -31,7 +31,7 @@ def my_projects():
     progress = {p.id: project_progress(p) for p in projects}
     project_ids = [p.id for p in projects]
     people = {m.user_id for p in projects for gp in p.assigned_groups if gp.group for m in gp.group.members}
-    week_ago = datetime.now() - timedelta(days=7)
+    week_ago = db_now() - timedelta(days=7)
     recent = QuestionAnswer.query.join(Question).filter(
         Question.project_id.in_(project_ids), QuestionAnswer.submitted_date >= week_ago).count() if project_ids else 0
     groups = {gp.group.id: gp.group for p in projects for gp in p.assigned_groups if gp.group}
@@ -128,6 +128,12 @@ def add_manager(project, user):
     """Make `user` the manager of `project`. Returns (message, flash category)."""
     if user is None:
         return 'No user with that email was found. Pick someone from the list, or create a new manager.', 'danger'
+    if not user.active:
+        return f"{user.full_name} was removed and can't sign in. Restore them on the Users page first.", 'danger'
+    if user.role == 'end-user' and UserGroupMembership.query.filter_by(user_id=user.id).first():
+        # A manager can't open tasks, so work handed to them as a member would sit unanswered.
+        return (f'{user.full_name} is in a group and answers tasks. Take them out of their groups first, '
+                'so their unfinished work goes to the others.'), 'danger'
     if ProjectAdmin.query.filter_by(project_id=project.id).first():
         return f'"{project.name}" already has a manager. Remove them first; a project has one manager.', 'danger'
     db.session.add(ProjectAdmin(user_id=user.id, project_id=project.id, assigned_by=current_user.id))
@@ -139,7 +145,7 @@ def add_manager(project, user):
 
 def manager_candidates():
     """Everyone who could be made a manager (system admins already see everything)."""
-    return User.query.filter(User.role != 'admin').order_by(User.full_name).all()
+    return User.query.filter(User.role != 'admin', User.active.is_(True)).order_by(User.full_name).all()
 
 
 @manager.route("/project/<int:project_id>/admins/add", methods=['POST'])

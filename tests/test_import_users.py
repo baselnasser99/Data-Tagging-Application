@@ -104,3 +104,31 @@ def test_csv_import_skips_bad_emails_and_long_names_but_keeps_the_rest(admin_cli
     assert b"Row 3: needs a valid email address" in resp.data and b"Row 4: needs a valid email address" in resp.data
     assert User.query.filter_by(email="ada@example.com").one()
     assert not User.query.filter(User.email.in_(["not-an-email", "long@example.com"])).count()
+
+
+def test_csv_from_excel_with_a_byte_order_mark_is_read(admin_client):
+    """Excel's "CSV UTF-8" starts with an invisible byte-order mark before the first column's name."""
+    data = {"csv_file": _csv("﻿full_name,email,password\nJosé,jose@example.com,secret123\n")}
+    admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data")
+    assert User.query.filter_by(email="jose@example.com").one().full_name == "José"
+
+
+def test_csv_in_another_encoding_is_refused_not_a_crash(admin_client):
+    text = "full_name,email,password\nJosé,jose@example.com,secret123\n"
+    data = {"csv_file": (io.BytesIO(text.encode("cp1252")), "users.csv")}
+    resp = admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data", follow_redirects=True)
+    assert resp.status_code == 200 and b"is not UTF-8" in resp.data
+    assert not User.query.filter_by(email="jose@example.com").first()
+
+
+def test_csv_import_does_not_put_admins_managers_or_removed_people_in_a_group(admin_client, db, admin_user, make_user):
+    group = UserGroup(name="Class")
+    manager, removed = make_user(role="project-admin"), make_user()
+    removed.active = False
+    db.session.add(group)
+    db.session.commit()
+    rows = "".join(f"{u.full_name},{u.email},\n" for u in (admin_user, manager, removed))
+    resp = admin_client.post("/admin/import-users", content_type="multipart/form-data", follow_redirects=True,
+                             data={"csv_file": _csv("full_name,email,password\n" + rows), "user_group_id": str(group.id)})
+    assert UserGroupMembership.query.filter_by(group_id=group.id).count() == 0
+    assert resp.data.count(b"were not added to the group or project") == 3

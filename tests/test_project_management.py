@@ -538,3 +538,36 @@ def test_a_count_that_is_not_a_number_is_refused_not_a_crash(admin_client):
     resp = admin_client.post("/admin/create-annotation-project", data={
         "project_name": "Typo", "project_desc": "d", "total_questions": "two", "answers_per_task": "x"})
     assert resp.status_code == 302 and Project.query.filter_by(name="Typo").first() is None
+
+
+def test_a_project_with_a_manager_can_be_deleted(admin_client, db, survey, make_project_admin):
+    manager = make_project_admin(survey)
+    resp = admin_client.post(f"/admin/delete-project/{survey.id}", follow_redirects=True)
+    assert b"Project Deleted Successfully" in resp.data
+    assert db.session.get(Project, survey.id) is None and ProjectAdmin.query.count() == 0
+    assert manager.role == "project-admin"  # still a manager, now without a project
+
+
+@pytest.mark.parametrize("fields, message", [
+    ({"total_questions": "two"}, b"at most"),
+    ({"total_questions": "1", "question-1": "  ", "dropdown-1": "text"}, b"needs its text"),
+    ({"total_questions": "1", "question-1": "Pick?", "dropdown-1": "mcq", "number_of_options-1": "0"}, b"between 2 and"),
+    ({"total_questions": "1", "question-1": "Pick?", "dropdown-1": "mcq", "number_of_options-1": "2",
+      "mcq-option-1-1": "Yes"}, b"between 2 and"),
+])
+def test_a_survey_with_a_mistake_is_refused_and_nothing_is_saved(admin_client, fields, message):
+    resp = admin_client.post("/admin/create-project", follow_redirects=True,
+                             data={"project_name": "Typo", "project_desc": "d", **fields})
+    assert resp.status_code == 200 and message in resp.data
+    assert Project.query.filter_by(name="Typo").first() is None
+
+
+def test_a_survey_saves_its_questions_and_options_in_one_go(admin_client):
+    admin_client.post("/admin/create-project", data={
+        "project_name": "Poll", "project_desc": "d", "total_questions": "2",
+        "question-1": "Name?", "dropdown-1": "text",
+        "question-2": "Pick?", "dropdown-2": "mcq", "number_of_options-2": "3",
+        "mcq-option-1-2": "Yes", "mcq-option-2-2": " ", "mcq-option-3-2": "No"})
+    text, mcq = sorted(Project.query.filter_by(name="Poll").one().questions, key=lambda q: q.id)
+    assert text.answer_type == AnswerType.TEXT and text.number_of_options == 0
+    assert mcq.answer_type == AnswerType.MCQ and (mcq.number_of_options, mcq.option1, mcq.option2) == (2, "Yes", "No")

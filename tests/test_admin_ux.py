@@ -379,3 +379,57 @@ def test_upload_and_hand_out_pages_explain_before_acting(admin_client, db, make_
     hand_out = admin_client.get(f"/admin/generate-annotation-tasks/{project.id}").data.decode()
     assert 'id="share-preview"' in hand_out and "js/hand-out.js" in hand_out
     assert f'data-members="{",".join(str(p.id) for p in people)}"' in hand_out  # the preview counts each person once
+
+
+def test_create_user_checks_the_name_and_email_like_edit_user(admin_client):
+    for name, email in (("x" * 101, "long@example.com"), ("No At", "noatsign")):
+        resp = admin_client.post("/admin/create-user", data={"full_name": name, "email": email}, follow_redirects=True)
+        assert b"a name of at most 100 characters" in resp.data
+        assert not User.query.filter_by(email=email).first()
+
+
+def test_a_group_needs_a_name(admin_client):
+    for data in ({}, {"group_name": "   "}, {"group_name": "x" * 101}):
+        resp = admin_client.post("/admin/create-group", data=data, follow_redirects=True)
+        assert resp.status_code == 200 and b"Please enter a group name" in resp.data
+    assert UserGroup.query.count() == 0
+
+
+def test_removed_people_and_group_members_are_not_made_managers(admin_client, db, make_user):
+    from application.manager import manager_candidates
+    from application.models import Project, ProjectAdmin
+
+    project, group = Project(name="Alpha", desc="d"), UserGroup(name="Class")
+    removed, member = make_user(name="Gone"), make_user(name="Busy")
+    removed.active = False
+    db.session.add_all([project, group])
+    db.session.flush()
+    db.session.add(UserGroupMembership(user_id=member.id, group_id=group.id))
+    db.session.commit()
+    assert removed not in manager_candidates()
+
+    for who, message in ((removed, b"was removed"), (member, b"Take them out of their groups first")):
+        resp = admin_client.post("/admin/managers/add", data={"project_id": project.id, "email": who.email},
+                                 follow_redirects=True)
+        assert message in resp.data and who.role == "end-user"
+    assert ProjectAdmin.query.count() == 0
+
+
+def test_this_weeks_answers_are_counted_on_the_database_clock(db, make_user):
+    """Answers are stamped by the database (UTC on SQLite); the web server's local time may differ by hours."""
+    from datetime import timedelta
+
+    from application.models import Project, Question, QuestionAnswer, db_now
+    from application.stats import weekly_answers
+
+    project = Project(name="P", desc="d")
+    db.session.add(project)
+    db.session.flush()
+    question = Question(question="Q?", project_id=project.id)
+    db.session.add(question)
+    db.session.flush()
+    person, now = make_user(), db_now()
+    for when in (now - timedelta(minutes=1), now - timedelta(days=7) + timedelta(minutes=1)):
+        db.session.add(QuestionAnswer(user_id=person.id, question_id=question.id, answer="x", submitted_date=when))
+    db.session.commit()
+    assert weekly_answers()[-1]["answers"] == 2  # both inside the last seven days

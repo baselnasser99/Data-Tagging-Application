@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, abort
 from flask_login import current_user
@@ -7,7 +7,7 @@ from sqlalchemy import update
 from .auth import change_own_password
 from .extns import db
 from .models import (answer_problem, Project, User, UserQuestionAssignment, TaskAssignment, AnnotationTask, ProjectImage, QuestionAnswer,
-                     GroupProject, UserGroupMembership)
+                     GroupProject, UserGroupMembership, db_now)
 from .permissions import user_required
 from .stats import count_answered
 
@@ -30,7 +30,7 @@ def dashboard():
 
     answered_this_week = QuestionAnswer.query.filter(
         QuestionAnswer.user_id == user_id,
-        QuestionAnswer.submitted_date >= datetime.now() - timedelta(days=7)).count()
+        QuestionAnswer.submitted_date >= db_now() - timedelta(days=7)).count()
 
     return render_template('end-user/dashboard.html',
                            group_projects=_my_group_projects(user_id),

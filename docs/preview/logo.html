@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Data Tagging logo</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@700&display=swap" rel="stylesheet">
+<style>
+  /* README logo. Render logo.png from logo.html and logo-dark.png from logo.html#dark,
+     at 520x112 with a transparent background. */
+  * { margin: 0; padding: 0; }
+  html, body { width: 520px; height: 112px; overflow: hidden; background: transparent; }
+  body {
+    font-family: "Atkinson Hyperlegible", system-ui, sans-serif; font-weight: 700;
+    font-size: 64px; letter-spacing: -1.2px; color: #1C2733;
+    display: flex; align-items: center; gap: 22px; padding-left: 4px;
+  }
+  body.dark { color: #E6EAF0; }
+</style>
+</head>
+<body>
+  <script>if (location.hash === "#dark") document.body.classList.add("dark");</script>
+  <svg width="80" height="80" viewBox="0 0 28 28" aria-hidden="true">
+    <path d="M2 9V2h7M19 2h7v7M26 19v7h-7M9 26H2v-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/>
+    <rect x="10" y="10" width="8" height="8" rx="1" fill="#F5CF3A"/>
+  </svg>
+  Data Tagging
+</body>
+</html>

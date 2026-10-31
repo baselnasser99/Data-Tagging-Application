@@ -1,3 +1,5 @@
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/preview/logo-dark.png"><img src="docs/preview/logo.png" alt="Data Tagging" width="260"></picture>
+
 <picture><source media="(prefers-color-scheme: dark)" srcset="docs/preview/preview@2x-dark.png"><img src="docs/preview/preview@2x.png" alt="Data Tagging: labelling work, shared fairly. A chart shows open tasks per person staying within one task of each other after one person leaves and another joins." width="100%"></picture>
 
 <p>

@@ -129,10 +129,10 @@ flask --app app run --debug
 
 <br>
 
-Fill a separate demo database with 13 people, 3 groups, a manager, two image projects and five weeks of answers:
+Fill a separate demo database with 13 people, 3 groups, a manager, two image projects and five weeks of answers. In PowerShell, the first line is `$env:DATABASE_URL = "sqlite:///demo.db"`.
 
 ```bash
-export DATABASE_URL=sqlite:///demo.db   # PowerShell: $env:DATABASE_URL = "sqlite:///demo.db"
+export DATABASE_URL=sqlite:///demo.db
 python scripts/seed_demo.py
 flask --app app run --debug
 ```

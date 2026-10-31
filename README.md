@@ -1,38 +1,40 @@
-<img src="docs/preview/logo.svg#gh-light-mode-only" alt="Data Tagging" width="260"><img src="docs/preview/logo-dark.svg#gh-dark-mode-only" alt="Data Tagging" width="260">
+<h1><img src="docs/preview/logo.svg#gh-light-mode-only" alt="Data Tagging" width="260"><img src="docs/preview/logo-dark.svg#gh-dark-mode-only" alt="Data Tagging" width="260"></h1>
 
 <p>
-  <a href="docs/walkthrough.md#gh-light-mode-only"><img src="https://img.shields.io/badge/demo-%E2%96%B6%20watch%20(75%20s)-F5CF3A" alt="Watch the demo, 75 seconds"></a><a href="docs/walkthrough-dark.md#gh-dark-mode-only"><img src="https://img.shields.io/badge/demo-%E2%96%B6%20watch%20(75%20s)-F5CF3A" alt="Watch the demo, 75 seconds"></a>
+  <a href="docs/walkthrough.md#gh-light-mode-only"><img src="https://img.shields.io/badge/demo-watch%20(75%20s)-F5CF3A" alt="Watch the demo, 75 seconds"></a><a href="docs/walkthrough-dark.md#gh-dark-mode-only"><img src="https://img.shields.io/badge/demo-watch%20(75%20s)-F5CF3A" alt="Watch the demo, 75 seconds"></a>
   <a href="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml"><img src="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
-  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12-1C2733" alt="Python 3.11 and 3.12">
-  <img src="https://img.shields.io/badge/flask-3-1C2733" alt="Flask 3">
-  <img src="https://img.shields.io/badge/MySQL-8-1C2733" alt="MySQL 8">
-  <img src="https://img.shields.io/badge/coverage-~94%25-3366CC" alt="About 94% line coverage">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-F5CF3A" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/coverage-~94%25-1C2733" alt="About 94% line coverage">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1C2733" alt="MIT license"></a>
 </p>
 
-<img src="docs/preview/preview@2x.png#gh-light-mode-only" alt="Data Tagging: labelling work, shared fairly. A chart shows open tasks per person staying within one task of each other after one person leaves and another joins." width="100%"><img src="docs/preview/preview@2x-dark.png#gh-dark-mode-only" alt="Data Tagging: labelling work, shared fairly. A chart shows open tasks per person staying within one task of each other after one person leaves and another joins." width="100%">
+<img src="docs/preview/preview@2x.png#gh-light-mode-only" alt="Labelling work, shared fairly: open tasks per person stay within one task of each other after one person leaves and another joins." width="100%"><img src="docs/preview/preview@2x-dark.png#gh-dark-mode-only" alt="Labelling work, shared fairly: open tasks per person stay within one task of each other after one person leaves and another joins." width="100%">
 
-**A web app that shares labelling work fairly across a team.** An admin uploads images or audio clips and writes the questions. The app splits the work into tasks and hands them out so everyone carries the same load, even while people join or leave mid-project. The answers come back as a CSV or JSON dataset, with an agreement score showing how consistently people labelled.
+**A web app that shares labelling work across a team so evenly that open workloads stay within one task of each other, even as people join and leave.** An admin uploads images or audio clips and writes the questions; the app splits the work into tasks and hands them out. The answers come back as a CSV or JSON dataset, with a score for how consistently people labelled.
 
-Built as my diploma thesis at the University of Pécs, then rebuilt to production standards: security fixes, a fairness algorithm verified with measurements, 300+ automated tests, and a redesigned interface. [See what changed since the graded version →](docs/thesis/COMPARISON.md)
+Built as my diploma thesis at the University of Pécs, then rebuilt to production standards: security fixes, a fairness algorithm checked with measurements, and a redesigned interface. [See what changed since the graded version →](docs/thesis/COMPARISON.md)
 
 **[What it does](#what-it-does)** · **[How it stays fair](#how-the-hand-out-stays-fair)** · **[Measurements](#measured-not-assumed)** · **[Run it](#run-it)** · **[Docs](#documentation)**
 
 <a href="docs/walkthrough.md#gh-light-mode-only"><img src="docs/preview/walkthrough.webp#gh-light-mode-only" alt="Walkthrough: an admin hands out tasks across a group, checks agreement in the results, then a member answers three tasks with the keyboard" width="100%"></a><a href="docs/walkthrough-dark.md#gh-dark-mode-only"><img src="docs/preview/walkthrough-dark.webp#gh-dark-mode-only" alt="Walkthrough: an admin hands out tasks across a group, checks agreement in the results, then a member answers three tasks with the keyboard" width="100%"></a>
-<p align="center"><sub>▶ Click the preview to watch the full walkthrough (75 s)</sub></p>
+<p align="center"><sub>Click the preview to watch the full walkthrough (75 s)</sub></p>
 
 <table>
   <tr>
-    <td width="50%"><b>1 task</b><br><sub>Loads stay within 1 task of each other, even after people join</sub></td>
-    <td width="50%"><b>0 lost</b><br><sub>Finished answers lost across 25 benchmark runs</sub></td>
+    <td width="50%"><b>Fair to within one task</b><br><sub>The gap between the busiest and least busy person, even after people join</sub></td>
+    <td width="50%"><b>No answers lost</b><br><sub>Across 25 benchmark runs with people leaving and joining</sub></td>
   </tr>
   <tr>
-    <td><b>300+ tests</b><br><sub>Automated, ~94% line coverage, on Python 3.11 and 3.12</sub></td>
-    <td><b>294 ms</b><br><sub>Median response with 20 people answering at once, 0 errors</sub></td>
+    <td><b>300+ tests, ~94% coverage</b><br><sub>Run by GitHub Actions on every push</sub></td>
+    <td><b>294 ms with 20 people at once</b><br><sub>Median response while everyone answers, 0 errors</sub></td>
   </tr>
 </table>
 
 <img src="docs/screenshots/admin-dashboard.png#gh-light-mode-only" alt="Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group"><img src="docs/screenshots/admin-dashboard-dark.png#gh-dark-mode-only" alt="Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group">
+
+<details>
+<summary><b>More screens (6)</b></summary>
+
+<br>
 
 <table>
   <tr>
@@ -49,17 +51,19 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
   </tr>
 </table>
 
-<sub>Screenshots use the demo data from <code>scripts/seed_demo.py</code>, and follow your GitHub theme: light or dark.</sub>
+<sub>Screenshots use the demo data from <code>scripts/seed_demo.py</code>.</sub>
+
+</details>
 
 ## What it does
 
-| | |
+| Feature | What it does |
 |---|---|
 | **Projects** | Upload images (PNG, JPG, GIF, BMP, WEBP) and audio (MP3, WAV, OGG, M4A, FLAC) as files or ZIPs. Ask free-text or multiple-choice questions about every item. |
 | **Fair hand-out** | Every *item × question* becomes a task. Each task goes to the person with the lightest open workload, never twice to the same person, up to a per-person cap. Optionally, several people can answer each task. |
 | **People come and go** | When someone leaves a group, their unfinished tasks are handed to the rest; when someone joins, workloads are rebalanced. Finished answers are never lost. |
 | **Three roles** | **Admin** (everything), **Manager** (runs their own projects), **Member** (answers their tasks). Each role gets its own home page. |
-| **Progress and results** | Status and progress for every project, each person's share of the work, answers per week and progress per group. Each project's results page shows agreement per question (Fleiss' kappa for multiple choice, percent agreement for short free text), how often each answer was given, the items people disagreed on, and the items marked "can't tell". For longer free text it shows the most common words and a few example answers. The side panel lists what needs the admin or manager next. |
+| **Progress and results** | Progress for every project and group, each person's share of the work and answers per week. Each project's results show how well people agreed on every question, how often each answer was given, the items people disagreed on and those marked "can't tell"; for longer free text, the most common words and a few example answers. A side panel lists what needs the admin or manager next. |
 | **Export** | CSV or JSON per project, with who answered what and when, the majority answer, **Fleiss' kappa** for inter-annotator agreement, and percent agreement (not chance-corrected) for short free-text answers. Every export is logged. |
 | **"Can't tell"** | A member who can't answer an item (blurry, cut off, ambiguous) marks it instead of guessing. It finishes the task, is flagged in the export (`cant_tell`), and is left out of the majority answer and the agreement score. |
 | **People admin** | Add people one at a time or from a CSV file, search and filter them, edit details, and remove people safely: their open work is handed on and their answers are kept. |
@@ -68,6 +72,7 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
 ## How the hand-out stays fair
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#F5CF3A", "primaryTextColor": "#1C2733", "primaryBorderColor": "#1C2733", "lineColor": "#8B949E", "edgeLabelBackground": "#F5CF3A", "fontFamily": "-apple-system, Segoe UI, sans-serif"}}}%%
 flowchart TB
     U["Items and questions"] --> T["Every item × question is a task"]
     T --> H["Each task goes to the lightest open load"]
@@ -87,7 +92,7 @@ for each task (item, question) still needing answers:
 ```
 
 - **Someone leaves:** their unfinished tasks are released and handed out again with the same rule; their finished work stays.
-- **Someone joins:** open slots are filled first, then unstarted tasks move from the busiest person to the least busy until no move narrows the gap. In the measurements below, loads end within one task of each other.
+- **Someone joins:** open slots are filled first, then unstarted tasks move from the busiest person to the least busy until no move narrows the gap. In the measurements below, open workloads end within one task of each other.
 - **Several groups on one project** share a single pool of tasks.
 
 The code is in [`application/distribution.py`](application/distribution.py), and the rules are pinned down by tests in [`tests/test_distribution.py`](tests/test_distribution.py).
@@ -96,28 +101,45 @@ The code is in [`application/distribution.py`](application/distribution.py), and
 
 [`scripts/benchmark.py`](scripts/benchmark.py) builds made-up teams and projects on a **MySQL 8** server in GitHub Actions ([workflow](.github/workflows/benchmark.yml)), then times the real distribution code and checks its fairness. Each setup runs 5 times; cells show the mean, with the fastest and slowest run below it.
 
-| Tasks | People | Setup | Hand out | 10% of people leave | 5% join | Load gap after joining |
-|---:|---:|---|---:|---:|---:|---:|
-| 1,000 | 20 | 1 group | 0.68 s<br><sub>0.67–0.71</sub> | 0.11 s<br><sub>0.10–0.12</sub> | 0.08 s<br><sub>0.08–0.08</sub> | 1 |
-| 10,000 | 50 | 1 group | 7.66 s<br><sub>7.36–8.45</sub> | 2.06 s<br><sub>2.00–2.17</sub> | 1.59 s<br><sub>1.49–1.73</sub> | 1 |
-| 50,000 | 100 | 1 group | 43.3 s<br><sub>42.8–43.6</sub> | 19.6 s<br><sub>19.1–19.9</sub> | 20.4 s<br><sub>20.0–20.8</sub> | 1 |
-| 10,000 | 50 | 2 answers per task | 11.44 s<br><sub>11.39–11.52</sub> | 2.48 s<br><sub>2.44–2.51</sub> | 2.39 s<br><sub>2.33–2.45</sub> | 1 |
-| 10,000 | 50 | 2 groups of 25 | 7.28 s<br><sub>7.21–7.38</sub> | 1.99 s<br><sub>1.92–2.03</sub> | 1.55 s<br><sub>1.48–1.62</sub> | 1 |
+| Tasks | People | Setup | Hand out | 10% leave | 5% join |
+|---:|---:|---|---:|---:|---:|
+| 1,000 | 20 | 1 group | 0.68 s<br><sub>0.67–0.71</sub> | 0.11 s<br><sub>0.10–0.12</sub> | 0.08 s<br><sub>0.08–0.08</sub> |
+| 10,000 | 50 | 1 group | 7.66 s<br><sub>7.36–8.45</sub> | 2.06 s<br><sub>2.00–2.17</sub> | 1.59 s<br><sub>1.49–1.73</sub> |
+| 50,000 | 100 | 1 group | 43.3 s<br><sub>42.8–43.6</sub> | 19.6 s<br><sub>19.1–19.9</sub> | 20.4 s<br><sub>20.0–20.8</sub> |
+| 10,000 | 50 | 2 answers per task | 11.44 s<br><sub>11.39–11.52</sub> | 2.48 s<br><sub>2.44–2.51</sub> | 2.39 s<br><sub>2.33–2.45</sub> |
+| 10,000 | 50 | 2 groups of 25 | 7.28 s<br><sub>7.21–7.38</sub> | 1.99 s<br><sub>1.92–2.03</sub> | 1.55 s<br><sub>1.48–1.62</sub> |
 
-- The load gap (most open tasks held by one person minus fewest) is **0** right after hand-out.
-- In all 25 runs, every task kept its owners and no finished answer was lost.
-- Batching the database writes made the hand-out **2.5× faster**, and handling 5% newcomers at 50k tasks **15× faster** (250 s → 17 s).
+- **Fairness:** the load gap (most open tasks held by one person minus fewest) is **0** right after hand-out and **1** after people join, in every setup.
+- **Nothing lost:** in all 25 runs, every task kept its owners and no finished answer was lost.
+- **Batched writes:** a before-and-after pair of single runs on the day the change landed: handing out 50,000 tasks went from 62 s to 25 s (**2.5× faster**), and five people joining that project from 250 s to 17 s (**15× faster**). Those two runs used a different machine from the table, so their times differ from it.
 - **Load test:** 20 people answering at once made 240 requests with **0 errors**; median response time 294 ms.
 
 ## Run it
 
-**Codespaces (no install):** on GitHub, click **Code → Codespaces → Create codespace**, then:
+**Codespaces (no install):** on GitHub, click **Code → Codespaces → Create codespace**, then run these. After the first line, set `SECRET_KEY`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`; the example values are refused.
 
 ```bash
-cp .env.example .env          # set SECRET_KEY, ADMIN_EMAIL and ADMIN_PASSWORD: the example values are refused
+cp .env.example .env
 pip install -r requirements.txt
 flask --app app run --debug
 ```
+
+<details>
+<summary><b>Try it with demo data</b></summary>
+
+<br>
+
+Fill a separate demo database with 13 people, 3 groups, a manager, two image projects and five weeks of answers:
+
+```bash
+export DATABASE_URL=sqlite:///demo.db   # PowerShell: $env:DATABASE_URL = "sqlite:///demo.db"
+python scripts/seed_demo.py
+flask --app app run --debug
+```
+
+It needs `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`, as above, and prints the demo sign-ins. The demo accounts share a published password, so it only fills a new SQLite database: it refuses one that already has people or projects, and any other kind of database unless you add `--any-database`.
+
+</details>
 
 <details>
 <summary><b>On your own computer</b></summary>
@@ -136,23 +158,6 @@ The same steps, after `python -m venv .venv` and activating it (`source .venv/bi
 `cp .env.example .env`, edit the passwords, then `docker compose up --build`.
 
 The app listens on `127.0.0.1:5000` only, over plain http. Put an HTTPS reverse proxy on the same machine in front of it (for example Caddy: `caddy reverse-proxy --from tagging.example.org --to 127.0.0.1:5000`). Sign-in cookies are sent over HTTPS only, so signing in at `http://` fails on purpose.
-
-</details>
-
-<details>
-<summary><b>Try it with demo data</b></summary>
-
-<br>
-
-Fill a separate demo database with 13 people, 3 groups, a manager, two image projects and five weeks of answers:
-
-```bash
-export DATABASE_URL=sqlite:///demo.db
-python scripts/seed_demo.py
-flask --app app run --debug
-```
-
-It needs `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`, as above, and prints the demo sign-ins. The demo accounts share a published password, so it only fills a new SQLite database: it refuses one that already has people or projects, and any other kind of database unless you add `--any-database`.
 
 </details>
 
@@ -182,6 +187,15 @@ On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest -
 
 ## Security
 
+- **Accounts:** scrypt-hashed passwords, no default accounts, and sign-in that pauses repeated wrong guesses without locking the owner out.
+- **Access:** checked on every route; managers see only their projects, members only their tasks, and uploaded files are never public.
+- **Pages and forms:** CSRF tokens on every form, HTTPS-only cookies, and a Content-Security-Policy that loads nothing from other sites.
+
+<details>
+<summary><b>All 14 measures</b></summary>
+
+<br>
+
 - **Passwords:** hashed with Werkzeug scrypt. There are no default accounts, and secrets live only in `.env`. The app won't start with an example or short `SECRET_KEY` (under 32 characters) or `ADMIN_PASSWORD` (under 8). The graded version's published admin password stops working on upgrade.
 - **Passwords set by others:** a password an admin or manager chose for someone must be replaced by its owner at the next sign-in, and a new password must differ from the current one.
 - **Sign-in:** it doesn't reveal which emails have accounts: a wrong email and a wrong password take as long and say the same.
@@ -195,16 +209,18 @@ On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest -
 - **Uploads:** each project may keep at most 2,048 MB of items (`MAX_PROJECT_STORAGE_MB`). ZIPs are unpacked piece by piece, and a failed upload removes what it wrote.
 - **Exports:** cells a spreadsheet would run as a formula are neutralised in the CSV.
 - **Scripts and Docker:** the scripts ask before deleting a database and don't print its password, and in Docker Compose the app gets only the settings it reads, not the MySQL root password.
-- **Logs:** sign-ins, failed sign-ins, sign-outs, account and project changes and exports are written to `logs/audit.log`. Refused requests (a page someone's role may not open, a form without its CSRF token) go to `logs/refused.log` instead: anyone can cause those by the thousand, and in one file they could push the sign-in history out.
+- **Logs:** sign-ins, failed sign-ins, sign-outs, account and project changes and exports are written to `logs/audit.log`. Refused requests (a page someone's role may not open, a form without its CSRF token) go to `logs/refused.log` instead, so a flood of them can't push the sign-in history out.
+
+</details>
 
 ## Tech stack
 
-| | |
+| Part | Used |
 |---|---|
 | **Backend** | Python 3.11 and 3.12, Flask (app factory and blueprints), SQLAlchemy 2, Flask-Login, Flask-WTF (CSRF) |
 | **Database** | MySQL 8 in production, SQLite for development and tests; older databases are upgraded automatically on start |
 | **Frontend** | Jinja templates, Bootstrap 3 and AdminLTE 2, a custom design layer (`app.css`, `apple.css`) with reduced-motion and high-contrast fallbacks, Chart.js |
-| **Quality** | pytest with ~94% line coverage on Python 3.11 and 3.12, GitHub Actions, Dependabot |
+| **Quality** | pytest with ~94% line coverage, GitHub Actions, Dependabot |
 | **Deployment** | Docker Compose (Gunicorn and MySQL) |
 
 <details>

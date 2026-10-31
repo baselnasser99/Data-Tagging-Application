@@ -72,7 +72,7 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
 ## How the hand-out stays fair
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#F5CF3A", "primaryTextColor": "#1C2733", "primaryBorderColor": "#1C2733", "lineColor": "#8B949E", "edgeLabelBackground": "#F5CF3A", "fontFamily": "-apple-system, Segoe UI, sans-serif"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#F5CF3A", "primaryTextColor": "#1C2733", "primaryBorderColor": "#1C2733", "nodeBorder": "#1C2733", "lineColor": "#8B949E", "edgeLabelBackground": "#F5CF3A", "fontFamily": "-apple-system, Segoe UI, sans-serif"}}}%%
 flowchart TB
     U["Items and questions"] --> T["Every item × question is a task"]
     T --> H["Each task goes to the lightest open load"]

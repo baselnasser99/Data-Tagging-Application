@@ -3,9 +3,6 @@ progress and export the dataset. (On screen these are simply "projects".)"""
 import io
 import json
 import logging
-import os
-import uuid
-import zipfile
 
 from flask import Blueprint, current_app, request, redirect, url_for, flash, render_template, abort, send_file
 from flask_login import current_user
@@ -18,14 +15,13 @@ from .feedback import flash_distribution, warn_idle_members
 from .jinja_utils import plural
 from .models import (AnswerType, ExportLog, GroupProject, Project, ProjectImage,
                      Question, UserGroup, MAX_ANSWERS_PER_TASK, MAX_QUESTIONS,
-                     MAX_TASKS_PER_PERSON, form_int, media_type_for)
+                     MAX_TASKS_PER_PERSON, form_int)
 from .groups import set_up_new_project, usable_groups
 from .permissions import project_admin_access_required, project_admin_required
 from .stats import task_counts
-from .uploads import upload_dir
+from .uploads import save_project_items
 
 audit = logging.getLogger("audit")
-log = logging.getLogger(__name__)
 
 annotation_admin = Blueprint("annotation_admin", __name__, url_prefix="/admin")
 
@@ -101,24 +97,6 @@ def create_annotation_project():
     return render_template("admin/create_annotation_project.html", groups=usable_groups())
 
 
-class _ProjectFull(Exception):
-    """The project's storage limit was reached while a file was being copied."""
-
-
-def _folder_size(path):
-    return sum(entry.stat().st_size for entry in os.scandir(path) if entry.is_file())
-
-
-def stored_name(original_filename):
-    """The file name to store an item under (after a uuid): safe, short, and with its extension.
-
-    secure_filename drops letters outside ASCII, so "фото.png" used to become just "png": a file
-    without an extension, served as a download instead of an image.
-    """
-    stem, extension = os.path.splitext(original_filename)
-    return f"{(secure_filename(stem) or 'item')[:100]}{extension.lower()}"
-
-
 @annotation_admin.route("/upload-images/<int:project_id>", methods=["GET", "POST"])
 @project_admin_required
 def upload_images(project_id):
@@ -136,114 +114,20 @@ def upload_images(project_id):
             flash("No file selected!", "error")
             return redirect(request.url)
 
-        upload_dir_path = upload_dir('images', str(project_id))
-        existing_names = {
-            img.original_filename
-            for img in ProjectImage.query.filter_by(project_id=project_id).all()
-        }
-        saved = {"image": 0, "audio": 0}
-        duplicates_skipped = 0
-        unsupported, unreadable = [], []
-        written = []  # files this request saved: removed again if it fails
-        # One manager shouldn't be able to fill the disk every project shares.
-        quota = current_app.config.get('PROJECT_UPLOAD_QUOTA') or 0
-        room = quota - _folder_size(upload_dir_path) if quota else None
-        full = False
-
-        def save(original_filename, src):
-            """Store one item unless its name is already in the project, copying it in chunks within the room left."""
-            nonlocal duplicates_skipped, room, full
-            if original_filename in existing_names:
-                duplicates_skipped += 1
-                return
-            media_type = media_type_for(original_filename)
-            unique_filename = f"{uuid.uuid4()}_{stored_name(original_filename)}"
-            final_path = os.path.join(upload_dir_path, unique_filename)
-            size = 0
-            try:
-                with open(final_path, 'wb') as dst:
-                    while chunk := src.read(1024 * 1024):  # never a whole (perhaps 1 GB) entry in memory
-                        size += len(chunk)
-                        if room is not None and size > room:
-                            raise _ProjectFull
-                        dst.write(chunk)
-            except Exception as error:  # full, or an entry zipfile can't read (encrypted, unknown compression)
-                if os.path.exists(final_path):
-                    os.remove(final_path)
-                if isinstance(error, _ProjectFull):
-                    full = True
-                else:
-                    log.warning("Upload to project %s: could not store %r: %s", project_id, original_filename, error)
-                    unreadable.append(original_filename)
-                return
-            written.append(final_path)
-            if room is not None:
-                room -= size
-            db.session.add(ProjectImage(
-                project_id=project_id,
-                filename=unique_filename,
-                original_filename=original_filename[:255],
-                file_path=final_path,
-                media_type=media_type,
-            ))
-            existing_names.add(original_filename)
-            saved[media_type] += 1
-
-        for upload in uploads:
-            if full:
-                break
-            if upload.filename.lower().endswith('.zip'):
-                try:
-                    with zipfile.ZipFile(upload, 'r') as zip_ref:
-                        # A small ZIP can unpack to gigabytes ("ZIP bomb"); zipfile never reads past file_size.
-                        limit = current_app.config.get('MAX_UPLOAD_LENGTH')
-                        unpacked = sum(i.file_size for i in zip_ref.infolist())
-                        if limit and unpacked > 2 * limit:
-                            flash(f"{upload.filename} unpacks to more than {2 * limit // (1024 * 1024)} MB, so it was skipped.", "error")
-                            continue
-                        if room is not None and unpacked > room:
-                            flash(f"{upload.filename} unpacks to more than the {room // (1024 * 1024)} MB left in "
-                                  "this project's storage limit, so it was skipped.", "error")
-                            continue
-                        for file_info in zip_ref.infolist():
-                            original_filename = os.path.basename(file_info.filename)
-                            # Nested folders are flattened; junk and unsupported files are ignored.
-                            if (file_info.is_dir()
-                                    or file_info.filename.startswith('__MACOSX/')
-                                    or original_filename.startswith('.')
-                                    or media_type_for(original_filename) is None):
-                                continue
-                            if full:
-                                break
-                            with zip_ref.open(file_info) as src:
-                                save(original_filename, src)
-                except zipfile.BadZipFile:
-                    flash(f"{upload.filename} is not a valid ZIP archive, so it was skipped.", "error")
-            else:
-                original_filename = os.path.basename(upload.filename)
-                if media_type_for(original_filename) is None or original_filename.startswith('.'):
-                    unsupported.append(original_filename)
-                    continue
-                save(original_filename, upload)
-
-        try:
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            for path in written:  # the rows are gone, so the files must go too
-                os.remove(path)
-            log.exception("Upload to project %s could not be saved", project_id)
+        result = save_project_items(project_id, uploads)
+        if result is None:
             flash("The upload could not be saved, so nothing was added. The error was logged.", "error")
             return redirect(request.url)
-        if full:
-            flash(f"This project has reached its storage limit of {quota // (1024 * 1024)} MB, so some files "
+        if result.full:
+            flash(f"This project has reached its storage limit of {result.quota // (1024 * 1024)} MB, so some files "
                   "were not added. Ask the admin to raise MAX_PROJECT_STORAGE_MB.", "error")
-        if unreadable:
-            flash(f"Could not read: {', '.join(unreadable)}.", "warning")
-        if unsupported:
-            flash(f"Skipped files that are not images, audio or ZIP: {', '.join(unsupported)}.", "warning")
-        if duplicates_skipped:
-            flash(f"Skipped {plural(duplicates_skipped, 'file')} already in this project (same file name).", "warning")
+        if result.unreadable:
+            flash(f"Could not read: {', '.join(result.unreadable)}.", "warning")
+        if result.unsupported:
+            flash(f"Skipped files that are not images, audio or ZIP: {', '.join(result.unsupported)}.", "warning")
+        if result.duplicates_skipped:
+            flash(f"Skipped {plural(result.duplicates_skipped, 'file')} already in this project (same file name).", "warning")
+        saved = result.saved
         if not saved["image"] and not saved["audio"]:
             flash("The upload contained no new images or audio files.", "warning")
             return redirect(request.url)

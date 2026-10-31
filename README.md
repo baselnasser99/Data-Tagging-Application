@@ -17,6 +17,9 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
 
 **[What it does](#what-it-does)** · **[How it stays fair](#how-the-hand-out-stays-fair)** · **[Measurements](#measured-not-assumed)** · **[Run it](#run-it)** · **[Docs](#documentation)**
 
+<a href="docs/walkthrough.md#gh-light-mode-only"><img src="docs/preview/walkthrough.webp#gh-light-mode-only" alt="Walkthrough: an admin hands out tasks across a group, checks agreement in the results, then a member answers three tasks with the keyboard" width="100%"></a><a href="docs/walkthrough-dark.md#gh-dark-mode-only"><img src="docs/preview/walkthrough-dark.webp#gh-dark-mode-only" alt="Walkthrough: an admin hands out tasks across a group, checks agreement in the results, then a member answers three tasks with the keyboard" width="100%"></a>
+<p align="center"><sub>▶ Click the preview to watch the full walkthrough (75 s)</sub></p>
+
 <table>
   <tr>
     <td width="50%"><b>1 task</b><br><sub>Loads stay within 1 task of each other, even after people join</sub></td>

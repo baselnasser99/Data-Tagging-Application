@@ -56,12 +56,17 @@ def test_dark_tokens_are_the_same_both_ways():
 
 
 def test_readme_images_follow_the_github_theme():
-    # Each of the README's own images (the logo, the banner and the screenshots) is a light copy
-    # marked #gh-light-mode-only next to a dark copy marked #gh-dark-mode-only, so GitHub picks one
-    # by its own theme, not the system's. Both files exist. Badges from other sites are left alone.
+    # Each of the README's own images (the logo, the banner, the walkthrough and the screenshots) is
+    # a light copy marked #gh-light-mode-only next to a dark copy marked #gh-dark-mode-only, so GitHub
+    # picks one by its own theme, not the system's. Either may sit in its own link, as the walkthrough
+    # previews do; GitHub hides by the link's address, so it carries the same marker. Both files exist.
+    # Badges from other sites are left alone.
     root = STATIC.parent.parent
     readme = (root / "README.md").read_text(encoding="utf-8")
-    pairs = re.findall(r'<img src="([^"#]+)#gh-light-mode-only"[^>]*><img src="([^"#]+)#gh-dark-mode-only"', readme)
+    pairs = re.findall(r'<img src="([^"#]+)#gh-light-mode-only"[^>]*>(?:</a><a [^>]*>)?<img src="([^"#]+)#gh-dark-mode-only"',
+                       readme)
+    links = re.findall(r'<a href="([^"]+)"><img src="[^"#]+(#gh-[a-z]+-mode-only)"', readme)
+    assert all(href.endswith(marker) for href, marker in links)
     local_images = re.findall(r'src="(docs/[^"]+)"', readme)
     assert pairs and len(local_images) == 2 * len(pairs)  # no local image outside a pair
     assert ("docs/preview/preview@2x.png", "docs/preview/preview@2x-dark.png") in pairs  # the banner

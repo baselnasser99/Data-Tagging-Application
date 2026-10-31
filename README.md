@@ -1,7 +1,5 @@
 <picture><source media="(prefers-color-scheme: dark)" srcset="docs/preview/logo-dark.png"><img src="docs/preview/logo.png" alt="Data Tagging" width="260"></picture>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/preview/preview@2x-dark.png"><img src="docs/preview/preview@2x.png" alt="Data Tagging: labelling work, shared fairly. A chart shows open tasks per person staying within one task of each other after one person leaves and another joins." width="100%"></picture>
-
 <p>
   <a href="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml"><img src="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12-1C2733" alt="Python 3.11 and 3.12">
@@ -10,6 +8,8 @@
   <img src="https://img.shields.io/badge/coverage-~94%25-3366CC" alt="About 94% line coverage">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-F5CF3A" alt="MIT license"></a>
 </p>
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/preview/preview@2x-dark.png"><img src="docs/preview/preview@2x.png" alt="Data Tagging: labelling work, shared fairly. A chart shows open tasks per person staying within one task of each other after one person leaves and another joins." width="100%"></picture>
 
 **A web app that shares labelling work fairly across a team.** An admin uploads images or audio clips and writes the questions. The app splits the work into tasks and hands them out so everyone carries the same load, even while people join or leave mid-project. The answers come back as a CSV or JSON dataset, with an agreement score showing how consistently people labelled.
 

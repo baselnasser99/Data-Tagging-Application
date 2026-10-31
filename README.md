@@ -1,4 +1,4 @@
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/preview/logo-dark.svg"><img src="docs/preview/logo.svg" alt="Data Tagging" width="260"></picture>
+<img src="docs/preview/logo.svg#gh-light-mode-only" alt="Data Tagging" width="260"><img src="docs/preview/logo-dark.svg#gh-dark-mode-only" alt="Data Tagging" width="260">
 
 <p>
   <a href="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml"><img src="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
@@ -9,7 +9,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-F5CF3A" alt="MIT license"></a>
 </p>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/preview/preview@2x-dark.png"><img src="docs/preview/preview@2x.png" alt="Data Tagging: labelling work, shared fairly. A chart shows open tasks per person staying within one task of each other after one person leaves and another joins." width="100%"></picture>
+<img src="docs/preview/preview@2x.png#gh-light-mode-only" alt="Data Tagging: labelling work, shared fairly. A chart shows open tasks per person staying within one task of each other after one person leaves and another joins." width="100%"><img src="docs/preview/preview@2x-dark.png#gh-dark-mode-only" alt="Data Tagging: labelling work, shared fairly. A chart shows open tasks per person staying within one task of each other after one person leaves and another joins." width="100%">
 
 **A web app that shares labelling work fairly across a team.** An admin uploads images or audio clips and writes the questions. The app splits the work into tasks and hands them out so everyone carries the same load, even while people join or leave mid-project. The answers come back as a CSV or JSON dataset, with an agreement score showing how consistently people labelled.
 
@@ -28,20 +28,20 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
   </tr>
 </table>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/admin-dashboard-dark.png"><img src="docs/screenshots/admin-dashboard.png" alt="Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group"></picture>
+<img src="docs/screenshots/admin-dashboard.png#gh-light-mode-only" alt="Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group"><img src="docs/screenshots/admin-dashboard-dark.png#gh-dark-mode-only" alt="Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group">
 
 <table>
   <tr>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/progress-results-dark.png"><img src="docs/screenshots/progress-results.png" alt="Progress and results: agreement per question as Fleiss' kappa, how often each answer was given, and the items people disagreed on"></picture><br><sub><b>Results:</b> agreement per question, answer counts, and where people disagreed</sub></td>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/project-overview-dark.png"><img src="docs/screenshots/project-overview.png" alt="A project's page: tasks done, answers given, each person's share of the tasks, questions and settings"></picture><br><sub><b>Project:</b> progress, work balance, questions and settings</sub></td>
+    <td width="50%"><img src="docs/screenshots/progress-results.png#gh-light-mode-only" alt="Progress and results: agreement per question as Fleiss' kappa, how often each answer was given, and the items people disagreed on"><img src="docs/screenshots/progress-results-dark.png#gh-dark-mode-only" alt="Progress and results: agreement per question as Fleiss' kappa, how often each answer was given, and the items people disagreed on"><br><sub><b>Results:</b> agreement per question, answer counts, and where people disagreed</sub></td>
+    <td width="50%"><img src="docs/screenshots/project-overview.png#gh-light-mode-only" alt="A project's page: tasks done, answers given, each person's share of the tasks, questions and settings"><img src="docs/screenshots/project-overview-dark.png#gh-dark-mode-only" alt="A project's page: tasks done, answers given, each person's share of the tasks, questions and settings"><br><sub><b>Project:</b> progress, work balance, questions and settings</sub></td>
   </tr>
   <tr>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/member-task-dark.png"><img src="docs/screenshots/member-task.png" alt="A member answering a multiple-choice question about a picture, with numbered choices"></picture><br><sub><b>Member's task:</b> one item, one question, keyboard shortcuts</sub></td>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/member-overview-dark.png"><img src="docs/screenshots/member-overview.png" alt="A member's overview with their next task one click away"></picture><br><sub><b>Member's overview:</b> the next task, one click away</sub></td>
+    <td><img src="docs/screenshots/member-task.png#gh-light-mode-only" alt="A member answering a multiple-choice question about a picture, with numbered choices"><img src="docs/screenshots/member-task-dark.png#gh-dark-mode-only" alt="A member answering a multiple-choice question about a picture, with numbered choices"><br><sub><b>Member's task:</b> one item, one question, keyboard shortcuts</sub></td>
+    <td><img src="docs/screenshots/member-overview.png#gh-light-mode-only" alt="A member's overview with their next task one click away"><img src="docs/screenshots/member-overview-dark.png#gh-dark-mode-only" alt="A member's overview with their next task one click away"><br><sub><b>Member's overview:</b> the next task, one click away</sub></td>
   </tr>
   <tr>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/hand-out-tasks-dark.png"><img src="docs/screenshots/hand-out-tasks.png" alt="Handing out tasks, with a preview of how many tasks each person will get"></picture><br><sub><b>Hand out tasks:</b> each person's share, shown before anything is handed out</sub></td>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/users-dark.png"><img src="docs/screenshots/users.png" alt="Searchable list of people with groups, projects and answers"></picture><br><sub><b>People:</b> search, groups, edit and remove</sub></td>
+    <td><img src="docs/screenshots/hand-out-tasks.png#gh-light-mode-only" alt="Handing out tasks, with a preview of how many tasks each person will get"><img src="docs/screenshots/hand-out-tasks-dark.png#gh-dark-mode-only" alt="Handing out tasks, with a preview of how many tasks each person will get"><br><sub><b>Hand out tasks:</b> each person's share, shown before anything is handed out</sub></td>
+    <td><img src="docs/screenshots/users.png#gh-light-mode-only" alt="Searchable list of people with groups, projects and answers"><img src="docs/screenshots/users-dark.png#gh-dark-mode-only" alt="Searchable list of people with groups, projects and answers"><br><sub><b>People:</b> search, groups, edit and remove</sub></td>
   </tr>
 </table>
 

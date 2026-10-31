@@ -1,6 +1,7 @@
 <img src="docs/preview/logo.svg#gh-light-mode-only" alt="Data Tagging" width="260"><img src="docs/preview/logo-dark.svg#gh-dark-mode-only" alt="Data Tagging" width="260">
 
 <p>
+  <a href="docs/walkthrough.md#gh-light-mode-only"><img src="https://img.shields.io/badge/demo-%E2%96%B6%20watch%20(75%20s)-F5CF3A" alt="Watch the demo, 75 seconds"></a><a href="docs/walkthrough-dark.md#gh-dark-mode-only"><img src="https://img.shields.io/badge/demo-%E2%96%B6%20watch%20(75%20s)-F5CF3A" alt="Watch the demo, 75 seconds"></a>
   <a href="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml"><img src="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12-1C2733" alt="Python 3.11 and 3.12">
   <img src="https://img.shields.io/badge/flask-3-1C2733" alt="Flask 3">

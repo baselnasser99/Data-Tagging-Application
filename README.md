@@ -1,4 +1,4 @@
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/preview/logo-dark.png"><img src="docs/preview/logo.png" alt="Data Tagging" width="260"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/preview/logo-dark.svg"><img src="docs/preview/logo.svg" alt="Data Tagging" width="260"></picture>
 
 <p>
   <a href="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml"><img src="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>

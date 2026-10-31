@@ -1,7 +1,0 @@
-[run]
-source = application
-branch = False
-
-[report]
-show_missing = True
-skip_covered = False

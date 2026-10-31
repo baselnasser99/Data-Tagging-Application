@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = [
+    "ignore::DeprecationWarning:flask_login.*",
+    # Unclosed connections or files are bugs in our tests or code: fail loudly.
+    "error::ResourceWarning",
+    # Leaks found during garbage collection arrive as this type instead.
+    "error::pytest.PytestUnraisableExceptionWarning",
+]
+
+[tool.coverage.run]
+source = ["application"]
+branch = false
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

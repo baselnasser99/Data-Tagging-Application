@@ -232,10 +232,10 @@ application/
 ├── admin.py             dashboard, people, CSV import, surveys, downloads
 ├── groups.py            groups and their members
 ├── manager.py           managers and their pages
-├── annotation_admin.py  projects: create, upload (files, ZIPs, storage limit), hand out, progress, export
+├── annotation_admin.py  projects: create, upload, hand out, progress, export
 ├── annotation.py        members' tasks and answers
 ├── distribution.py      the fair hand-out algorithm
-├── uploads.py           where uploaded files live, survey attachments
+├── uploads.py           where uploaded files live; saving items (files, ZIPs, storage limit) and survey attachments
 ├── surveys.py           handing out survey questions
 ├── export.py            CSV/JSON export and agreement scores
 └── permissions.py, models.py, templates/, static/

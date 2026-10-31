@@ -175,7 +175,7 @@ The tests cover sign-in and access control for each role, CSRF, the distribution
 
 <br>
 
-A database connection or file left open makes the tests fail on purpose (see `pytest.ini`). The failure often shows up in whichever test was running when Python cleaned up, not the one that leaked. To see where the leaked object was created, run the tests with allocation tracing (much slower):
+A database connection or file left open makes the tests fail on purpose (see `pyproject.toml`). The failure often shows up in whichever test was running when Python cleaned up, not the one that leaked. To see where the leaked object was created, run the tests with allocation tracing (much slower):
 
 ```bash
 PYTHONTRACEMALLOC=25 pytest --cov

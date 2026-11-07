@@ -12,7 +12,7 @@
     // The rim is only for contrast on the light theme; where it matches the fill (dark), a 1 px
     // stroke just blurs at fractional display scaling and reads as a second, offset bar.
     return { bar, edge, edgeWidth: edge.toLowerCase() === bar.toLowerCase() ? 0 : 1,
-             text: token('--muted'), grid: token('--chart-grid') };
+             text: token('--muted'), grid: token('--chart-grid'), axis: token('--line-strong') };
   }
 
   const c = colours();
@@ -38,8 +38,11 @@
       animation: document.documentElement.classList.contains('is-drawing') ? undefined : false,  // grows only with the other bars, once per tab
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { display: false }, ticks: { color: c.text } },
-        y: { beginAtZero: true, ticks: { precision: 0, color: c.text }, grid: { color: c.grid } }
+        // The bars stand on the x axis's own line. Chart.js lifts bars half a gridline above a zero
+        // gridline, which blurs into a gap at fractional display scaling, so there is none.
+        x: { grid: { display: false }, border: { color: c.axis }, ticks: { color: c.text } },
+        y: { beginAtZero: true, ticks: { precision: 0, color: c.text },
+             grid: { color: c.grid, lineWidth: ctx => (ctx.tick && ctx.tick.value === 0 ? 0 : 1) } }
       }
     }
   });
@@ -52,6 +55,7 @@
     chart.data.datasets[0].borderWidth = c.edgeWidth;
     chart.options.scales.x.ticks.color = chart.options.scales.y.ticks.color = c.text;
     chart.options.scales.y.grid.color = c.grid;
+    chart.options.scales.x.border.color = c.axis;
     chart.update();
   }
   document.addEventListener('themechange', repaint);

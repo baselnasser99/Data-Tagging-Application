@@ -304,7 +304,7 @@ def annotation_task(assignment_id):
             return redirect(url_for("annotation.annotation_tasks"))
         problem = None if cant_tell else answer_problem(question, answer_text)
         if not cant_tell and not answer_text:
-            flash("Please provide an answer!", "error")
+            flash("Please provide an answer.", "error")
         elif problem:
             flash(problem, "error")
         elif not _save_answer(assignment, answer_text, cant_tell=cant_tell):
@@ -349,9 +349,9 @@ def annotate_image(image_id, project_id, batch_index=0):
 
     if not current_batch_assignments:
         if total_uncompleted_questions or batch_index > 0:
-            flash("All questions for this image have been answered!", "success")
+            flash("All questions for this image have been answered.", "success")
         else:
-            flash("No new tasks found for this image!", "info")
+            flash("No new tasks found for this image.", "info")
         return redirect(url_for("annotation.annotation_tasks"))
 
     if request.method == "POST" and request.form.get("cant_tell"):
@@ -374,7 +374,7 @@ def annotate_image(image_id, project_id, batch_index=0):
         db.session.commit()
 
         if answered:
-            flash(f"Successfully submitted {answered} answers for this batch!", "success")
+            flash(f"Successfully submitted {answered} answers for this batch.", "success")
         else:
             flash("No new answers were submitted in this batch.", "warning")
 

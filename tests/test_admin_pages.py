@@ -90,7 +90,7 @@ def test_admin_profile_rejects_wrong_current_password(admin_client, admin_user):
 
 def test_delete_project_removes_it(admin_client, db, sample_project):
     resp = admin_client.post(f"/admin/delete-project/{sample_project.id}", follow_redirects=True)
-    assert b"Project Deleted Successfully" in resp.data
+    assert b"The project was deleted" in resp.data
     assert db.session.get(Project, sample_project.id) is None
 
 

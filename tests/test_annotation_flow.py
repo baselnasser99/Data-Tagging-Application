@@ -490,7 +490,7 @@ def test_deleting_an_annotation_project_removes_all_its_data_and_files(app, db, 
     finally:
         event.remove(db.engine, "before_cursor_execute", listener)
 
-    assert b"Project Deleted Successfully" in resp.data
+    assert b"The project was deleted" in resp.data
     db.session.expire_all()
     assert db.session.get(Project, project_id) is None
     for model in (AnnotationTask, ProjectImage, Question, GroupProject):

@@ -37,14 +37,14 @@ def create_group():
         # Check if group name already exists
         existing_group = UserGroup.query.filter_by(name=group_name).first()
         if existing_group:
-            flash('Group name already exists!', 'danger')
+            flash('Group name already exists.', 'danger')
             return redirect(url_for("groups.create_group"))
 
         group = UserGroup(name=group_name, description=group_desc)
         db.session.add(group)
         db.session.commit()
 
-        flash("Group created successfully!", "success")
+        flash("Group created successfully.", "success")
         return redirect(url_for("groups.view_groups"))
     # Handle GET request: render the group creation form
     return render_template('admin/create_group.html')
@@ -235,7 +235,7 @@ def assign_project_to_group():
                 questions = project.questions
                 if questions:
                     surveys.give_to_group(group, project)
-                    flash(f'Project "{project.name}" assigned to group "{group.name}" and questions distributed successfully!', 'success')
+                    flash(f'Project "{project.name}" assigned to group "{group.name}" and questions distributed successfully.', 'success')
                 else:
                     flash(f'Project "{project.name}" assigned to group "{group.name}". No questions found yet. Please add questions to the project.', 'warning')
             
@@ -282,5 +282,5 @@ def delete_group(group_id):
     # Members who no longer reach a project hand their unfinished tasks back
     result = distribution.on_group_detached(group_id, project_ids, member_ids)
     flash_distribution(result)
-    flash("Group deleted successfully!", "info")
+    flash("Group deleted successfully.", "info")
     return redirect(url_for("groups.view_groups"))

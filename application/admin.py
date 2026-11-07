@@ -445,7 +445,7 @@ def create_project():
             db.session.add(question)
         db.session.commit()  # one commit: the project, its manager and group, and its questions
 
-        flash("Form data saved successfully!", "success")
+        flash(f"The survey '{project_name}' was created.", "success")
         return redirect(url_for("admin.view_projects"))
     return render_template("admin/create_project.html")
 
@@ -483,7 +483,7 @@ def delete_project(project_id):
         db.session.commit()
 
         audit.info("PROJECT_DELETED project_id=%s by=%s", project_id, current_user.id)
-        flash("Project Deleted Successfully!", "success")
+        flash("The project was deleted.", "success")
     except Exception:
         db.session.rollback()
         log.exception("Deleting project %s failed", project_id)

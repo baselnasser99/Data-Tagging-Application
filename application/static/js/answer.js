@@ -23,11 +23,14 @@
     if (form.requestSubmit) form.requestSubmit(); else form.submit();
   }
 
-  // 1-9 picks a choice in the question being answered: the one with focus, else the first without an answer.
+  // 1-9 picks a choice in the question being answered: a focused one still open, else the first without an
+  // answer, so 2 then 1 answers two questions instead of changing the first one twice.
   var sets = Array.prototype.slice.call(form.querySelectorAll("[data-choices]"));
   function currentSet() {
+    if (sets.length === 1) return sets[0];
     var focused = sets.filter(function (set) { return set.contains(document.activeElement); })[0];
-    return focused || sets.filter(function (set) { return !set.querySelector("input:checked"); })[0];
+    if (focused && !focused.querySelector("input:checked")) return focused;
+    return sets.filter(function (set) { return !set.querySelector("input:checked"); })[0];
   }
 
   document.addEventListener("keydown", function (e) {
@@ -41,12 +44,21 @@
     if (zoom && zoom.open) return;  // keys pick nothing behind the zoomed picture
 
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit(); return; }
-    if (e.key === "Enter" && e.target.type === "radio") { e.preventDefault(); submit(); return; }
+    // Enter with nothing focused submits too, as the hint says; several questions use Ctrl + Enter instead.
+    if (e.key === "Enter" && (e.target.type === "radio" || (e.target === document.body && sets.length === 1))) {
+      e.preventDefault(); submit(); return;
+    }
 
     var set = !typing && !e.ctrlKey && !e.metaKey && !e.altKey && /^[1-9]$/.test(e.key) ? currentSet() : null;
     if (set) {
       var radio = set.querySelectorAll("input[type=radio]")[Number(e.key) - 1];
-      if (radio) { radio.checked = true; radio.focus(); e.preventDefault(); }
+      if (radio) {
+        radio.checked = true;
+        e.preventDefault();
+        if (sets.length === 1) { radio.focus(); return; }
+        var next = currentSet();  // several questions: bring the next open one into view
+        if (next) next.scrollIntoView({ block: "nearest" });
+      }
     }
   });
 

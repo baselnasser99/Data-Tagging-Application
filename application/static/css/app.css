@@ -507,6 +507,7 @@ a:hover, a:focus { color: var(--ink-soft); }
    with a tinted, numbered header, so neighbouring questions never run together */
 .question-card { border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); margin-bottom: 14px; overflow: hidden; }
 .question-card-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+.question-card-head > label, .question-card-head > .question-kind { white-space: nowrap; }
 .question-card-head > label { margin: 0; }
 .question-card-head > .question-kind { font-size: 13px; }
 .question-card-head > .btn { margin-left: auto; }
@@ -651,10 +652,25 @@ a:hover, a:focus { color: var(--ink-soft); }
 .item-strip > li > .media-audio-thumb { height: 96px; }
 .item-strip > li > span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Task cards: long file names end with an ellipsis; the question reads as text, not as a control */
-.task-card-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 96px); }
+/* Title and badge on one centred line; the title gets room for its descenders and shortens with an ellipsis */
+.task-grid .box-header { display: flex; align-items: center; gap: 8px; }
+.task-grid .box-header > .box-tools { position: static; margin-left: auto; flex: none; }
+.task-grid .box-header > .task-card-title { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.4; }
 .task-questions { margin: 12px 0 0; }
 .task-questions > li { padding: 3px 0; font-weight: 600; overflow-wrap: anywhere; }
 .task-questions > li.text-muted { font-weight: 400; }
+/* The whole picture, never cropped (the edges can decide the answer); no backdrop, so the space beside it is just card */
+.task-media { display: block; width: 100%; height: 200px; object-fit: contain; }
+/* My tasks: finished work folded into a compact list under the open cards */
+.answered-tasks > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px; font-weight: 700; cursor: pointer; list-style: none; }
+.answered-tasks > summary::-webkit-details-marker { display: none; }
+.answered-tasks > summary .ic { width: 16px; height: 16px; color: var(--muted); transition: transform 220ms var(--ease-out); }
+.answered-tasks[open] > summary .ic { transform: rotate(180deg); }
+.answered-list { list-style: none; margin: 0; padding: 0 16px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.answered-list > li { display: flex; align-items: center; gap: 12px; padding: 8px; background: var(--canvas); border-radius: var(--radius-sm); }
+.answered-thumb, .answered-list .media-audio-thumb { flex: none; width: 44px; height: 44px; object-fit: contain; border-radius: 3px; background: var(--surface); }
+.answered-text { display: flex; flex-direction: column; min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .answered-tasks > summary .ic { transition: none; } }
 
 /* ---------- side cards ----------
    Beside a form (Edit user, Questions and settings): identity or figures first,
@@ -969,15 +985,18 @@ input[type="file"]::file-selector-button:hover { background: var(--wash); }
 }
 .choice:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); background: var(--marker-soft); }
 .choice:has(input:checked) .choice-key { background: var(--marker); color: var(--on-marker); }
-.choice:has(input:focus-visible) { outline: 3px solid var(--marker); outline-offset: 2px; }
+.choice:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 3px; }  /* yellow alone vanished on the light theme */
 .answer-text { font-size: 16px; min-height: 120px; }
 
 .answer-submit { margin-top: 18px; white-space: normal; }
-.answer-cant-tell { margin-top: 10px; white-space: normal; }
+/* Kept apart from Submit and quieter, so a thumb aiming for Submit doesn't land on it */
+.btn-default.answer-cant-tell { margin-top: 24px; white-space: normal; background: transparent; border-color: transparent; color: var(--muted); }
+.btn-default.answer-cant-tell:hover, .btn-default.answer-cant-tell:focus-visible { background: var(--canvas); color: var(--ink); }
 .answer-cant-tell-note { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
 .answer-hint { margin: 10px 0 0; font-size: 13px; color: var(--muted); text-align: center; }
 .answer-hint kbd { font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink); background: var(--canvas); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; box-shadow: none; }
 @media (hover: none) { .answer-hint { display: none; } }  /* touch screens: no keys to press */
+@media (pointer: coarse) { .answer-back, .item-zoom, .answer-cant-tell { min-height: 44px; } }  /* thumb-sized */
 .answer-done { color: var(--success); font-weight: 700; margin: 0 0 14px; }
 
 .about-project { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; }

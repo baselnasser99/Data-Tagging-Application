@@ -11,9 +11,11 @@
 
 <section class="content">
   {% if cards %}
+  {% if open_cards %}
+  <h2 class="section-title">To answer <span class="text-muted">{{ open_cards|length }}</span></h2>
   {# One card per task (item + question); per-item projects group an item's questions on one card. #}
   <div class="row task-grid">
-    {% for items in cards %}
+    {% for items in open_cards %}
     {% set first = items[0] %}
     {% set image = first.task.image %}
     {% set project = first.task.project %}
@@ -21,22 +23,16 @@
     <div class="col-md-4 col-sm-6 col-xs-12">
       <div class="box">
         <div class="box-header with-border">
-          <h2 class="box-title task-card-title">{{ project.name }}</h2>
-          <p class="text-muted" style="margin: 2px 0 0;">{{ plural(items | length, "question") }} about this {{ 'clip' if image.is_audio else 'picture' }}</p>
+          <h3 class="box-title task-card-title">{{ project.name }}</h3>
           <div class="box-tools pull-right">
-            {% if pending %}
             <span class="badge bg-yellow">{{ pending|length }} to answer</span>
-            {% else %}
-            <span class="badge bg-green">Done</span>
-            {% endif %}
           </div>
         </div>
         <div class="box-body">
           {% if image.is_audio %}
           {{ media_item(project, image, label="Audio clip to label") }}
           {% else %}
-          {{ media_item(project, image, label="Picture to label",
-                        img_style="display: block; width: 100%; height: 170px; object-fit: contain; background: var(--canvas); border-radius: 4px;") }}
+          {{ media_item(project, image, label="Picture to label", img_class="task-media") }}
           {% endif %}
           <ul class="list-unstyled task-questions">
             {% for a in items %}
@@ -49,9 +45,7 @@
           </ul>
         </div>
         <div class="box-footer">
-          {% if not pending %}
-          <span class="text-muted">Answered.</span>
-          {% elif items|length == 1 %}
+          {% if items|length == 1 %}
           <a href="{{ url_for('annotation.annotation_task', assignment_id=first.id) }}" class="btn btn-primary btn-block">Answer</a>
           {% else %}
           <a href="{{ url_for('annotation.annotate_image', image_id=image.id, project_id=project.id) }}" class="btn btn-primary btn-block">
@@ -63,6 +57,35 @@
     </div>
     {% endfor %}
   </div>
+  {% else %}
+  <div class="box">
+    <div class="empty-state">
+      <strong>All done</strong>
+      You have answered every task. New ones show up here when a coordinator hands them out.
+    </div>
+  </div>
+  {% endif %}
+
+  {% if done_cards %}
+  {# Finished work stays reachable but folded away, so it never pushes open tasks off the screen. #}
+  <details class="box answered-tasks">
+    <summary><span>Answered <span class="text-muted">{{ done_cards|length }}</span></span>{{ icon("chevron-down") }}</summary>
+    <ul class="answered-list">
+      {% for items in done_cards %}
+      {% set image = items[0].task.image %}
+      {% set project = items[0].task.project %}
+      <li>
+        {{ media_item(project, image, thumbnail=True, img_class="answered-thumb",
+                      label="Audio clip" if image.is_audio else "Picture") }}
+        <span class="answered-text">
+          <span>{% for a in items %}{{ a.task.question.question }}{% if not loop.last %} · {% endif %}{% endfor %}</span>
+          {% if not filtered %}<span class="text-muted">{{ project.name }}</span>{% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
   {% else %}
   <div class="box">
     <div class="empty-state">

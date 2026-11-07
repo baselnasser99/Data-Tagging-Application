@@ -34,6 +34,7 @@
       optionInput.type = 'text';
       optionInput.name = `mcq-option-${i}-${container.parentElement.parentElement.querySelector('label').textContent.split(' ')[1]}`;
       optionInput.placeholder = `Option ${i}`;
+      optionInput.setAttribute('aria-label', `Option ${i}`);
       optionInput.className = 'form-control mb-2';
       container.appendChild(optionInput);
     }
@@ -48,29 +49,29 @@
     document.getElementById('total_questions').value = totalQuestions;
     const questionHtml = `
       <div class="quiz-section">
-        <label class="form-label">Question ${totalQuestions}</label>
-        <textarea rows="1" class="form-control" name="question-${totalQuestions}" placeholder="What do you want to ask?" required></textarea>
+        <label class="form-label" for="question-${totalQuestions}">Question ${totalQuestions}</label>
+        <textarea rows="1" class="form-control" id="question-${totalQuestions}" name="question-${totalQuestions}" placeholder="What do you want to ask?" required></textarea>
         <div class="row" style="margin-top: 10px;">
           <div class="col-sm-6 form-group">
-            <label class="form-label">Answer type</label>
-            <select name="dropdown-${totalQuestions}" class="form-control dropdown-value">
+            <label class="form-label" for="dropdown-${totalQuestions}">Answer type</label>
+            <select id="dropdown-${totalQuestions}" name="dropdown-${totalQuestions}" class="form-control dropdown-value">
               <option value="text">Free text</option>
               <option value="mcq">Multiple choice</option>
             </select>
           </div>
           <div class="col-sm-6 form-group">
-            <label class="form-label">Attach a file (optional)</label>
-            <input type="file" name="question-${totalQuestions}-file" class="form-control">
+            <label class="form-label" for="question-${totalQuestions}-file">Attach a file (optional)</label>
+            <input type="file" id="question-${totalQuestions}-file" name="question-${totalQuestions}-file" class="form-control">
           </div>
         </div>
         <div class="form-group mcq-options" style="display: none;">
-          <label class="form-label">Number of options</label>
-          <input type="number" name="number_of_options-${totalQuestions}" class="form-control number-of-options" min="2" max="6" value="2" style="max-width: 120px;">
+          <label class="form-label" for="number-of-options-${totalQuestions}">Number of options</label>
+          <input type="number" id="number-of-options-${totalQuestions}" name="number_of_options-${totalQuestions}" class="form-control number-of-options" min="2" max="6" value="2" style="max-width: 120px;">
           <label class="form-label" style="margin-top: 8px;">Options</label>
           <div class="options-container"></div>
         </div>
-        <label class="form-label">Correct answer (optional)</label>
-        <textarea rows="1" class="form-control" name="answer-${totalQuestions}" placeholder="Only you see this"></textarea>
+        <label class="form-label" for="answer-${totalQuestions}">Correct answer (optional)</label>
+        <textarea rows="1" class="form-control" id="answer-${totalQuestions}" name="answer-${totalQuestions}" placeholder="Only you see this"></textarea>
       </div>
     `;
     const newQuestion = new DOMParser().parseFromString(questionHtml, 'text/html').body.firstElementChild;

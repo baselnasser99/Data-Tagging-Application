@@ -102,6 +102,8 @@ def login():
         address = request.remote_addr or "unknown"
         # Only a real account is named: what was typed may be a password typed in the wrong box.
         who = f"user_id={user.id} email={user.email}" if user else "account=unknown"
+        # Shown again after a refusal, so only the password needs retyping; cleared on success.
+        session["login_email"] = email[:255]
 
         # Checked first, so during a pause even the right password is refused from this address.
         recent = LoginFailure.query.filter(LoginFailure.address == address,
@@ -109,13 +111,13 @@ def login():
         if recent.count() >= MAX_FAILED_LOGINS_PER_ADDRESS:
             audit.info("LOGIN_THROTTLED %s ip=%s", who, address)
             flash(f"Too many failed sign-ins from your network. Try again in {LOCK_MINUTES} minutes.", "danger")
-            return redirect(url_for("auth.login"))
+            return redirect(url_for("auth.login", next=request.args.get("next")))
         # Counted per typed email, not per account, so an unknown email pauses the same way:
         # otherwise the pause message would tell a stranger which emails have accounts.
         if recent.filter(LoginFailure.email == email.lower()).count() >= MAX_FAILED_LOGINS:
             audit.info("LOGIN_LOCKED %s ip=%s", who, address)
             flash(f"Too many wrong passwords. Try again in {LOCK_MINUTES} minutes.", "danger")
-            return redirect(url_for("auth.login"))
+            return redirect(url_for("auth.login", next=request.args.get("next")))
 
         # One password hash either way, so the answer takes as long for an unknown email as for a real one.
         if user and user.active:
@@ -129,8 +131,8 @@ def login():
             db.session.add(LoginFailure(address=address, user_id=user.id if user else None,
                                         email=email.lower()[:255], at=now))
             db.session.commit()
-            flash("Email address or password is incorrect!", "danger")
-            return redirect(url_for("auth.login"))
+            flash("Email address or password is incorrect.", "danger")
+            return redirect(url_for("auth.login", next=request.args.get("next")))
 
         forget_failed_logins(user, address)
 
@@ -143,7 +145,7 @@ def login():
 
     if current_user.is_authenticated:
         return redirect(_home_for(current_user))
-    return render_template("login.html")
+    return render_template("login.html", email=session.pop("login_email", ""))
 
 
 # POST only, with the CSRF token: a link from another site would otherwise sign people out everywhere.
@@ -155,5 +157,5 @@ def logout():
         db.session.commit()
         logout_user()
         session.clear()
-        flash("Logged out!", "warning")
+        flash("You are signed out.", "info")
     return redirect(url_for("auth.login"))

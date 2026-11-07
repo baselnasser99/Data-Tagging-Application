@@ -261,7 +261,8 @@ def test_answering_an_image_in_several_batches_skips_nothing(app, db, admin_clie
         if step < 2:
             assert resp.headers["Location"].endswith(base)
     assert all(a.is_completed for a in TaskAssignment.query.all())
-    assert b"Done" in client.get("/user/annotation-tasks").data
+    page = client.get("/user/annotation-tasks").data
+    assert b"All done" in page and b"answered-tasks" in page
 
 
 def test_hand_out_setting_from_the_forms(admin_client):
@@ -490,7 +491,7 @@ def test_deleting_an_annotation_project_removes_all_its_data_and_files(app, db, 
     finally:
         event.remove(db.engine, "before_cursor_execute", listener)
 
-    assert b"Project Deleted Successfully" in resp.data
+    assert b"The project was deleted" in resp.data
     db.session.expire_all()
     assert db.session.get(Project, project_id) is None
     for model in (AnnotationTask, ProjectImage, Question, GroupProject):
@@ -500,3 +501,24 @@ def test_deleting_an_annotation_project_removes_all_its_data_and_files(app, db, 
     assert UserQuestionAssignment.query.filter_by(question_id=kept_question.id).count() == 1
     # one DELETE per table, not one per answer, assignment and task
     assert sum(s.lstrip().upper().startswith("DELETE") for s in statements) <= 12
+
+
+def test_my_tasks_lists_open_tasks_before_finished_ones(app, db, user_client, end_user):
+    from application.models import Question
+    project = Project(name="Order", desc="d", is_annotation_project=True)
+    db.session.add(project)
+    db.session.flush()
+    first = Question(question="Answered first?", project_id=project.id)
+    second = Question(question="Still open?", project_id=project.id)
+    item = ProjectImage(project_id=project.id, filename="a.png", original_filename="a.png", file_path="a.png")
+    db.session.add_all([first, second, item])
+    db.session.flush()
+    for question, done in ((first, True), (second, False)):
+        task = AnnotationTask(project_id=project.id, image_id=item.id, question_id=question.id)
+        db.session.add(task)
+        db.session.flush()
+        db.session.add(TaskAssignment(task_id=task.id, user_id=end_user.id, is_completed=done))
+    db.session.commit()
+
+    page = user_client.get("/user/annotation-tasks").data.decode()
+    assert page.index("Still open?") < page.index("Answered first?")

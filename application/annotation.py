@@ -117,7 +117,7 @@ def change_password():
         flash('Password changed successfully', 'success')
         return redirect(url_for('annotation.profile'))
 
-    return render_template('end-user/change_password.html')
+    return render_template('end-user/profile.html')  # the profile page holds the password form
 
 
 def _still_holds_key(user_id, key):

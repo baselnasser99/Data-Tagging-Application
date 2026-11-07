@@ -1,9 +1,9 @@
 <h1><img src="docs/preview/logo.svg#gh-light-mode-only" alt="Data Tagging" width="260"><img src="docs/preview/logo-dark.svg#gh-dark-mode-only" alt="Data Tagging" width="260"></h1>
 
 <p>
-  <a href="docs/walkthrough.md#gh-light-mode-only"><img src="https://img.shields.io/badge/demo-watch%20(75%20s)-F5CF3A" alt="Watch the demo, 75 seconds"></a><a href="docs/walkthrough-dark.md#gh-dark-mode-only"><img src="https://img.shields.io/badge/demo-watch%20(75%20s)-F5CF3A" alt="Watch the demo, 75 seconds"></a>
+  <a href="docs/walkthrough.md#gh-light-mode-only"><img src="https://img.shields.io/badge/demo-watch%20(77%20s)-F5CF3A" alt="Watch the demo, 77 seconds"></a><a href="docs/walkthrough-dark.md#gh-dark-mode-only"><img src="https://img.shields.io/badge/demo-watch%20(76%20s)-F5CF3A" alt="Watch the demo, 76 seconds"></a>
   <a href="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml"><img src="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
-  <img src="https://img.shields.io/badge/coverage-~94%25-1C2733" alt="About 94% line coverage">
+  <img src="https://img.shields.io/badge/coverage-~95%25-1C2733" alt="About 95% line coverage">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1C2733" alt="MIT license"></a>
 </p>
 
@@ -16,7 +16,7 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
 **[What it does](#what-it-does)** · **[How it stays fair](#how-the-hand-out-stays-fair)** · **[Measurements](#measured-not-assumed)** · **[Run it](#run-it)** · **[Docs](#documentation)**
 
 <a href="docs/walkthrough.md#gh-light-mode-only"><img src="docs/preview/walkthrough.webp#gh-light-mode-only" alt="Walkthrough: an admin hands out tasks across a group, checks agreement in the results, then a member answers three tasks with the keyboard" width="100%"></a><a href="docs/walkthrough-dark.md#gh-dark-mode-only"><img src="docs/preview/walkthrough-dark.webp#gh-dark-mode-only" alt="Walkthrough: an admin hands out tasks across a group, checks agreement in the results, then a member answers three tasks with the keyboard" width="100%"></a>
-<p align="center"><sub>Click the preview to watch the full walkthrough (75 s)</sub></p>
+<p align="center"><sub>Click the preview to watch the full walkthrough (about 75 s)</sub></p>
 
 <table>
   <tr>
@@ -24,7 +24,7 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
     <td width="50%"><b>No answers lost</b><br><sub>Across 25 benchmark runs with people leaving and joining</sub></td>
   </tr>
   <tr>
-    <td><b>300+ tests, ~94% coverage</b><br><sub>Run by GitHub Actions on every push</sub></td>
+    <td><b>400+ tests, ~95% coverage</b><br><sub>Run by GitHub Actions on every push</sub></td>
     <td><b>294 ms with 20 people at once</b><br><sub>Median response while everyone answers, 0 errors</sub></td>
   </tr>
 </table>
@@ -220,7 +220,7 @@ On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest -
 | **Backend** | Python 3.11 and 3.12, Flask (app factory and blueprints), SQLAlchemy 2, Flask-Login, Flask-WTF (CSRF) |
 | **Database** | MySQL 8 in production, SQLite for development and tests; older databases are upgraded automatically on start |
 | **Frontend** | Jinja templates, Bootstrap 3 and AdminLTE 2, a custom design layer (`app.css`, `apple.css`) with reduced-motion and high-contrast fallbacks, Chart.js |
-| **Quality** | pytest with ~94% line coverage, GitHub Actions, Dependabot |
+| **Quality** | pytest with ~95% line coverage, GitHub Actions, Dependabot |
 | **Deployment** | Docker Compose (Gunicorn and MySQL) |
 
 <details>

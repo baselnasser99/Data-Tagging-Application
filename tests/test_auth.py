@@ -131,8 +131,8 @@ def test_needs_you_lists_each_projects_next_step_and_loose_people(app, db, admin
     make_user(name="Loose")  # a member in no group
 
     page = admin_client.get("/admin/dashboard").data.decode()
-    for text in ("Empty: add items", "Ready: hand out tasks", "Poll: give it to a group",
-                 "1 person in no group", "Nobody yet: no members yet"):
+    for text in ("Empty: add items", "Ready: hand out tasks", "Poll: assign a group",
+                 "1 person in no group", "Nobody yet: no members"):
         assert text in page, text
     assert "and 3 more" in page  # two shown, the rest folded away
     assert "/admin/users?show=none" in page
@@ -147,7 +147,7 @@ def test_needs_you_lists_each_projects_next_step_and_loose_people(app, db, admin
     client = app.test_client()
     login(client, make_project_admin(survey).email)
     page = client.get("/admin/my-projects").data.decode()
-    assert "Poll: give it to a group" in page
+    assert "Poll: assign a group" in page
     assert "Empty: add items" not in page and "no group" not in page and "Nobody yet" not in page
 
 
@@ -158,8 +158,8 @@ def test_needs_you_stays_short_with_many_projects(db, admin_client):
     db.session.add_all([UserGroup(name="Empty A"), UserGroup(name="Empty B")])
     db.session.commit()
     page = admin_client.get("/admin/dashboard").data.decode()
-    assert "2 groups with no members" in page  # one line for many groups, shown before the projects
-    assert page.index("2 groups with no members") < page.index("New 0: add items")
+    assert "2 empty groups" in page  # one line for many groups, shown before the projects
+    assert page.index("2 empty groups") < page.index("New 0: add items")
     # 16 lines: the groups line and New 0 shown, New 1-8 folded (10 in all), the last 6 only counted
     assert "New 8: add items" in page and "New 9: add items" not in page
     assert "and 14 more</summary>" in page and "and 6 more: see all projects" in page

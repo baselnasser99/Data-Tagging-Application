@@ -316,7 +316,7 @@ a:hover, a:focus { color: var(--ink-soft); }
   .sidebar-mini.sidebar-collapse .sidebar-menu > li > a > span,
   .sidebar-mini.sidebar-collapse .sidebar-menu > li.header { display: block !important; }
   .sidebar-menu > li > a, .sidebar-menu > li.header, .sidebar-new-button,
-  .main-header .logo-name, .sidebar-foot { white-space: nowrap; }
+  .main-header .logo-name { white-space: nowrap; }  /* the foot keeps its width instead, so its lines wrap and never reflow */
   .sidebar-foot { width: 230px; flex: none; }
   .sidebar-menu > li > a, .sidebar-new-button { overflow: hidden; }
   .sidebar-mini.sidebar-collapse .sidebar-menu > li > a { margin-right: 10px; }  /* AdminLTE runs it to the edge */

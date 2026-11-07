@@ -22,7 +22,6 @@
       <div class="box">
         <div class="box-header with-border">
           <h2 class="box-title task-card-title">{{ project.name }}</h2>
-          <p class="text-muted" style="margin: 2px 0 0;">{{ plural(items | length, "question") }} about this {{ 'clip' if image.is_audio else 'picture' }}</p>
           <div class="box-tools pull-right">
             {% if pending %}
             <span class="badge bg-yellow">{{ pending|length }} to answer</span>

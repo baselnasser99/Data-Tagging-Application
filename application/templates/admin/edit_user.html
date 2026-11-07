@@ -24,12 +24,12 @@
             <label for="email">Email address</label>
             <input type="email" class="form-control" id="email" name="email" maxlength="255" required
                    value="{{ form.get('email', user.email) }}">
-            <p class="help-block">They sign in with this address. Answers downloaded earlier keep the old one.</p>
+            <p class="help-block">Their sign-in address. Earlier downloads keep the old one.</p>
           </div>
           <div class="form-group">
             <label for="password">New password</label>
             <input type="password" class="form-control" id="password" name="password" minlength="{{ min_password_length }}" autocomplete="new-password">
-            <p class="help-block">Leave it empty to keep their current password. If they forgot it, set a new one and share it with them.</p>
+            <p class="help-block">Leave empty to keep their current password.</p>
           </div>
         </div>
         <div class="box-footer quick-actions">

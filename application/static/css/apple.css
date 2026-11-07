@@ -21,14 +21,13 @@
 
 /* ---------- typography: system font, tracking by size ---------- */
 html, body { font-size: 15px; }
-body, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6,
+body, h1, h2, h3, h4, h5, h6,
 .main-header .logo, .btn, .form-control, .table, .label, .badge {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .content-header > h1 { font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; }
 .box-title, .section-title { letter-spacing: -0.01em; }
-.small-box h3 { letter-spacing: -0.02em; line-height: 1.1; }
 .text-muted, .help-block, small { letter-spacing: 0.01em; }
 
 /* ---------- sticky top bar ---------- */
@@ -39,10 +38,9 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   background: var(--canvas);  /* solid: content scrolling under a see-through bar showed as smudges */
   border-bottom: 1px solid var(--hairline);
 }
-.main-header .logo:hover { background: var(--canvas); }
 
 /* ---------- depth: soft, rounded surfaces ---------- */
-.box, .card, .panel, .nav-tabs-custom, .small-box, .small-box[class*="bg-"] {
+.box {
   border: 0;
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
@@ -53,7 +51,6 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .form-control { border-radius: var(--radius-sm); box-shadow: var(--shadow-small) inset; }
 .progress { border-radius: 99px; height: 6px; overflow: hidden; }
 .progress-bar { border-radius: 99px; }  /* widths are set when the page is drawn; nothing to animate */
-.sidebar-menu > li > a { border-radius: var(--radius-sm); }
 .dropdown-menu, .navbar-nav > .user-menu > .dropdown-menu.account-menu {
   border: 0; border-radius: var(--radius); box-shadow: 0 12px 32px color-mix(in srgb, var(--shade) 16%, transparent);
   transform-origin: top right;  /* the menu grows out of the button that opened it */
@@ -61,13 +58,12 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 
 /* Dark theme: shadows vanish on near-black, so panels get a hairline edge instead (tokens.css) */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) :is(.box, .card, .panel, .nav-tabs-custom, .small-box) { box-shadow: none; border: 1px solid var(--line); }
+  :root:not([data-theme="light"]) .box { box-shadow: none; border: 1px solid var(--line); }
 }
-:root[data-theme="dark"] :is(.box, .card, .panel, .nav-tabs-custom, .small-box) { box-shadow: none; border: 1px solid var(--line); }
+:root[data-theme="dark"] .box { box-shadow: none; border: 1px solid var(--line); }
 
 /* ---------- response: feedback the instant you press ---------- */
 .btn { border-radius: var(--radius-sm); transition: var(--press), background-color 150ms ease, box-shadow 150ms ease; }
-.btn:active, .btn.active { transform: scale(0.97); box-shadow: none; }
 .sidebar-menu > li > a { transition: var(--press), background-color 150ms ease; }
 .sidebar-menu > li > a:active { transform: scale(0.98); }
 
@@ -75,9 +71,8 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
    times a day, so they don't move on hover; the press (scale 0.97) is the feedback. */
 @media (hover: hover) and (pointer: fine) {
   .btn:hover { box-shadow: 0 2px 8px color-mix(in srgb, var(--shade) 10%, transparent); }
-  .btn-primary:hover, .btn-primary:focus, .btn-info:hover, .btn-info:focus { background: var(--ink-hover); border-color: var(--ink-hover); }
-  .btn-success:hover { background: #238A57; border-color: #238A57; }  /* on --success-solid, the same in both themes */
-  .btn-danger:hover { box-shadow: 0 4px 12px rgba(180, 35, 24, 0.18); }
+  .btn-primary:hover, .btn-primary:focus { background: var(--ink-hover); border-color: var(--ink-hover); }
+  .btn-danger:hover { box-shadow: 0 4px 12px color-mix(in srgb, var(--danger-solid) 18%, transparent); }
   .sidebar-menu > li > a:hover > .ic { color: var(--ink); }
 }
 .btn:active, .btn.active { transform: scale(0.97); box-shadow: none; }  /* press wins over hover */
@@ -120,6 +115,6 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 }
 @media (prefers-contrast: more) {
-  .box, .card, .panel, .small-box { box-shadow: none; border: 1px solid var(--line-strong); }
+  .box { box-shadow: none; border: 1px solid var(--line-strong); }
   .main-header .logo, .main-header .navbar { border-bottom-color: var(--line-strong); }
 }

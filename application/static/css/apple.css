@@ -15,6 +15,7 @@
   --shadow-card: 0 1px 2px color-mix(in srgb, var(--shade) 5%, transparent), 0 6px 20px color-mix(in srgb, var(--shade) 6%, transparent);
   /* Motion: strong custom curves (the built-in ones are too weak), short durations */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);  /* things appearing and responding to a press */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);  /* a panel opening or closing: quick start, long gentle stop */
   --press: transform 160ms var(--ease-out);
 }
 
@@ -35,10 +36,10 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .main-header { position: sticky; top: 0; z-index: 1030; }
 .main-header .logo,
 .main-header .navbar {
-  background: var(--surface);  /* solid: content scrolling under a see-through bar showed as smudges */
+  background: var(--canvas);  /* solid: content scrolling under a see-through bar showed as smudges */
   border-bottom: 1px solid var(--hairline);
 }
-.main-header .logo:hover { background: var(--surface); }
+.main-header .logo:hover { background: var(--canvas); }
 
 /* ---------- depth: soft, rounded surfaces ---------- */
 .box, .card, .panel, .nav-tabs-custom, .small-box, .small-box[class*="bg-"] {
@@ -58,6 +59,12 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   transform-origin: top right;  /* the menu grows out of the button that opened it */
 }
 
+/* Dark theme: shadows vanish on near-black, so panels get a hairline edge instead (tokens.css) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) :is(.box, .card, .panel, .nav-tabs-custom, .small-box) { box-shadow: none; border: 1px solid var(--line); }
+}
+:root[data-theme="dark"] :is(.box, .card, .panel, .nav-tabs-custom, .small-box) { box-shadow: none; border: 1px solid var(--line); }
+
 /* ---------- response: feedback the instant you press ---------- */
 .btn { border-radius: var(--radius-sm); transition: var(--press), background-color 150ms ease, box-shadow 150ms ease; }
 .btn:active, .btn.active { transform: scale(0.97); box-shadow: none; }
@@ -71,7 +78,7 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   .btn-primary:hover, .btn-primary:focus, .btn-info:hover, .btn-info:focus { background: var(--ink-hover); border-color: var(--ink-hover); }
   .btn-success:hover { background: #238A57; border-color: #238A57; }  /* on --success-solid, the same in both themes */
   .btn-danger:hover { box-shadow: 0 4px 12px rgba(180, 35, 24, 0.18); }
-  .sidebar-menu > li > a:hover > .fa { color: var(--ink); }
+  .sidebar-menu > li > a:hover > .ic { color: var(--ink); }
 }
 .btn:active, .btn.active { transform: scale(0.97); box-shadow: none; }  /* press wins over hover */
 
@@ -91,6 +98,16 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   to   { opacity: 1; transform: none; filter: none; }
 }
 
+/* ---------- motion: progress draws in like a highlighter stroke ----------
+   Once per browser tab, on the first page that has progress bars (theme.js and site.js set
+   html.is-drawing): each fill sweeps left to right, a beat apart. Work balance stays still: it compares shares, it is not progress. Every later page shows
+   the bars as they are, so a page opened all day never makes you wait to read it. */
+@keyframes highlight-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+.is-drawing .progress-bar { animation: highlight-in 700ms var(--ease-drawer) both; }
+
 /* ---------- accessibility ---------- */
 @media (prefers-reduced-motion: reduce) {
   /* Less motion, not none: colours and opacity still fade, nothing moves or scales */
@@ -99,6 +116,7 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   .task-grid .box { transition: box-shadow 200ms ease; }
   .btn:active, .btn:hover, .sidebar-menu > li > a:active, .task-grid .box:has(.box-footer .btn-block:active) { transform: none; }
   .flash-area .alert { animation: fade 150ms ease both; }
+  .is-drawing .progress-bar { animation: none; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 }
 @media (prefers-contrast: more) {

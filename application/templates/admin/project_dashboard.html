@@ -22,11 +22,11 @@
     </div>
     <div class="page-actions">
         {% if project.is_annotation_project %}
-        <a class="btn btn-default" href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}"><i class="fa fa-download" aria-hidden="true"></i> CSV</a>
-        <a class="btn btn-default" href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}"><i class="fa fa-download" aria-hidden="true"></i> JSON</a>
-        <a class="btn btn-primary" href="{{ url_for('annotation_admin.view_annotation_project', project_id=project.id) }}"><i class="fa fa-line-chart" aria-hidden="true"></i> Progress and results</a>
+        <a class="btn btn-default" href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}">{{ icon("download") }} CSV</a>
+        <a class="btn btn-default" href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}">{{ icon("download") }} JSON</a>
+        <a class="btn btn-primary" href="{{ url_for('annotation_admin.view_annotation_project', project_id=project.id) }}">{{ icon("chart") }} Progress and results</a>
         {% else %}
-        <a class="btn btn-primary" href="{{ url_for('admin.download_files', project_id=project.id) }}"><i class="fa fa-download" aria-hidden="true"></i> Download answers</a>
+        <a class="btn btn-primary" href="{{ url_for('admin.download_files', project_id=project.id) }}">{{ icon("download") }} Download answers</a>
         {% endif %}
     </div>
 </section>

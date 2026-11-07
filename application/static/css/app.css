@@ -56,17 +56,27 @@ a:hover, a:focus { color: var(--ink-soft); }
 .skip-link:focus { top: 12px; color: var(--on-ink); }
 
 .wrapper, .content-wrapper, .right-side { background: var(--canvas); }
+/* Dot paper, the same as the sign-in page's, behind the top of every page: strongest behind the
+   title, gone by the time the panels start. Static, and never inside panels or on the task
+   screen, where nothing should compete with the item being labelled. */
+.content-wrapper { position: relative; isolation: isolate; }
+.content-wrapper::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 420px; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(var(--dots) 1.1px, transparent 1.2px);
+  background-size: 20px 20px; background-position: 10px 10px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, .55) 45%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, .55) 45%, transparent 100%);
+}
+.content-wrapper:has(.answer-progress)::before { content: none; }
 
 /* ---------- header ---------- */
 .main-header .logo,
 .main-header .navbar {
   height: 56px;
   min-height: 56px;
-  background: var(--surface);
+  background: var(--canvas);  /* the frame sits on the page colour; only content cards are lighter */
   border-bottom: 1px solid var(--line);
 }
-.main-header .navbar .nav > li > a,
-.main-header .sidebar-toggle { padding-top: 13px; padding-bottom: 13px; }
 
 .main-header .logo {
   color: var(--ink);
@@ -76,35 +86,50 @@ a:hover, a:focus { color: var(--ink-soft); }
   padding: 0 18px;
   border-right: 1px solid var(--line);
 }
-.main-header .logo:hover { background: var(--surface); color: var(--ink); }
+.main-header .logo:hover { background: var(--canvas); color: var(--ink); }
 .main-header .logo .logo-lg { display: flex; align-items: center; gap: 10px; height: 55px; }
 .main-header .logo .logo-mini { display: none; }
 .main-header .logo .brand-mark { flex: none; color: var(--ink); }
+/* The mark tags itself: the brackets close in on the yellow square, it pops, they let go. Once on the
+   first page of a tab (with the progress draw-in, html.is-drawing) and whenever the logo is hovered;
+   never on a loop, so nothing moves in the corner of your eye while you work. */
+.main-header .logo .brand-mark :is(path, rect) { transform-box: view-box; transform-origin: 50% 50%; }
+.is-drawing .main-header .logo .brand-mark path,
+.main-header .logo:hover .brand-mark path { animation: mark-select 1100ms cubic-bezier(.65, 0, .35, 1); }
+.is-drawing .main-header .logo .brand-mark rect,
+.main-header .logo:hover .brand-mark rect { animation: mark-tag 1100ms cubic-bezier(.65, 0, .35, 1); }
+@keyframes mark-select { 0%, 100% { transform: scale(1); } 35%, 60% { transform: scale(.82); } }
+@keyframes mark-tag { 0%, 35%, 100% { transform: scale(1); } 52% { transform: scale(1.14); } 70% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .main-header .logo .brand-mark :is(path, rect) { animation: none !important; } }
 .main-header .logo .logo-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }  /* a long APP_NAME ends in "…" */
 
-.main-header .sidebar-toggle { color: var(--ink); }
-
-/* Decorative mark centred in the top bar: the selection brackets close in on the
-   yellow square and let go, slowly, like an item being tagged. */
-.main-header .navbar { position: relative; }
-.header-mark { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  display: flex; color: var(--ink); opacity: .85; pointer-events: none; }
-.header-mark .brand-mark path { transform-box: view-box; transform-origin: 50% 50%;
-  animation: mark-select 7s cubic-bezier(.65, 0, .35, 1) infinite; }
-.header-mark .brand-mark rect { transform-box: view-box; transform-origin: 50% 50%;
-  animation: mark-tag 7s cubic-bezier(.65, 0, .35, 1) infinite; }
-@keyframes mark-select { 0%, 55%, 100% { transform: scale(1); } 70%, 80% { transform: scale(.82); } }
-@keyframes mark-tag { 0%, 62%, 100% { transform: scale(1); } 74% { transform: scale(1.12); } 82% { transform: scale(1); } }
-@media (max-width: 767px) { .header-mark { display: none; } }  /* no room beside the menu button and name */
-@media (prefers-reduced-motion: reduce) { .header-mark .brand-mark path, .header-mark .brand-mark rect { animation: none; } }
-.main-header .sidebar-toggle:hover { background: var(--canvas); color: var(--ink); }
-
-.main-header .navbar .nav > li > a { color: var(--ink); }
+.main-header .sidebar-toggle { color: var(--ink); font-family: inherit; display: flex; align-items: center; }
+.main-header .sidebar-toggle::before { content: none; }  /* AdminLTE drew it with the Font Awesome font */
+.main-header .sidebar-toggle > .ic { width: 20px; height: 20px; }
+/* Top-bar buttons (menu, account): a rounded pill inset from the bar, like the sidebar links.
+   Hover fades the colour only; pressing shrinks it a touch, like every other button. */
+.main-header .sidebar-toggle,
+.main-header .navbar .nav > li > a {
+  height: 40px; margin: 8px 4px; padding: 0 10px; border-radius: var(--radius-sm); color: var(--ink);
+  transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+.main-header .sidebar-toggle { margin-left: 8px; }
+.main-header .navbar .nav > li > a { margin-right: 10px; }
+/* Lit on hover, while its menu is open, or when reached with Tab; a mouse click leaves no highlight
+   behind. A wash of the text colour, so it lifts in the dark theme instead of sinking into the bar. */
+.main-header .sidebar-toggle:focus, .main-header .navbar .nav > li > a:focus { background: transparent; color: var(--ink); }
+.main-header .sidebar-toggle:hover, .main-header .sidebar-toggle:focus-visible,
 .main-header .navbar .nav > li > a:hover,
-.main-header .navbar .nav > li > a:focus,
-.main-header .navbar .nav .open > a { background: var(--canvas); color: var(--ink); }
+.main-header .navbar .nav > li > a:focus-visible,
+.main-header .navbar .nav .open > a,
+.main-header .navbar .nav .open > a:focus { background: var(--wash); color: var(--ink); }
+.main-header .sidebar-toggle:active, .main-header .navbar .nav > li > a:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  .main-header .sidebar-toggle, .main-header .navbar .nav > li > a { transition: background-color 150ms ease; }
+  .main-header .sidebar-toggle:active, .main-header .navbar .nav > li > a:active { transform: none; }
+}
 
-.user-menu > a { display: flex; align-items: center; gap: 8px; }
+.main-header .navbar .nav > li.user-menu > a { display: flex; align-items: center; gap: 8px; }  /* beats Bootstrap's .nav > li > a { display: block } */
+.main-header .navbar .nav > li.user-menu > a { padding-left: 6px; }  /* the avatar sits evenly in the pill's rounded end */
 .avatar {
   display: inline-grid;
   place-items: center;
@@ -151,7 +176,7 @@ a:hover, a:focus { color: var(--ink-soft); }
 
 /* ---------- sidebar ---------- */
 .main-sidebar, .left-side {
-  background: var(--surface);
+  background: var(--canvas);
   border-right: 1px solid var(--line);
   padding-top: 64px;
 }
@@ -174,42 +199,43 @@ a:hover, a:focus { color: var(--ink-soft); }
   border-left: 0;
   color: var(--ink);
 }
-.sidebar-menu > li > a > .fa { color: var(--muted); width: 18px; flex: none; }
+.sidebar-menu > li > a > .ic { color: var(--muted); width: 18px; height: 18px; }
 .sidebar-menu > li > a > span { flex: 1; text-align: left; }
-.sidebar-menu > li > a:hover { background: var(--canvas); color: var(--ink); }
+.sidebar-menu > li > a:hover { background: var(--wash); color: var(--ink); }
 
 /* The panel runs the full height of the window, so its bottom can hold a summary and your account */
 .main-sidebar { position: fixed; top: 0; bottom: 0; display: flex; flex-direction: column; overflow-y: auto;
   scrollbar-width: thin; scrollbar-color: var(--line) transparent; }  /* only scrolls on short windows; keep the bar quiet */
 .main-sidebar > nav { flex: none; }
 .sidebar-foot { margin-top: auto; padding: 16px 12px 14px; display: flex; flex-direction: column; gap: 12px; }
-.sidebar-card { background: var(--canvas); border-radius: var(--radius); padding: 14px; }
+.sidebar-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
 .sidebar-card > h2 { font-size: 13px; font-weight: 700; color: var(--muted); margin: 0 0 8px; }
 .sidebar-card dl { margin: 0; display: grid; gap: 4px; }
 .sidebar-card dl > div { display: flex; justify-content: space-between; gap: 8px; }
 .sidebar-card dt { font-weight: 400; color: var(--muted); }
 .sidebar-card dd { margin: 0; font-weight: 700; }
-.sidebar-card .progress { margin: 10px 0 0; background: var(--surface); }
+.sidebar-card .progress { margin: 10px 0 0; background: var(--canvas); }
 /* "Needs you": each line a link to the page where it gets done, marked with a small yellow square */
 .sidebar-todo { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
 .sidebar-todo a { display: block; position: relative; margin: 0 -8px; padding: 3px 8px 3px 20px; border-radius: var(--radius-sm);
   color: var(--ink); text-decoration: none; font-size: 13.5px; line-height: 1.25; }
 .sidebar-todo a::before { content: ""; position: absolute; left: 8px; top: .72em; width: 6px; height: 6px; border-radius: 1px; background: var(--marker); }
-.sidebar-todo a:hover, .sidebar-todo a:focus-visible { background: var(--surface); text-decoration: underline; text-underline-offset: 3px; }
+.sidebar-todo a:hover, .sidebar-todo a:focus-visible { background: var(--canvas); text-decoration: underline; text-underline-offset: 3px; }
 .sidebar-todo .is-clear { color: var(--muted); font-size: 14px; }
-.sidebar-todo .is-clear .fa { color: var(--success); }
+.sidebar-todo .is-clear .ic { color: var(--success); }
 .sidebar-todo-more { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
 .sidebar-todo-more > summary { cursor: pointer; padding: 2px 0; }
 .sidebar-todo-more > .sidebar-todo { margin-top: 2px; }
 .sidebar-todo-rest { display: block; margin-top: 4px; color: var(--muted); }
 .sidebar-account { display: flex; align-items: center; gap: 10px; padding: 10px 4px 0; border-top: 1px solid var(--line); }
+.sidebar-avatar { flex: none; text-decoration: none; transition: box-shadow 150ms ease; }
+.sidebar-avatar:hover, .sidebar-avatar:focus { color: var(--on-ink); text-decoration: none; box-shadow: 0 0 0 3px var(--line-strong); }
 .sidebar-account-who { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .sidebar-account-who > strong, .sidebar-account-who > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-account-who > span { color: var(--muted); font-size: 13px; }
 .sidebar-icon-link { width: 32px; height: 32px; border-radius: var(--radius-sm); display: inline-flex; align-items: center;
   justify-content: center; color: var(--muted); text-decoration: none; border: 0; padding: 0; background: none; }
-.sidebar-icon-link:hover, .sidebar-icon-link:focus { background: var(--canvas); color: var(--ink); }
-.sidebar-collapse .sidebar-foot { display: none; }  /* the narrow, icons-only panel has no room for it */
+.sidebar-icon-link:hover, .sidebar-icon-link:focus { background: var(--wash); color: var(--ink); }
 
 /* Current page: highlighted like a marked passage. */
 .sidebar-menu > li.active > a,
@@ -219,18 +245,103 @@ a:hover, a:focus { color: var(--ink-soft); }
   font-weight: 700;
   color: var(--ink);
 }
-.sidebar-menu > li.active > a > .fa { color: var(--ink); }
+.sidebar-menu > li.active > a > .ic { color: var(--ink); }
 
-/* collapsed sidebar on desktop */
-.sidebar-mini.sidebar-collapse .main-header .logo .logo-lg { display: none; }
-.sidebar-mini.sidebar-collapse .main-header .logo .logo-mini { display: flex; align-items: center; justify-content: center; height: 55px; }
-.sidebar-mini.sidebar-collapse .main-header .logo { padding: 0; }
-.sidebar-mini.sidebar-collapse .sidebar-menu > li.header { display: none; }
-.sidebar-mini.sidebar-collapse .sidebar-menu > li > a { margin: 1px 6px; justify-content: center; }
-.sidebar-mini.sidebar-collapse .sidebar-menu > li:hover > a > span:not(.pull-right) {
-  background: var(--ink);
-  color: var(--on-ink);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+/* Icons (application/icons.py): line drawings sized to the text beside them */
+.ic { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex: none; }
+.btn .ic { width: 1.05em; height: 1.05em; vertical-align: -0.17em; }
+.ic-lg { width: 3em; height: 3em; }
+
+/* "New": one menu for everything an admin or manager creates. It opens beside the sidebar
+   (static/js/site.js places it), so it never covers the panel's own contents. */
+.sidebar-new { padding: 2px 10px 8px; }
+.sidebar-new-button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink);
+  font-weight: 700; box-shadow: 0 1px 2px color-mix(in srgb, var(--shade) 6%, transparent);
+  transition: transform 160ms var(--ease-out), background-color 150ms ease, border-color 150ms ease; }
+.sidebar-new-button > span { flex: 1; text-align: left; }
+.sidebar-new-button > .ic { width: 16px; height: 16px; transition: transform 220ms var(--ease-out); }
+.sidebar-new-button > .ic-chevron-down { color: var(--muted); }
+.sidebar-new-button:hover, .sidebar-new-button[aria-expanded="true"] { background: var(--wash); border-color: var(--line-strong); }
+.sidebar-new-button:active { transform: scale(0.97); }
+/* Open: the plus turns a quarter (it still reads as a plus) and the chevron flips, together with the menu */
+.sidebar-new-button[aria-expanded="true"] > .ic-plus { transform: rotate(90deg); }
+.sidebar-new-button[aria-expanded="true"] > .ic-chevron-down { transform: rotate(180deg); }
+
+.new-menu { position: fixed; z-index: 1040; width: 280px; margin: 0; padding: 6px; list-style: none;
+  background: var(--surface); border-radius: var(--radius);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--shade) 16%, transparent), 0 0 0 1px var(--hairline);
+  transform-origin: top left;
+  /* Closed, and the way it leaves: a quick fade back toward the button */
+  display: none; opacity: 0; transform: translateX(-6px) scale(0.97); filter: blur(2px);
+  transition: opacity 120ms ease, transform 120ms ease, filter 120ms ease, display 120ms allow-discrete; }
+/* Open: it grows out of the button and comes into focus (the same "materialise" as the messages) */
+.new-menu.is-open { display: block; opacity: 1; transform: none; filter: none;
+  transition-duration: 220ms; transition-timing-function: var(--ease-out); }
+@starting-style { .new-menu.is-open { opacity: 0; transform: translateX(-6px) scale(0.97); filter: blur(2px); } }
+.new-menu.is-below { transform-origin: top center; }
+.new-menu a { display: grid; grid-template-columns: 20px 1fr; column-gap: 10px; padding: 8px 10px;
+  border-radius: var(--radius-sm); color: var(--ink); text-decoration: none; }
+.new-menu a:hover, .new-menu a:focus { background: var(--canvas); color: var(--ink); text-decoration: none; outline: none; }
+.new-menu a:focus-visible { box-shadow: 0 0 0 3px var(--marker); }
+.new-menu a > .ic { grid-row: span 2; width: 18px; height: 18px; margin-top: 2px; color: var(--muted); }
+.new-menu a:hover > .ic, .new-menu a:focus > .ic { color: var(--ink); }
+.new-menu a > span { font-weight: 700; line-height: 1.3; }
+.new-menu a > small { color: var(--muted); font-size: 13px; line-height: 1.35; }
+.new-menu [role="separator"] { margin: 6px 4px; border-top: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) {
+  /* Fades only: nothing turns, grows or slides */
+  .sidebar-new-button, .sidebar-new-button > .ic { transition: background-color 150ms ease; }
+  .sidebar-new-button:active, .sidebar-new-button[aria-expanded="true"] > .ic { transform: none; }
+  .new-menu, .new-menu.is-open { transform: none; filter: none; }
+  @starting-style { .new-menu.is-open { transform: none; filter: none; } }
+}
+
+/* Collapsed sidebar on desktop: the panel narrows to 62 px around icons that stay exactly where
+   they are (each sits on the same 31 px centre line in both states), while the words fade out
+   ahead of it, and back in once there is room. Nothing jumps, swaps or wraps. */
+@media (min-width: 768px) {
+  .sidebar-mini.sidebar-collapse .main-sidebar { width: 62px !important; }
+  .sidebar-mini.sidebar-collapse .content-wrapper,
+  .sidebar-mini.sidebar-collapse .main-footer { margin-left: 62px !important; }
+  .sidebar-mini.sidebar-collapse .main-header .navbar { margin-left: 62px; }
+  .sidebar-mini.sidebar-collapse .main-header .logo { width: 62px; }
+  .main-sidebar { overflow-x: hidden; transition: width 280ms var(--ease-drawer); }
+  .content-wrapper, .main-footer, .main-header .navbar { transition: margin-left 280ms var(--ease-drawer); }
+  .main-header .logo { transition: width 280ms var(--ease-drawer); }
+
+  /* Keep everything laid out at full width; the narrow panel just covers the right part of it */
+  .sidebar-mini.sidebar-collapse .main-header .logo > .logo-lg { display: flex; }
+  .sidebar-mini.sidebar-collapse .main-header .logo > .logo-mini { display: none; }
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li > a > span,
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li.header { display: block !important; }
+  .sidebar-menu > li > a, .sidebar-menu > li.header, .sidebar-new-button,
+  .main-header .logo-name { white-space: nowrap; }  /* the foot keeps its width instead, so its lines wrap and never reflow */
+  .sidebar-foot { width: 230px; flex: none; }
+  .sidebar-menu > li > a, .sidebar-new-button { overflow: hidden; }
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li > a { margin-right: 10px; }  /* AdminLTE runs it to the edge */
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li:hover > a > span { position: static; }  /* no flyout: the link's title names it */
+
+  /* The words: out quickly, in a beat later */
+  .sidebar-menu > li > a > span, .sidebar-menu > li.header, .sidebar-new-button > span,
+  .sidebar-new-button > .ic-chevron-down, .main-header .logo-name,
+  .sidebar-card, .sidebar-account-who, .sidebar-account > .sidebar-icon-link, .sidebar-account > form {
+    transition: opacity 180ms ease 110ms, visibility 0s; }
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li > a > span,
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li.header,
+  .sidebar-mini.sidebar-collapse .sidebar-new-button > span,
+  .sidebar-mini.sidebar-collapse .sidebar-new-button > .ic-chevron-down,
+  .sidebar-mini.sidebar-collapse .main-header .logo-name { opacity: 0; transition: opacity 90ms ease; }
+  /* Controls hidden by the narrow panel can't be reached with Tab either (the menu words above stay
+     in place as the links' names, for screen readers) */
+  .sidebar-mini.sidebar-collapse .sidebar-card,
+  .sidebar-mini.sidebar-collapse .sidebar-account-who,
+  .sidebar-mini.sidebar-collapse .sidebar-account > .sidebar-icon-link,
+  .sidebar-mini.sidebar-collapse .sidebar-account > form { opacity: 0; visibility: hidden; transition: opacity 90ms ease, visibility 0s 90ms; }
+  .sidebar-mini.sidebar-collapse .sidebar-account { border-top-color: transparent; }
+}
+@media (min-width: 768px) and (prefers-reduced-motion: reduce) {
+  .main-sidebar, .content-wrapper, .main-footer, .main-header .navbar, .main-header .logo { transition: none; }
 }
 
 /* ---------- page header ---------- */
@@ -303,7 +414,6 @@ a:hover, a:focus { color: var(--ink-soft); }
   font-weight: 700;
 }
 .small-box > .small-box-footer:hover { background: var(--canvas); color: var(--ink); }
-.small-box > .small-box-footer .fa { display: none; }
 
 .info-box {
   background: var(--surface);
@@ -398,7 +508,6 @@ a:hover, a:focus { color: var(--ink-soft); }
   align-items: center;
   gap: 8px;
 }
-.btn-app > .fa { display: inline; font-size: 16px; }
 .btn-app:hover { background: var(--canvas); border-color: var(--line-strong); color: var(--ink); }
 
 /* ---------- forms ---------- */
@@ -430,8 +539,7 @@ code { color: var(--ink); background: var(--canvas); }
 
 /* ---------- messages ---------- */
 .alert {
-  border: 0;
-  border-left: 4px solid var(--ink);
+  border: 0;  /* the tint says what kind of message it is; no side stripe */
   border-radius: var(--radius-sm);
   background: var(--info-bg);
   color: var(--ink);
@@ -439,10 +547,10 @@ code { color: var(--ink); background: var(--canvas); }
   margin-bottom: 10px;
 }
 /* AdminLTE paints alerts with !important solid fills, so these must match it. */
-.alert-success { border-left-color: var(--success) !important; background: var(--success-bg) !important; color: var(--ink) !important; }
-.alert-danger  { border-left-color: var(--danger) !important;  background: var(--danger-bg) !important;  color: var(--ink) !important; }
-.alert-warning { border-left-color: var(--warning) !important; background: var(--warning-bg) !important; color: var(--ink) !important; }
-.alert-info    { border-left-color: var(--ink) !important;     background: var(--info-bg) !important;    color: var(--ink) !important; }
+.alert-success { background: var(--success-bg) !important; color: var(--ink) !important; }
+.alert-danger  { background: var(--danger-bg) !important;  color: var(--ink) !important; }
+.alert-warning { background: var(--warning-bg) !important; color: var(--ink) !important; }
+.alert-info    { background: var(--info-bg) !important;    color: var(--ink) !important; }
 
 /* ---------- small status labels ---------- */
 .badge, .label {
@@ -528,15 +636,20 @@ code { color: var(--ink); background: var(--canvas); }
 .balance { padding: 14px 18px; border-top: 1px solid var(--line); }
 .balance:first-of-type { border-top: 0; }
 .balance-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 10px; }
-.balance-gap { font-size: 13px; color: var(--muted); }
-.balance-gap.is-even { color: var(--success); font-weight: 700; }
+/* Balance status: the house tag (badge), green when shares are within one task, amber when not */
+.balance-gap { font-size: 12.5px; }
+.balance-gap .ic { margin-right: 4px; }
 .balance-people { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .balance-people > li { display: grid; grid-template-columns: minmax(0, 9.5rem) 1fr auto; align-items: center; gap: 12px; font-size: 14px; }
 .balance-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.balance-bar { display: flex; height: 10px; border-radius: 3px; background: var(--canvas); overflow: hidden; }
+.balance-bar { display: flex; height: 8px; border-radius: 99px; background: var(--canvas); overflow: hidden; }
 /* Done work is the solid yellow, open work is hatched: still to fill in */
 .balance-bar .is-done { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }
-.balance-bar .is-open, .key-open { background: repeating-linear-gradient(135deg, var(--line-strong) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--line-strong); }
+/* Open work: a solid grey after the yellow, split from it by a sliver of the card, so done and open
+   differ in lightness as well as colour (and the key names them) */
+.balance-bar .is-open, .key-open { background: var(--line-strong); }
+.balance-bar .is-done + .is-open { border-left: 2px solid var(--surface); }
+.balance-bar .is-open { border-radius: 0 99px 99px 0; }
 .balance-count { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 4.5rem; text-align: right; }
 .balance-count b { color: var(--ink); }
 .balance-more { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
@@ -558,7 +671,6 @@ code { color: var(--ink); background: var(--canvas); }
   margin-bottom: 20px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-left: 4px solid var(--marker);
   border-radius: var(--radius);
 }
 .next-up h2 { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
@@ -688,7 +800,7 @@ code { color: var(--ink); background: var(--canvas); }
 /* Users page: a searchable list of people instead of a spreadsheet. */
 .people-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
 .people-search { position: relative; flex: 1 1 280px; }
-.people-search .fa { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.people-search .ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
 .people-search .form-control { padding-left: 34px; }
 .people-filter { width: auto; flex: 0 0 auto; }
 .people-list { list-style: none; margin: 0; padding: 0; }
@@ -714,17 +826,17 @@ code { color: var(--ink); background: var(--canvas); }
 .person-figures > * { min-width: 92px; }
 .person-figures a { color: var(--muted); text-decoration: none; border-radius: 6px; }
 .person-figures a:hover, .person-figures a:focus-visible { color: var(--accent); }
-.person-figures a .fa { font-size: 12px; margin-left: 2px; }
+.person-figures a .ic { font-size: 12px; margin-left: 2px; }
 .person-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .person-actions form { margin: 0; }
 .btn-quiet-danger:hover, .btn-quiet-danger:focus { color: var(--danger); border-color: var(--danger); }
 .person.is-removed .person-who, .person.is-removed .person-avatar { opacity: .6; }
 .person.person-short { grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr) auto; padding: 10px 0; }
+.person.person-short:not(:has(.person-groups)) { grid-template-columns: 40px minmax(0, 1fr) auto; }  /* name, then actions */
 .list-search { margin-bottom: 8px; }
 .list-none { margin: 10px 0 0; }
 
 /* Groups: each card has its own colour (top edge + initial) so groups are told apart at a glance. */
-.box.group-card { border-top: 4px solid var(--group-ink, var(--line)); }  /* .box: beats apple.css, which removes box borders */
 .group-card.tone-blue { --group-bg: var(--tint-blue); --group-ink: var(--tint-blue-ink); }
 .group-card.tone-green { --group-bg: var(--tint-green); --group-ink: var(--tint-green-ink); }
 .group-card.tone-amber { --group-bg: var(--tint-amber); --group-ink: var(--tint-amber-ink); }
@@ -764,6 +876,8 @@ code { color: var(--ink); background: var(--canvas); }
 /* Project cards: full description, buttons wrap, Delete set apart */
 .project-desc { white-space: pre-line; overflow-wrap: anywhere; margin: 0; }
 .project-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.project-actions::before, .project-actions::after, .quick-actions::before, .quick-actions::after,
+.balance-key::before, .balance-key::after { content: none; }  /* Bootstrap's clearfix: two extra flex items, each taking a gap */
 .project-actions .project-delete { margin: 0 0 0 auto; }
 
 /* Progress: numbers sit beside the label, never inside the bar */
@@ -774,9 +888,6 @@ code { color: var(--ink); background: var(--canvas); }
    state shows at a glance (the label says it in words too, never colour alone) */
 .project-status { margin-bottom: 12px; }
 .project-status .progress { margin: 6px 0 0; }
-.task-grid .box:has(.project-status) { border-left: 4px solid var(--line-strong); }
-.task-grid .box:has(.project-status.state-active) { border-left-color: var(--marker); }
-.task-grid .box:has(.project-status.state-done) { border-left-color: var(--success); }
 
 /* Text boxes: never wider than their column, never taller than half the screen.
    Where the browser supports it they grow with the text by themselves (no
@@ -809,6 +920,13 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .task-questions > li.text-muted { font-weight: 400; }
 /* Form pages read best at a comfortable width, not stretched across a wide screen */
 .form-page { max-width: 680px; }  /* a form reads best at about one line of text wide */
+.password-notice { margin: 0 0 14px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--marker-soft); color: var(--ink); }  /* member profile: temporary password */
+/* File inputs: the browser's own "Choose File" button, drawn like the app's secondary buttons */
+input[type="file"].form-control { height: auto; padding: 5px 6px; }
+input[type="file"]::file-selector-button { margin-right: 10px; padding: 5px 12px; border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer;
+  transition: background-color 150ms ease; }
+input[type="file"]::file-selector-button:hover { background: var(--wash); }
 .content.form-page { margin-left: 0; margin-right: 0; }  /* AdminLTE centres .content; keep forms in line with the title */
 .quiz-section + .quiz-section { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
 /* Elements hidden by script stay hidden even when a class gives them a display (e.g. .checkbox) */
@@ -927,9 +1045,9 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .next-task {
   display: grid; grid-template-columns: 148px minmax(0, 1fr) auto; align-items: center; gap: 22px;
   padding: 18px 22px 18px 18px; margin-bottom: 20px; color: var(--ink); text-decoration: none;
-  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--marker); border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
 }
-.next-task:hover, .next-task:focus { color: var(--ink); text-decoration: none; border-color: var(--line-strong); border-left-color: var(--marker); }
+.next-task:hover, .next-task:focus { color: var(--ink); text-decoration: none; border-color: var(--line-strong); }
 .next-task:focus-visible { outline: 3px solid var(--marker); outline-offset: 2px; }
 .next-task-item { position: relative; display: block; padding: 8px; background: var(--canvas); border-radius: 4px; }
 .next-task-item .corners {
@@ -951,7 +1069,6 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
   .next-task { transition: box-shadow 150ms ease, transform 160ms var(--ease-out); }
   .next-task:hover { transform: translateY(-1px); box-shadow: 0 8px 22px color-mix(in srgb, var(--shade) 10%, transparent); }
 }
-.next-up.is-done { border-left-color: var(--success); }
 @media (max-width: 767px) {
   .next-task { grid-template-columns: 96px minmax(0, 1fr); gap: 14px; padding: 14px; }
   .next-task-media, .next-task-item .media-audio-thumb { height: 72px; }
@@ -1013,7 +1130,7 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .dropzone + .upload-chosen + .how-it-works { margin-top: 14px; }
 .upload-summary { margin: 0 0 6px; font-weight: 700; }
 .upload-chosen ul { margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 14px; max-height: 180px; overflow: auto; }
-.share-preview { margin-top: 10px; padding: 10px 14px; border-left: 4px solid var(--accent); border-radius: 2px; background: var(--accent-soft); font-weight: 700; }
+.share-preview { margin-top: 10px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--accent-soft); font-weight: 700; }
 .task-sum { display: grid; gap: 2px; }
 .task-sum strong { font-size: 17px; font-variant-numeric: tabular-nums; }
 

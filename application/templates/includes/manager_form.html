@@ -1,7 +1,8 @@
 {# The "add a manager" form: pick a person or type an email. With `projects`, also choose the project. #}
-{% macro add_manager_form(action, candidates, projects=None) -%}
+{% macro add_manager_form(action, candidates, projects=None, replace=False) -%}
 <form method="POST" action="{{ action }}" class="manager-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if replace %}<input type="hidden" name="replace" value="1">{% endif %}
   {% if projects is not none %}
   <div class="form-group">
     <label for="project_id">Project</label>
@@ -23,6 +24,6 @@
     <input type="email" class="form-control" id="email" name="email" autocomplete="off">
     <p class="help-block">A typed email is used instead of the list. People who become managers stop receiving tasks to answer.</p>
   </div>
-  <button type="submit" class="btn btn-primary">Add manager</button>
+  <button type="submit" class="btn btn-primary">{{ "Change manager" if replace else "Add manager" }}</button>
 </form>
 {%- endmacro %}

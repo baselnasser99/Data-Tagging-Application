@@ -74,9 +74,9 @@ def needs_attention(user):
             todo.append((f"{plural(loose, 'person', 'people')} in no group", url_for("admin.users", show="none")))
         empty = UserGroup.query.filter(~UserGroup.members.any()).order_by(UserGroup.name).all()
         if len(empty) == 1:
-            todo.append((f"{empty[0].name}: no members yet", url_for("groups.manage_group", group_id=empty[0].id)))
+            todo.append((f"{empty[0].name}: no members", url_for("groups.manage_group", group_id=empty[0].id)))
         elif empty:
-            todo.append((f"{len(empty)} groups with no members", url_for("groups.view_groups")))
+            todo.append((f"{len(empty)} empty groups", url_for("groups.view_groups")))
 
     for pid, name, is_annotation in projects:
         if is_annotation:
@@ -89,8 +89,8 @@ def needs_attention(user):
         elif pid not in with_questions:
             todo.append((f"{name}: add questions", url_for("manager.edit_project_questions", project_id=pid)))
         elif pid not in with_group:
-            todo.append((f"{name}: give it to a group", url_for("groups.assign_project_to_group")))
+            todo.append((f"{name}: assign a group", url_for("groups.assign_project_to_group")))
         if unclear.get(pid):
-            todo.append((f"{name}: {plural(unclear[pid], 'item')} marked can't tell",
+            todo.append((f"{name}: {plural(unclear[pid], 'item')} can't tell",
                          url_for("annotation_admin.view_annotation_project", project_id=pid)))
     return todo

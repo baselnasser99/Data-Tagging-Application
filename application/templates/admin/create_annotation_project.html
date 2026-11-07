@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}New project{% endblock %}
+{% block title %}New project – {{ app_name }}{% endblock %}
 
 {% block content %}
 <section class="content-header">
   <h1>New project</h1>
   <p class="text-muted page-subtitle">Images or audio clips, each answered by your team.</p>
   <ol class="breadcrumb">
-    <li><a href="{{ url_for('admin.dashboard') }}"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-    <li><a href="{{ url_for('admin.view_projects') }}"><i class="fa fa-folder"></i> Projects</a></li>
+    <li><a href="{{ url_for('admin.dashboard') }}">{{ icon("dashboard") }} Dashboard</a></li>
+    <li><a href="{{ url_for('admin.view_projects') }}">{{ icon("folder") }} Projects</a></li>
     <li class="active">New project</li>
   </ol>
 </section>
@@ -58,7 +58,7 @@
               <p class="help-block">Asked about every image or audio clip. You can add more later.</p>
               <input type="hidden" id="total_questions" name="total_questions" value="0">
               <div id="dynamic-questions"></div>
-              <button type="button" class="btn btn-default" id="add-question"><i class="fa fa-plus"></i> Add a question</button>
+              <button type="button" class="btn btn-default" id="add-question">{{ icon("plus") }} Add a question</button>
             </div>
 
             <template id="question-template">
@@ -84,7 +84,7 @@
                   <div class="question-options" hidden>
                     <p class="help-block" style="margin-top: 0;">Options people choose from (2 to 6).</p>
                     <div class="option-list"></div>
-                    <button type="button" class="btn btn-default btn-sm add-option"><i class="fa fa-plus"></i> Add option</button>
+                    <button type="button" class="btn btn-default btn-sm add-option">{{ icon("plus") }} Add option</button>
                   </div>
                 </div>
               </div>
@@ -97,7 +97,7 @@
             </template>
 
             <div class="row">
-              <div class="col-sm-4">
+              <div class="col-sm-6">
                 <div class="form-group">
                   <label for="max_questions_per_user">Max tasks per person</label>
                   <input type="number" class="form-control" id="max_questions_per_user"
@@ -106,7 +106,7 @@
                 </div>
               </div>
 
-              <div class="col-sm-4">
+              <div class="col-sm-6">
                 <div class="form-group">
                   <label for="answers_per_task">Answers per task</label>
                   <input type="number" class="form-control" id="answers_per_task"
@@ -115,7 +115,11 @@
                 </div>
               </div>
 
-              <div class="col-sm-4">
+            </div>
+
+            {# On its own row, like the project settings page: its choices are too long for a third of the form #}
+            <div class="row">
+              <div class="col-sm-6">
                 <div class="form-group">
                   <label for="hand_out">Hand out work</label>
                   <select class="form-control" id="hand_out" name="hand_out">

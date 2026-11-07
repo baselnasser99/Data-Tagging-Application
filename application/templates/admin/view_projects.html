@@ -10,8 +10,8 @@
 		<p class="page-lede">{{ plural(projects|length - surveys, "project") }} · {{ plural(surveys, "survey") }}</p>
 	</div>
 	<div class="page-actions">
-		<a class="btn btn-default" href="{{ url_for('admin.full_download') }}"><i class="fa fa-download" aria-hidden="true"></i> Export all answers</a>
-		<a class="btn btn-primary" href="{{ url_for('annotation_admin.create_annotation_project') }}"><i class="fa fa-plus" aria-hidden="true"></i> New project</a>
+		<a class="btn btn-default" href="{{ url_for('admin.full_download') }}">{{ icon("download") }} Export all answers</a>
+		<a class="btn btn-primary" href="{{ url_for('annotation_admin.create_annotation_project') }}">{{ icon("plus") }} New project</a>
 	</div>
 </section>
 

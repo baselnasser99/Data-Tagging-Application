@@ -6,13 +6,13 @@
 {% block content %}
 <section class="content-header page-heading">
   <div>
-    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}"><i class="fa fa-arrow-left" aria-hidden="true"></i> {{ project.name }}</a>
+    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ icon("arrow-left") }} {{ project.name }}</a>
     <h1>Progress and results</h1>
     <p class="page-lede">{{ plural(stats.total_images, "item") }} · {{ plural(stats.total_questions, "question") }} · {{ plural(project.answers_per_task, "answer") }} per task</p>
   </div>
   <div class="page-actions">
-    <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-primary"><i class="fa fa-download" aria-hidden="true"></i> Download CSV</a>
-    <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default"><i class="fa fa-download" aria-hidden="true"></i> JSON</a>
+    <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-primary">{{ icon("download") }} Download CSV</a>
+    <a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default">{{ icon("download") }} JSON</a>
   </div>
 </section>
 

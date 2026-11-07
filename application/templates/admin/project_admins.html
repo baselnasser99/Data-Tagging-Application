@@ -1,44 +1,57 @@
 {% extends "base.html" %}
 {% from "includes/manager_form.html" import add_manager_form %}
 
-{% block title %}Managers – {{ project.name }}{% endblock %}
+{% block title %}Manager – {{ project.name }}{% endblock %}
 
 {% block content %}
-<section class="content-header">
-  <h1>Manager<small>{{ project.name }}</small></h1>
+<section class="content-header page-heading">
+  <div>
+    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ icon("arrow-left") }} {{ project.name }}</a>
+    <h1>Manager</h1>
+  </div>
 </section>
 
 <section class="content">
   <div class="row">
     <div class="col-md-7 col-xs-12">
       <div class="box">
-        <div class="box-header with-border"><h3 class="box-title">Current manager</h3></div>
         <div class="box-body">
-          {% for admin in project_admins %}
-          <div class="assignment-row">
-            <span><strong>{{ admin.user.full_name }}</strong> <span class="text-muted">· {{ admin.user.email }}</span><br>
-              <span class="text-muted">Added by {{ admin.assigner.full_name if admin.assigner else 'unknown' }} on {{ admin.assigned_date.strftime('%d %b %Y') }}</span></span>
-            <form action="{{ url_for('manager.remove_project_admin', project_id=project.id, admin_id=admin.id) }}" method="POST"
-                  data-confirm="Remove {{ admin.user.full_name }} as manager of this project?">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-            </form>
-          </div>
-          {% else %}
-          <p class="text-muted" style="margin: 0;">This project has no manager yet. System admins can always manage it.</p>
-          {% endfor %}
+          {# The same person row as the Users and Managers pages #}
+          {% set tones = ['blue', 'green', 'amber', 'violet', 'teal'] %}
+          <ul class="people-list">
+            {% for admin in project_admins %}
+            <li class="person person-short">
+              <span class="person-avatar tone-{{ tones[admin.user.id % 5] }}" aria-hidden="true">{{ admin.user.full_name[:1] | upper }}</span>
+              <div class="person-who">
+                <strong>{{ admin.user.full_name }}</strong>
+                <span class="text-muted">{{ admin.user.email }}</span>
+              </div>
+              <form class="person-actions" action="{{ url_for('manager.remove_project_admin', project_id=project.id, admin_id=admin.id) }}" method="POST"
+                    data-confirm="Remove {{ admin.user.full_name }} as manager of this project?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm" aria-label="Remove {{ admin.user.full_name }} as manager">Remove</button>
+              </form>
+            </li>
+            {% else %}
+            <li class="text-muted">This project has no manager yet. System admins can always manage it.</li>
+            {% endfor %}
+          </ul>
         </div>
       </div>
     </div>
 
-    {% if not project_admins %}
+    {% if not project_admins or current_user.role == 'admin' %}
     <div class="col-md-5 col-xs-12">
       <div class="box">
-        <div class="box-header with-border"><h3 class="box-title">Add a manager</h3></div>
+        <div class="box-header with-border"><h3 class="box-title">{{ "Change manager" if project_admins else "Add a manager" }}</h3></div>
         <div class="box-body">
-          {{ add_manager_form(url_for('manager.add_project_admin', project_id=project.id), candidates) }}
+          {{ add_manager_form(url_for('manager.add_project_admin', project_id=project.id),
+                              candidates | rejectattr('id', 'in', project_admins | map(attribute='user_id') | list),
+                              replace=project_admins | length > 0) }}
+          {% if not project_admins %}
           <p style="margin: 14px 0 0;">Not in the list?
             <a href="{{ url_for('manager.create_project_admin', project_id=project.id) }}">Create a new manager account</a>.</p>
+          {% endif %}
         </div>
       </div>
     </div>

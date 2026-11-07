@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block title %}New survey – {{ app_name }}{% endblock %}
+
 {% block content %}
 <section class="content-header">
 	<h1>New survey</h1>
@@ -55,7 +57,7 @@
                 </div>
             </div>
             <div class="box-footer quick-actions">
-                <button type="button" id="add-survey-question" class="btn btn-default"><i class="fa fa-plus"></i> Add a question</button>
+                <button type="button" id="add-survey-question" class="btn btn-default">{{ icon("plus") }} Add a question</button>
             </div>
         </div>
         <p class="quick-actions">

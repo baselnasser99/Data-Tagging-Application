@@ -68,7 +68,7 @@ a:hover { color: var(--ink-soft); }
 }
 
 .auth-intro {
-  background-image: radial-gradient(var(--dots) 1px, transparent 1px);
+  background-image: radial-gradient(var(--dots) 1.1px, transparent 1.2px);
   background-size: 20px 20px;
 }
 
@@ -296,14 +296,13 @@ a:hover { color: var(--ink-soft); }
 .alert {
   margin: 0 0 20px;
   padding: 10px 12px;
-  border-left: 4px solid var(--ink);
-  border-radius: 2px;
-  background: var(--info-bg);
+  border-radius: 6px;
+  background: var(--info-bg);  /* the tint says what kind of message it is; no side stripe */
   font-size: 15px;
 }
-.alert-danger { border-color: var(--danger); background: var(--danger-bg); }
-.alert-success { border-color: var(--success); background: var(--success-bg); }
-.alert-warning { border-color: var(--warning); background: var(--warning-bg); }
+.alert-danger { background: var(--danger-bg); }
+.alert-success { background: var(--success-bg); }
+.alert-warning { background: var(--warning-bg); }
 
 .brand-compact { display: none; margin-bottom: 32px; }
 
@@ -321,7 +320,7 @@ a:hover { color: var(--ink-soft); }
   flex-direction: column;
   min-height: 100vh;
   padding: 40px 56px;
-  background-image: radial-gradient(var(--dots) 1px, transparent 1px);
+  background-image: radial-gradient(var(--dots) 1.1px, transparent 1.2px);
   background-size: 20px 20px;
 }
 .error-body {

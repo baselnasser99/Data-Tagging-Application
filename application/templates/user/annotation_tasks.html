@@ -41,7 +41,7 @@
           <ul class="list-unstyled task-questions">
             {% for a in items %}
             <li{% if a.is_completed %} class="text-muted"{% endif %}>
-              {% if a.is_completed %}<i class="fa fa-check text-green" aria-hidden="true"></i>{% endif %}
+              {% if a.is_completed %}{{ icon("check", "text-green") }}{% endif %}
               <span class="sr-only">{{ 'Answered:' if a.is_completed else 'To answer:' }}</span>
               {{ a.task.question.question }}
             </li>

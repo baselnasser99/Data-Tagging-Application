@@ -5,7 +5,7 @@
 {% block content %}
 <section class="content-header page-heading">
   <div>
-    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}"><i class="fa fa-arrow-left" aria-hidden="true"></i> {{ project.name }}</a>
+    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ icon("arrow-left") }} {{ project.name }}</a>
     <h1>Upload items</h1>
     <p class="page-lede">{{ plural(project.images|length, "item") }} in this project so far</p>
   </div>
@@ -24,7 +24,7 @@
               <input type="file" id="image_zip" name="image_zip" multiple required
                      accept=".zip,.png,.jpg,.jpeg,.gif,.bmp,.webp,.mp3,.wav,.ogg,.m4a,.flac"
                      aria-describedby="upload-types">
-              <span class="dropzone-icon" aria-hidden="true"><i class="fa fa-cloud-upload"></i></span>
+              <span class="dropzone-icon" aria-hidden="true">{{ icon("cloud-upload") }}</span>
               <label for="image_zip" class="dropzone-title">Drop files here, or click to choose</label>
               <span class="dropzone-hint" id="upload-types">Images (PNG, JPG, GIF, BMP, WEBP), audio (MP3, WAV, OGG, M4A, FLAC), or ZIP files of them</span>
             </div>
@@ -43,7 +43,7 @@
             </details>
           </div>
           <div class="box-footer quick-actions">
-            <button type="submit" class="btn btn-primary"><i class="fa fa-upload" aria-hidden="true"></i> Upload</button>
+            <button type="submit" class="btn btn-primary">{{ icon("upload") }} Upload</button>
             <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-default">Cancel</a>
           </div>
         </form>

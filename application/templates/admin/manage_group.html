@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block title %}{{ group.name }} – {{ app_name }}{% endblock %}
+
 {# Used by the admin (/admin/manage-group/<g>) and by a project's manager
    (/admin/project/<p>/manage-group/<g>, which passes project_id and other_projects). #}
 
@@ -73,7 +75,7 @@
               <p class="help-block">They get their share of this group's work straight away.</p>
             </div>
             <div class="box-footer">
-              <button type="submit" class="btn btn-primary"><i class="fa fa-plus"></i> Add to group</button>
+              <button type="submit" class="btn btn-primary">{{ icon("plus") }} Add to group</button>
             </div>
           </form>
           {% else %}
@@ -86,6 +88,6 @@
       {% endif %}
     </div>
 
-    <p><a href="{{ back_url }}" class="btn btn-default"><i class="fa fa-arrow-left"></i> Back to groups</a></p>
+    <p><a href="{{ back_url }}" class="btn btn-default">{{ icon("arrow-left") }} Back to groups</a></p>
   </section>
 {% endblock %}

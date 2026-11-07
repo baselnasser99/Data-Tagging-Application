@@ -11,8 +11,8 @@
 
   <section class="content form-page">
     <nav class="segmented" aria-label="How to add users">
-      <a href="{{ url_for('admin.create_user') }}" {% if not csv_tab %}aria-current="page"{% endif %}><i class="fa fa-user-plus" aria-hidden="true"></i> One person</a>
-      <a href="{{ url_for('admin.create_user', tab='csv') }}" {% if csv_tab %}aria-current="page"{% endif %}><i class="fa fa-upload" aria-hidden="true"></i> From a CSV file</a>
+      <a href="{{ url_for('admin.create_user') }}" {% if not csv_tab %}aria-current="page"{% endif %}>{{ icon("user-plus") }} One person</a>
+      <a href="{{ url_for('admin.create_user', tab='csv') }}" {% if csv_tab %}aria-current="page"{% endif %}>{{ icon("upload") }} From a CSV file</a>
     </nav>
 
     {% if not csv_tab %}
@@ -65,7 +65,7 @@
           <div class="form-group">
             <div class="dropzone" data-dropzone>
               <input type="file" id="csv_file" name="csv_file" accept=".csv" required aria-describedby="csv-columns">
-              <span class="dropzone-icon" aria-hidden="true"><i class="fa fa-file-text-o"></i></span>
+              <span class="dropzone-icon" aria-hidden="true">{{ icon("file-text") }}</span>
               <label for="csv_file" class="dropzone-title">Drop a CSV file here, or click to choose</label>
             </div>
             <div class="upload-chosen" data-upload-list hidden>
@@ -99,7 +99,7 @@
           </div>
         </div>
         <div class="box-footer quick-actions">
-          <button type="submit" class="btn btn-primary"><i class="fa fa-upload"></i> Import</button>
+          <button type="submit" class="btn btn-primary">{{ icon("upload") }} Import</button>
           <a href="{{ url_for('admin.users') }}" class="btn btn-default">Cancel</a>
         </div>
       </form>

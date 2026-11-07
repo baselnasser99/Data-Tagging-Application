@@ -100,8 +100,11 @@ def _chosen_user(form):
     return db.session.get(User, form.get('user_id', type=int) or 0)
 
 
-def add_manager(project, user):
-    """Make `user` the manager of `project`. Returns (message, flash category)."""
+def add_manager(project, user, replace=False):
+    """Make `user` the manager of `project`. Returns (message, flash category).
+
+    With replace, a project that has a manager changes hands in one step; the previous manager
+    goes back to being a member if they manage nothing else, as when they are removed."""
     if user is None:
         return 'No user with that email was found. Pick someone from the list, or create a new manager.', 'danger'
     if not user.active:
@@ -110,8 +113,17 @@ def add_manager(project, user):
         # A manager can't open tasks, so work handed to them as a member would sit unanswered.
         return (f'{user.full_name} is in a group and answers tasks. Take them out of their groups first, '
                 'so their unfinished work goes to the others.'), 'danger'
-    if ProjectAdmin.query.filter_by(project_id=project.id).first():
+    current = ProjectAdmin.query.filter_by(project_id=project.id).first()
+    if current and current.user_id == user.id:
+        return f'{user.full_name} already manages "{project.name}".', 'info'
+    if current and not replace:
         return f'"{project.name}" already has a manager. Remove them first; a project has one manager.', 'danger'
+    if current:
+        previous = current.user
+        db.session.delete(current)
+        db.session.flush()
+        if previous.role == 'project-admin' and not ProjectAdmin.query.filter_by(user_id=previous.id).first():
+            previous.role = 'end-user'
     db.session.add(ProjectAdmin(user_id=user.id, project_id=project.id, assigned_by=current_user.id))
     if user.role not in ('project-admin', 'admin'):
         user.role = 'project-admin'
@@ -128,7 +140,9 @@ def manager_candidates():
 @project_admin_required
 def add_project_admin(project_id):
     project = db.get_or_404(Project, project_id)
-    flash(*add_manager(project, _chosen_user(request.form)))
+    # Only system admins swap a manager in one step; a manager's own limits on removing are in remove_project_admin
+    replace = request.form.get('replace') == '1' and current_user.role == 'admin'
+    flash(*add_manager(project, _chosen_user(request.form), replace=replace))
     return redirect(url_for('manager.project_admins', project_id=project_id))
 
 

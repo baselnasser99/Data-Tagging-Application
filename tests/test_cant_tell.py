@@ -63,7 +63,7 @@ def test_managers_see_the_items_marked_cant_tell(app, admin_client, group_with_m
     assert "· 1 can't tell" in page
 
     side = admin_client.get("/admin/dashboard").data.decode()
-    assert "Street scenes: 1 item marked can" in side
+    assert "Street scenes: 1 item can" in side
     assert f"/admin/view-annotation-project/{project.id}" in side
 
 

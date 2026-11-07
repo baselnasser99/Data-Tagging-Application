@@ -2,25 +2,28 @@
    and error pages (auth.css). Loaded before those stylesheets by base.html,
    includes/auth_layout.html and errors/_layout.html.
 
-     ink      #1C2733  text, primary actions, selection corners
-     canvas   #EDF0F3  page background
-     surface  #FFFFFF  panels
-     line     #D4DAE1  borders and dividers
-     muted    #56616F  secondary text
+     ink      #1D1C18  text, primary actions, selection corners
+     canvas   #F3F1EC  page background
+     surface  #FDFCF9  panels
+     line     #E3E0D8  borders and dividers
+     muted    #625E54  secondary text
      marker   #F5CF3A  "highlighter": current page, focus halo, tags
 
-   Dark theme: the same tokens, darker. It follows the system setting unless the theme
+   Both themes are warm (paper by day, near-black by night), so the yellow always reads like a
+   highlighter on paper.
+
+   Dark theme: the same tokens on a warm near-black, so the yellow reads like a highlighter on dark paper. It follows the system setting unless the theme
    switch in the account menu (static/js/theme.js) sets data-theme on <html>. The dark set
    is written twice, once per way of asking for it; keep the two copies the same. */
 
 :root {
-  --ink: #1C2733;
-  --ink-soft: #2E3B4A;
-  --canvas: #EDF0F3;
-  --surface: #FFFFFF;
-  --line: #D4DAE1;
-  --line-strong: #AEB7C2;
-  --muted: #56616F;
+  --ink: #1D1C18;
+  --ink-soft: #36342D;
+  --canvas: #F3F1EC;
+  --surface: #FDFCF9;
+  --line: #E3E0D8;
+  --line-strong: #969182;
+  --muted: #625E54;
   --marker: #F5CF3A;
   --marker-soft: #FCF1C4;
   --danger: #B42318;
@@ -29,7 +32,7 @@
   --success-bg: #E7F4EC;
   --warning: #8A5300;
   --warning-bg: #FDF3E1;
-  --info-bg: #E8EEF6;
+  --info-bg: #EFEDE6;
   /* Accents: one calm blue for links and notes, plus soft tints that tell the kinds of
      action apart. Colour always sits next to a word, never carries meaning alone. */
   --accent: #3366CC;
@@ -40,8 +43,8 @@
   --tint-violet: #F1ECFA; --tint-violet-ink: #6B47B8;
   --tint-teal: #E4F3F3;   --tint-teal-ink: #1C6E73;
   --on-ink: #FFFFFF;        /* text on an ink fill (primary buttons, avatars) */
-  --on-marker: #1C2733;     /* text on the yellow marker: always dark, in both themes */
-  --ink-hover: #3B4A5C;     /* primary buttons under the mouse (apple.css) */
+  --on-marker: #1D1C18;     /* text on the yellow marker: always dark, in both themes */
+  --ink-hover: #3A3832;     /* primary buttons under the mouse (apple.css) */
   --success-solid: #1F7A4D; /* fills with white text: these stay dark in both themes */
   --danger-solid: #B42318;
   --danger-line: #E3B4AF;
@@ -50,17 +53,18 @@
      (3.5:1 against the canvas); on the dark canvas the yellow stands out by itself. */
   --data: #F5CF3A;
   --data-edge: #9A7A00;
-  --stripe: #F6F8FA;
-  --chart-grid: #E3E7EC;
-  --hairline: rgba(28, 39, 51, 0.08);
-  --shade: #1C2733;         /* the colour of shadows, mixed in at low strength */
+  --stripe: #F8F7F3;
+  --chart-grid: #E8E5DD;
+  --hairline: rgba(29, 28, 24, 0.08);
+  --shade: #1D1C18;         /* the colour of shadows, mixed in at low strength */
   /* Sign-in and error pages (auth.css): the dotted background, the picture of a batch of
      items, and the highlighter stroke under "fairly" */
-  --dots: #C9D0D8;
-  --tile: #DCE1E7;
-  --tile-ground: #C9D0D8;
-  --tile-shape: #C3CAD3;
-  --tile-selected: #D3D9E0;
+  --dots: color-mix(in srgb, var(--ink) 18%, transparent);
+  --wash: color-mix(in srgb, var(--ink) 7%, transparent);  /* hover on the page colour (sidebar, top bar), both themes */
+  --tile: #E2DFD7;
+  --tile-ground: #D2CEC3;
+  --tile-shape: #CBC6BA;
+  --tile-selected: #D8D4CA;
   --hl-ink: currentColor;
   --hl-bottom: 0.08em;
   --hl-height: 0.42em;
@@ -69,41 +73,40 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --ink: #E6EAF0;
-    --ink-soft: #C9D1DB;
-    --canvas: #12171D;
-    --surface: #1B222B;
-    --line: #2E3742;
-    --line-strong: #5A6573;
-    --muted: #9AA5B1;
-    --marker-soft: #3A3214;
+    --ink: #ECE9E1;
+    --ink-soft: #CFCBC0;
+    --canvas: #0E0E0C;
+    --surface: #171714;
+    --line: #2A2924;
+    --line-strong: #6A675D;
+    --muted: #A29E92;
+    --marker-soft: #3A3110;
     --danger: #F28B82;
     --danger-bg: #3A1D1B;
     --success: #5CC48F;
-    --success-bg: #15302A;
+    --success-bg: #182B1F;
     --warning: #E8B04B;
     --warning-bg: #3A2E14;
-    --info-bg: #1E2A3A;
+    --info-bg: #23221D;
     --accent: #6E9BF0;
     --accent-soft: #1E2A40;
     --tint-blue: #1E2A40;   --tint-blue-ink: #8FB2F5;
-    --tint-green: #15302A;  --tint-green-ink: #6FCF9B;
+    --tint-green: #182B1F;  --tint-green-ink: #6FCF9B;
     --tint-amber: #3A2E14;  --tint-amber-ink: #E8B04B;
     --tint-violet: #2A2140; --tint-violet-ink: #B9A2EE;
     --tint-teal: #12302F;   --tint-teal-ink: #6CC9CC;
-    --on-ink: #12171D;
+    --on-ink: #0E0E0C;
     --ink-hover: #FFFFFF;
     --danger-line: #6B3330;
     --data-edge: #F5CF3A;
-    --stripe: #1F2730;
-    --chart-grid: #2A323C;
-    --hairline: rgba(255, 255, 255, 0.07);
+    --stripe: #1C1C18;
+    --chart-grid: #2A2924;
+    --hairline: rgba(255, 248, 230, 0.07);
     --shade: #000000;
-    --dots: #2A323C;
-    --tile: #252D37;
-    --tile-ground: #2F3843;
-    --tile-shape: #36404C;
-    --tile-selected: #2B343F;
+    --tile: #21201C;
+    --tile-ground: #2B2A25;
+    --tile-shape: #34332D;
+    --tile-selected: #282722;
     --hl-ink: #1C2733;   /* the stroke covers the whole word, so the word is dark on yellow */
     --hl-bottom: 0;
     --hl-height: 1.05em;
@@ -111,41 +114,40 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ink: #E6EAF0;
-  --ink-soft: #C9D1DB;
-  --canvas: #12171D;
-  --surface: #1B222B;
-  --line: #2E3742;
-  --line-strong: #5A6573;
-  --muted: #9AA5B1;
-  --marker-soft: #3A3214;
+  --ink: #ECE9E1;
+  --ink-soft: #CFCBC0;
+  --canvas: #0E0E0C;
+  --surface: #171714;
+  --line: #2A2924;
+  --line-strong: #6A675D;
+  --muted: #A29E92;
+  --marker-soft: #3A3110;
   --danger: #F28B82;
   --danger-bg: #3A1D1B;
   --success: #5CC48F;
-  --success-bg: #15302A;
+  --success-bg: #182B1F;
   --warning: #E8B04B;
   --warning-bg: #3A2E14;
-  --info-bg: #1E2A3A;
+  --info-bg: #23221D;
   --accent: #6E9BF0;
   --accent-soft: #1E2A40;
   --tint-blue: #1E2A40;   --tint-blue-ink: #8FB2F5;
-  --tint-green: #15302A;  --tint-green-ink: #6FCF9B;
+  --tint-green: #182B1F;  --tint-green-ink: #6FCF9B;
   --tint-amber: #3A2E14;  --tint-amber-ink: #E8B04B;
   --tint-violet: #2A2140; --tint-violet-ink: #B9A2EE;
   --tint-teal: #12302F;   --tint-teal-ink: #6CC9CC;
-  --on-ink: #12171D;
+  --on-ink: #0E0E0C;
   --ink-hover: #FFFFFF;
   --danger-line: #6B3330;
   --data-edge: #F5CF3A;
-  --stripe: #1F2730;
-  --chart-grid: #2A323C;
-  --hairline: rgba(255, 255, 255, 0.07);
+  --stripe: #1C1C18;
+  --chart-grid: #2A2924;
+  --hairline: rgba(255, 248, 230, 0.07);
   --shade: #000000;
-  --dots: #2A323C;
-  --tile: #252D37;
-  --tile-ground: #2F3843;
-  --tile-shape: #36404C;
-  --tile-selected: #2B343F;
+  --tile: #21201C;
+  --tile-ground: #2B2A25;
+  --tile-shape: #34332D;
+  --tile-selected: #282722;
   --hl-ink: #1C2733;   /* the stroke covers the whole word, so the word is dark on yellow */
   --hl-bottom: 0;
   --hl-height: 1.05em;

@@ -428,9 +428,7 @@ def test_pages_and_stylesheets_link_nothing_from_other_sites():
 def test_bundled_fonts_are_served(client):
     for path in ("/static/vendor/atkinson-hyperlegible/fonts.css",
                  "/static/vendor/atkinson-hyperlegible/atkinson-400-latin.woff2",
-                 "/static/vendor/atkinson-hyperlegible/atkinson-700-latin-ext.woff2",
-                 "/static/vendor/font-awesome/css/font-awesome.min.css",
-                 "/static/vendor/font-awesome/fonts/fontawesome-webfont.woff2"):
+                 "/static/vendor/atkinson-hyperlegible/atkinson-700-latin-ext.woff2"):
         resp = client.get(path)
         assert resp.status_code == 200, path
         resp.close()

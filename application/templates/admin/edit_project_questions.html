@@ -28,7 +28,9 @@
   </div>
 </section>
 
-<section class="content form-page">
+<section class="content">
+<div class="row">
+<div class="col-md-8 col-xs-12">
 
   <!-- Settings -->
   <div class="box">
@@ -220,6 +222,27 @@
       </div>
     </form>
   </div>
+</div>
+
+<div class="col-md-4 col-xs-12">
+  <div class="box">
+    <div class="box-header with-border"><h3 class="box-title">This project</h3></div>
+    <div class="box-body">
+      <dl class="settings-list">
+        {% if project.is_annotation_project %}
+        <dt>Items</dt><dd>{{ project.images|length }}</dd>
+        {% endif %}
+        <dt>Questions</dt><dd>{{ project.questions|length }}</dd>
+        {% if project.is_annotation_project %}
+        <dt>Tasks</dt><dd>{{ project.images|length * project.questions|length }}</dd>
+        {% endif %}
+        <dt>Groups</dt><dd>{% for gp in project.assigned_groups %}{{ gp.group.name }}{{ ", " if not loop.last }}{% else %}None yet{% endfor %}</dd>
+        <dt>Manager</dt><dd>{{ project.project_admins[0].user.full_name if project.project_admins else "None" }}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+</div>
 </section>
 {% endblock %}
 

@@ -8,7 +8,9 @@
     <p class="text-muted page-subtitle">Their tasks, answers and groups stay exactly as they are.</p>
   </section>
 
-  <section class="content form-page">
+  <section class="content">
+  <div class="row">
+  <div class="col-md-8 col-xs-12">
     <div class="box">
       <form method="POST" action="{{ url_for('admin.edit_user', user_id=user.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -36,5 +38,22 @@
         </div>
       </form>
     </div>
+  </div>
+
+  {% set tasks = user.task_assignments %}
+  <div class="col-md-4 col-xs-12">
+    <div class="box">
+      <div class="box-header with-border"><h3 class="box-title">In the app</h3></div>
+      <div class="box-body">
+        <dl class="settings-list">
+          <dt>Role</dt><dd>{{ {"admin": "Admin", "project-admin": "Manager"}.get(user.role, "Member") }}</dd>
+          <dt>Groups</dt><dd>{% for m in user.group_memberships %}{{ m.group.name }}{{ ", " if not loop.last }}{% else %}None{% endfor %}</dd>
+          <dt>Tasks done</dt><dd>{{ tasks | selectattr("is_completed") | list | length }} of {{ tasks | length }}</dd>
+          <dt>Answers</dt><dd>{% if user.question_answers %}<a href="{{ url_for('admin.download_answers', user_id=user.id) }}" aria-label="Download their {{ user.question_answers | length }} answers">{{ user.question_answers | length }} {{ icon("download") }}</a>{% else %}0{% endif %}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  </div>
   </section>
 {% endblock %}

@@ -37,9 +37,9 @@
      action apart. Colour always sits next to a word, never carries meaning alone. */
   --accent: #3366CC;
   --accent-soft: #EBF1FB;
-  --tint-blue: #EBF1FB;   --tint-blue-ink: #3366CC;
-  --tint-green: #E7F4EC;  --tint-green-ink: #1F7A4D;
-  --tint-amber: #FDF3E1;  --tint-amber-ink: #8A5300;
+  --tint-blue: var(--accent-soft);  --tint-blue-ink: var(--accent);
+  --tint-green: var(--success-bg);  --tint-green-ink: var(--success);
+  --tint-amber: var(--warning-bg);  --tint-amber-ink: var(--warning);
   --tint-violet: #F1ECFA; --tint-violet-ink: #6B47B8;
   --tint-teal: #E4F3F3;   --tint-teal-ink: #1C6E73;
   --on-ink: #FFFFFF;        /* text on an ink fill (primary buttons, avatars) */
@@ -51,7 +51,7 @@
   /* Data: progress bars, answer bars and charts use the marker yellow, the way a highlighter
      marks what is done. Yellow on light grey is faint (1.3:1), so bars get a darker rim
      (3.5:1 against the canvas); on the dark canvas the yellow stands out by itself. */
-  --data: #F5CF3A;
+  --data: var(--marker);
   --data-edge: #9A7A00;
   --stripe: #F8F7F3;
   --chart-grid: #E8E5DD;
@@ -90,17 +90,16 @@
     --info-bg: #23221D;
     --accent: #6E9BF0;
     --accent-soft: #1E2A40;
-    --tint-blue: #1E2A40;   --tint-blue-ink: #8FB2F5;
-    --tint-green: #182B1F;  --tint-green-ink: #6FCF9B;
-    --tint-amber: #3A2E14;  --tint-amber-ink: #E8B04B;
+    --tint-blue-ink: #8FB2F5;  /* the tint backgrounds follow --accent-soft, --success-bg and --warning-bg */
+    --tint-green-ink: #6FCF9B;
     --tint-violet: #2A2140; --tint-violet-ink: #B9A2EE;
     --tint-teal: #12302F;   --tint-teal-ink: #6CC9CC;
     --on-ink: #0E0E0C;
     --ink-hover: #FFFFFF;
     --danger-line: #6B3330;
-    --data-edge: #F5CF3A;
+    --data-edge: var(--marker);
     --stripe: #1C1C18;
-    --chart-grid: #2A2924;
+    --chart-grid: var(--line);
     --hairline: rgba(255, 248, 230, 0.07);
     --shade: #000000;
     --tile: #21201C;
@@ -131,17 +130,16 @@
   --info-bg: #23221D;
   --accent: #6E9BF0;
   --accent-soft: #1E2A40;
-  --tint-blue: #1E2A40;   --tint-blue-ink: #8FB2F5;
-  --tint-green: #182B1F;  --tint-green-ink: #6FCF9B;
-  --tint-amber: #3A2E14;  --tint-amber-ink: #E8B04B;
+  --tint-blue-ink: #8FB2F5;  /* the tint backgrounds follow --accent-soft, --success-bg and --warning-bg */
+  --tint-green-ink: #6FCF9B;
   --tint-violet: #2A2140; --tint-violet-ink: #B9A2EE;
   --tint-teal: #12302F;   --tint-teal-ink: #6CC9CC;
   --on-ink: #0E0E0C;
   --ink-hover: #FFFFFF;
   --danger-line: #6B3330;
-  --data-edge: #F5CF3A;
+  --data-edge: var(--marker);
   --stripe: #1C1C18;
-  --chart-grid: #2A2924;
+  --chart-grid: var(--line);
   --hairline: rgba(255, 248, 230, 0.07);
   --shade: #000000;
   --tile: #21201C;

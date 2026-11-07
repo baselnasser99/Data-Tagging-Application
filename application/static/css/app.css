@@ -375,6 +375,10 @@ a:hover, a:focus { color: var(--ink-soft); }
     width: auto; max-width: calc(100% - 150px); overflow: hidden; padding: 0; border-right: 0;
   }
   .main-sidebar { padding-top: 56px; }
+  /* Page buttons: the main one gets its own full row first, the others share the row below */
+  .page-actions { width: 100%; }
+  .page-actions .btn-primary { order: -1; flex-basis: 100%; }
+  .page-actions .btn-default { flex: 1 1 0; }
 }
 
 /* ---------- cards ---------- */
@@ -582,7 +586,9 @@ a:hover, a:focus { color: var(--ink-soft); }
   .person:not(.person-short) .person-figures > * { min-width: 0; }
 }
 @media (max-width: 560px) {
-  .person:not(.person-short) { grid-template-areas: "avatar who actions" "avatar groups groups" "avatar figures figures"; padding: 12px 14px; }
+  .person:not(.person-short) { grid-template-columns: 40px minmax(0, 1fr); grid-template-areas: "avatar who" "avatar groups" "avatar figures" "avatar actions"; padding: 12px 14px; }
+  .person:not(.person-short) .person-actions { justify-content: flex-start; margin-top: 4px; }
+  .person:not(.person-short) .person-who span { white-space: normal; overflow-wrap: anywhere; }  /* a very long email wraps rather than being cut off */
 }
 
 /* Group cards: one line per project, with its progress */

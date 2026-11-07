@@ -43,7 +43,7 @@
       </a>
 
       <nav class="navbar navbar-static-top" aria-label="Account">
-        <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
+        <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button" aria-controls="main-menu" aria-expanded="true">
           {{ icon("menu") }}<span class="sr-only">Show or hide the menu</span>
         </a>
 
@@ -83,7 +83,7 @@
       </nav>
     </header>
 
-    <aside class="main-sidebar">
+    <aside class="main-sidebar" id="main-menu">
       {# Admins and managers create things from one menu; the sidebar below lists only places. #}
       {% if current_user.role in ('admin', 'project-admin') %}
       <div class="sidebar-new">

@@ -105,7 +105,8 @@ a:hover, a:focus { color: var(--ink-soft); }
   .main-header .sidebar-toggle:active, .main-header .navbar .nav > li > a:active { transform: none; }
 }
 
-.user-menu > a { display: flex; align-items: center; gap: 8px; }
+.main-header .navbar .nav > li.user-menu > a { display: flex; align-items: center; gap: 8px; }  /* beats Bootstrap's .nav > li > a { display: block } */
+.main-header .navbar .nav > li.user-menu > a { padding-left: 6px; }  /* the avatar sits evenly in the pill's rounded end */
 .avatar {
   display: inline-grid;
   place-items: center;

@@ -68,7 +68,7 @@ a:hover { color: var(--ink-soft); }
 }
 
 .auth-intro {
-  background-image: radial-gradient(var(--dots) 1px, transparent 1px);
+  background-image: radial-gradient(var(--dots) 1.1px, transparent 1.2px);
   background-size: 20px 20px;
 }
 
@@ -321,7 +321,7 @@ a:hover { color: var(--ink-soft); }
   flex-direction: column;
   min-height: 100vh;
   padding: 40px 56px;
-  background-image: radial-gradient(var(--dots) 1px, transparent 1px);
+  background-image: radial-gradient(var(--dots) 1.1px, transparent 1.2px);
   background-size: 20px 20px;
 }
 .error-body {

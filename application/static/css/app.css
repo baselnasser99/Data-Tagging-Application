@@ -56,6 +56,18 @@ a:hover, a:focus { color: var(--ink-soft); }
 .skip-link:focus { top: 12px; color: var(--on-ink); }
 
 .wrapper, .content-wrapper, .right-side { background: var(--canvas); }
+/* Dot paper, the same as the sign-in page's, behind the top of every page: strongest behind the
+   title, gone by the time the panels start. Static, and never inside panels or on the task
+   screen, where nothing should compete with the item being labelled. */
+.content-wrapper { position: relative; isolation: isolate; }
+.content-wrapper::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 420px; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(var(--dots) 1.1px, transparent 1.2px);
+  background-size: 20px 20px; background-position: 10px 10px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, .55) 45%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, .55) 45%, transparent 100%);
+}
+.content-wrapper:has(.answer-progress)::before { content: none; }
 
 /* ---------- header ---------- */
 .main-header .logo,

@@ -539,8 +539,7 @@ code { color: var(--ink); background: var(--canvas); }
 
 /* ---------- messages ---------- */
 .alert {
-  border: 0;
-  border-left: 4px solid var(--ink);
+  border: 0;  /* the tint says what kind of message it is; no side stripe */
   border-radius: var(--radius-sm);
   background: var(--info-bg);
   color: var(--ink);
@@ -548,10 +547,10 @@ code { color: var(--ink); background: var(--canvas); }
   margin-bottom: 10px;
 }
 /* AdminLTE paints alerts with !important solid fills, so these must match it. */
-.alert-success { border-left-color: var(--success) !important; background: var(--success-bg) !important; color: var(--ink) !important; }
-.alert-danger  { border-left-color: var(--danger) !important;  background: var(--danger-bg) !important;  color: var(--ink) !important; }
-.alert-warning { border-left-color: var(--warning) !important; background: var(--warning-bg) !important; color: var(--ink) !important; }
-.alert-info    { border-left-color: var(--ink) !important;     background: var(--info-bg) !important;    color: var(--ink) !important; }
+.alert-success { background: var(--success-bg) !important; color: var(--ink) !important; }
+.alert-danger  { background: var(--danger-bg) !important;  color: var(--ink) !important; }
+.alert-warning { background: var(--warning-bg) !important; color: var(--ink) !important; }
+.alert-info    { background: var(--info-bg) !important;    color: var(--ink) !important; }
 
 /* ---------- small status labels ---------- */
 .badge, .label {
@@ -672,7 +671,6 @@ code { color: var(--ink); background: var(--canvas); }
   margin-bottom: 20px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-left: 4px solid var(--marker);
   border-radius: var(--radius);
 }
 .next-up h2 { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
@@ -838,7 +836,6 @@ code { color: var(--ink); background: var(--canvas); }
 .list-none { margin: 10px 0 0; }
 
 /* Groups: each card has its own colour (top edge + initial) so groups are told apart at a glance. */
-.box.group-card { border-top: 4px solid var(--group-ink, var(--line)); }  /* .box: beats apple.css, which removes box borders */
 .group-card.tone-blue { --group-bg: var(--tint-blue); --group-ink: var(--tint-blue-ink); }
 .group-card.tone-green { --group-bg: var(--tint-green); --group-ink: var(--tint-green-ink); }
 .group-card.tone-amber { --group-bg: var(--tint-amber); --group-ink: var(--tint-amber-ink); }
@@ -878,6 +875,8 @@ code { color: var(--ink); background: var(--canvas); }
 /* Project cards: full description, buttons wrap, Delete set apart */
 .project-desc { white-space: pre-line; overflow-wrap: anywhere; margin: 0; }
 .project-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.project-actions::before, .project-actions::after, .quick-actions::before, .quick-actions::after,
+.balance-key::before, .balance-key::after { content: none; }  /* Bootstrap's clearfix: two extra flex items, each taking a gap */
 .project-actions .project-delete { margin: 0 0 0 auto; }
 
 /* Progress: numbers sit beside the label, never inside the bar */
@@ -888,9 +887,6 @@ code { color: var(--ink); background: var(--canvas); }
    state shows at a glance (the label says it in words too, never colour alone) */
 .project-status { margin-bottom: 12px; }
 .project-status .progress { margin: 6px 0 0; }
-.task-grid .box:has(.project-status) { border-left: 4px solid var(--line-strong); }
-.task-grid .box:has(.project-status.state-active) { border-left-color: var(--marker); }
-.task-grid .box:has(.project-status.state-done) { border-left-color: var(--success); }
 
 /* Text boxes: never wider than their column, never taller than half the screen.
    Where the browser supports it they grow with the text by themselves (no
@@ -923,6 +919,13 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .task-questions > li.text-muted { font-weight: 400; }
 /* Form pages read best at a comfortable width, not stretched across a wide screen */
 .form-page { max-width: 680px; }  /* a form reads best at about one line of text wide */
+.password-notice { margin: 0 0 14px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--marker-soft); color: var(--ink); }  /* member profile: temporary password */
+/* File inputs: the browser's own "Choose File" button, drawn like the app's secondary buttons */
+input[type="file"].form-control { height: auto; padding: 5px 6px; }
+input[type="file"]::file-selector-button { margin-right: 10px; padding: 5px 12px; border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer;
+  transition: background-color 150ms ease; }
+input[type="file"]::file-selector-button:hover { background: var(--wash); }
 .content.form-page { margin-left: 0; margin-right: 0; }  /* AdminLTE centres .content; keep forms in line with the title */
 .quiz-section + .quiz-section { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
 /* Elements hidden by script stay hidden even when a class gives them a display (e.g. .checkbox) */
@@ -1041,9 +1044,9 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .next-task {
   display: grid; grid-template-columns: 148px minmax(0, 1fr) auto; align-items: center; gap: 22px;
   padding: 18px 22px 18px 18px; margin-bottom: 20px; color: var(--ink); text-decoration: none;
-  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--marker); border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
 }
-.next-task:hover, .next-task:focus { color: var(--ink); text-decoration: none; border-color: var(--line-strong); border-left-color: var(--marker); }
+.next-task:hover, .next-task:focus { color: var(--ink); text-decoration: none; border-color: var(--line-strong); }
 .next-task:focus-visible { outline: 3px solid var(--marker); outline-offset: 2px; }
 .next-task-item { position: relative; display: block; padding: 8px; background: var(--canvas); border-radius: 4px; }
 .next-task-item .corners {
@@ -1065,7 +1068,6 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
   .next-task { transition: box-shadow 150ms ease, transform 160ms var(--ease-out); }
   .next-task:hover { transform: translateY(-1px); box-shadow: 0 8px 22px color-mix(in srgb, var(--shade) 10%, transparent); }
 }
-.next-up.is-done { border-left-color: var(--success); }
 @media (max-width: 767px) {
   .next-task { grid-template-columns: 96px minmax(0, 1fr); gap: 14px; padding: 14px; }
   .next-task-media, .next-task-item .media-audio-thumb { height: 72px; }
@@ -1127,7 +1129,7 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .dropzone + .upload-chosen + .how-it-works { margin-top: 14px; }
 .upload-summary { margin: 0 0 6px; font-weight: 700; }
 .upload-chosen ul { margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 14px; max-height: 180px; overflow: auto; }
-.share-preview { margin-top: 10px; padding: 10px 14px; border-left: 4px solid var(--accent); border-radius: 2px; background: var(--accent-soft); font-weight: 700; }
+.share-preview { margin-top: 10px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--accent-soft); font-weight: 700; }
 .task-sum { display: grid; gap: 2px; }
 .task-sum strong { font-size: 17px; font-variant-numeric: tabular-nums; }
 

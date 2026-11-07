@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}New project{% endblock %}
+{% block title %}New project – {{ app_name }}{% endblock %}
 
 {% block content %}
 <section class="content-header">
@@ -97,7 +97,7 @@
             </template>
 
             <div class="row">
-              <div class="col-sm-4">
+              <div class="col-sm-6">
                 <div class="form-group">
                   <label for="max_questions_per_user">Max tasks per person</label>
                   <input type="number" class="form-control" id="max_questions_per_user"
@@ -106,7 +106,7 @@
                 </div>
               </div>
 
-              <div class="col-sm-4">
+              <div class="col-sm-6">
                 <div class="form-group">
                   <label for="answers_per_task">Answers per task</label>
                   <input type="number" class="form-control" id="answers_per_task"
@@ -115,7 +115,11 @@
                 </div>
               </div>
 
-              <div class="col-sm-4">
+            </div>
+
+            {# On its own row, like the project settings page: its choices are too long for a third of the form #}
+            <div class="row">
+              <div class="col-sm-6">
                 <div class="form-group">
                   <label for="hand_out">Hand out work</label>
                   <select class="form-control" id="hand_out" name="hand_out">

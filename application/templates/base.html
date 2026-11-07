@@ -103,15 +103,18 @@
         </ul>
       </div>
       {% endif %}
-      {% set project_pages = ('annotation_admin.create_annotation_project', 'admin.create_project', 'groups.assign_project_to_group') %}
+      {% set project_pages = ('annotation_admin.create_annotation_project', 'admin.create_project', 'groups.assign_project_to_group',
+                        'manager.project_dashboard', 'annotation_admin.upload_images', 'annotation_admin.generate_annotation_tasks',
+                        'annotation_admin.view_annotation_project', 'manager.edit_project_questions', 'manager.project_groups',
+                        'manager.project_admins', 'manager.create_project_admin', 'groups.manage_group_for_project') %}
       <nav aria-label="Main">
       <ul class="sidebar-menu">
         {% if current_user.role == 'admin' %}
         {{ nav('admin.dashboard', 'dashboard', 'Dashboard') }}
         {{ nav('admin.view_projects', 'folder', 'Projects', also=project_pages) }}
         <li class="header">People</li>
-        {{ nav('admin.users', 'user', 'Users', also=('admin.create_user',)) }}
-        {{ nav('groups.view_groups', 'users', 'Groups', also=('groups.create_group',)) }}
+        {{ nav('admin.users', 'user', 'Users', also=('admin.create_user', 'admin.edit_user', 'admin.import_users')) }}
+        {{ nav('groups.view_groups', 'users', 'Groups', also=('groups.create_group', 'groups.manage_group')) }}
         {{ nav('manager.managers', 'briefcase', 'Managers') }}
         {% elif current_user.role == 'project-admin' %}
         {{ nav('manager.my_projects', 'folder', 'My projects', also=project_pages) }}

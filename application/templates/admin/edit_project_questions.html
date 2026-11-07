@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ project.name }} – questions and settings{% endblock %}
+{% block title %}Questions and settings – {{ project.name }}{% endblock %}
 
 {#
   One page, three forms (the server tells them apart by their "action" field):
@@ -21,9 +21,12 @@
 {% endmacro %}
 
 {% block content %}
-<section class="content-header">
-  <h1>{{ project.name }}</h1>
-  <p class="text-muted page-subtitle">Questions and settings</p>
+<section class="content-header page-heading">
+  <div>
+    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ icon("arrow-left") }} {{ project.name }}</a>
+    <h1>Questions and settings</h1>
+    <p class="page-lede">Rename the project, change how work is handed out, edit its questions</p>
+  </div>
 </section>
 
 <section class="content form-page">

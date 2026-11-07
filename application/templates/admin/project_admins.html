@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 {% from "includes/manager_form.html" import add_manager_form %}
 
-{% block title %}Managers – {{ project.name }}{% endblock %}
+{% block title %}Manager – {{ project.name }}{% endblock %}
 
 {% block content %}
-<section class="content-header">
-  <h1>Manager<small>{{ project.name }}</small></h1>
+<section class="content-header page-heading">
+  <div>
+    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ icon("arrow-left") }} {{ project.name }}</a>
+    <h1>Manager</h1>
+    <p class="page-lede">Who runs this project day to day</p>
+  </div>
 </section>
 
 <section class="content">

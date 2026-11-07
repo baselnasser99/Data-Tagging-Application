@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block title %}{{ group.name }} – {{ app_name }}{% endblock %}
+
 {# Used by the admin (/admin/manage-group/<g>) and by a project's manager
    (/admin/project/<p>/manage-group/<g>, which passes project_id and other_projects). #}
 

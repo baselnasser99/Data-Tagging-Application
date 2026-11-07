@@ -130,22 +130,22 @@
       {% set summary = sidebar_summary(current_user) %}
       <div class="sidebar-foot">
         <section class="sidebar-card" aria-label="{{ summary.title }}">
-          <h2>{{ summary.title }}</h2>
+          <h2>{{ summary.title }}{% if summary.count %} <span class="sidebar-count">{{ summary.count }}</span>{% endif %}</h2>
           {% if summary.todo is defined %}
           <ul class="sidebar-todo">
             {% for text, url in summary.todo %}
             <li><a href="{{ url }}">{{ text }}</a></li>
             {% else %}
-            <li class="is-clear">{{ icon("check") }} Nothing needs you right now.</li>
+            <li class="is-clear">{{ icon("check") }} All clear</li>
             {% endfor %}
           </ul>
           {% if summary.more %}
           <details class="sidebar-todo-more">
-            <summary>and {{ summary.more | length + summary.rest }} more</summary>
+            <summary><span class="when-closed">Show {{ summary.more | length + summary.rest }} more</span><span class="when-open">Show less</span>{{ icon("chevron-down") }}</summary>
             <ul class="sidebar-todo">
               {% for text, url in summary.more %}<li><a href="{{ url }}">{{ text }}</a></li>{% endfor %}
             </ul>
-            {% if summary.rest %}<a class="sidebar-todo-rest" href="{{ summary.rest_url }}">and {{ summary.rest }} more: see all projects</a>{% endif %}
+            {% if summary.rest %}<a class="sidebar-todo-rest" href="{{ summary.rest_url }}">See all {{ summary.count }}</a>{% endif %}
           </details>
           {% endif %}
           {% endif %}

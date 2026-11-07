@@ -19,7 +19,7 @@ def sidebar_summary(user):
 
     Members see their own progress and a way back to work: {"title", "lines": [(label, value)],
     "done", "total"}; done/total draw a bar when total > 0.
-    Admins and managers see what is waiting on them ("Needs you"), since their dashboard already
+    Admins and managers see what is waiting on them ("To do"), each line starting with what to do, since their dashboard already
     has the numbers: {"title", "todo": [(text, url)] shown, "more": [(text, url)] folded away,
     "rest": how many beyond those, "rest_url": where to see them}.
     """
@@ -31,7 +31,7 @@ def sidebar_summary(user):
 
     todo = needs_attention(user)
     shown, folded = SIDEBAR_TODO_SHOWN, SIDEBAR_TODO_SHOWN + SIDEBAR_TODO_FOLDED
-    return {"title": "Needs you", "todo": todo[:shown], "more": todo[shown:folded], "rest": max(len(todo) - folded, 0),
+    return {"title": "To do", "count": len(todo), "todo": todo[:shown], "more": todo[shown:folded], "rest": max(len(todo) - folded, 0),
             "rest_url": url_for("admin.view_projects" if user.role == "admin" else "manager.my_projects"),
             "lines": [], "done": 0, "total": 0}
 
@@ -71,26 +71,26 @@ def needs_attention(user):
         grouped = UserGroupMembership.query.with_entities(UserGroupMembership.user_id)
         loose = User.query.filter(User.role == "end-user", User.active.is_(True), User.id.not_in(grouped)).count()
         if loose:
-            todo.append((f"{plural(loose, 'person', 'people')} in no group", url_for("admin.users", show="none")))
+            todo.append((f"Add {plural(loose, 'person', 'people')} to {'a group' if loose == 1 else 'groups'}", url_for("admin.users", show="none")))
         empty = UserGroup.query.filter(~UserGroup.members.any()).order_by(UserGroup.name).all()
         if len(empty) == 1:
-            todo.append((f"{empty[0].name}: no members", url_for("groups.manage_group", group_id=empty[0].id)))
+            todo.append((f"Add people to {empty[0].name}", url_for("groups.manage_group", group_id=empty[0].id)))
         elif empty:
-            todo.append((f"{len(empty)} empty groups", url_for("groups.view_groups")))
+            todo.append((f"Fill {len(empty)} empty groups", url_for("groups.view_groups")))
 
     for pid, name, is_annotation in projects:
         if is_annotation:
             if pid not in with_items:
-                todo.append((f"{name}: add items", url_for("annotation_admin.upload_images", project_id=pid)))
+                todo.append((f"Add items to {name}", url_for("annotation_admin.upload_images", project_id=pid)))
             elif pid not in with_questions:
-                todo.append((f"{name}: add questions", url_for("manager.edit_project_questions", project_id=pid)))
+                todo.append((f"Add questions to {name}", url_for("manager.edit_project_questions", project_id=pid)))
             elif pid not in with_tasks:
-                todo.append((f"{name}: hand out tasks", url_for("annotation_admin.generate_annotation_tasks", project_id=pid)))
+                todo.append((f"Hand out {name}", url_for("annotation_admin.generate_annotation_tasks", project_id=pid)))
         elif pid not in with_questions:
-            todo.append((f"{name}: add questions", url_for("manager.edit_project_questions", project_id=pid)))
+            todo.append((f"Add questions to {name}", url_for("manager.edit_project_questions", project_id=pid)))
         elif pid not in with_group:
-            todo.append((f"{name}: assign a group", url_for("groups.assign_project_to_group")))
+            todo.append((f"Give {name} a group", url_for("groups.assign_project_to_group")))
         if unclear.get(pid):
-            todo.append((f"{name}: {plural(unclear[pid], 'item')} can't tell",
+            todo.append((f"Review {plural(unclear[pid], 'unclear item')} in {name}",
                          url_for("annotation_admin.view_annotation_project", project_id=pid)))
     return todo

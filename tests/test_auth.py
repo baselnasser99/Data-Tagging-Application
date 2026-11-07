@@ -102,7 +102,7 @@ def test_side_panel_shows_a_summary_and_the_account_for_each_role(app, user_clie
     member = user_client.get("/user/dashboard").data
     assert b"Your progress" in member and b"Sign out" in member and b"Member" in member
     admin = admin_client.get("/admin/dashboard").data
-    assert b"Needs you" in admin and b"Answers in 7 days" not in admin  # what waits, not the dashboard's numbers again
+    assert b"To do" in admin and b"Answers in 7 days" not in admin  # what waits, not the dashboard's numbers again
 
     project = Project(name="P", desc="d", is_annotation_project=True)
     db.session.add(project)
@@ -110,7 +110,7 @@ def test_side_panel_shows_a_summary_and_the_account_for_each_role(app, user_clie
     client = app.test_client()
     login(client, make_project_admin(project).email)
     manager = client.get("/admin/my-projects").data
-    assert b"Needs you" in manager and b"P: add items" in manager
+    assert b"To do" in manager and b"Add items to P" in manager
 
 
 def test_needs_you_lists_each_projects_next_step_and_loose_people(app, db, admin_client, make_user, make_project_admin):
@@ -131,24 +131,24 @@ def test_needs_you_lists_each_projects_next_step_and_loose_people(app, db, admin
     make_user(name="Loose")  # a member in no group
 
     page = admin_client.get("/admin/dashboard").data.decode()
-    for text in ("Empty: add items", "Ready: hand out tasks", "Poll: assign a group",
-                 "1 person in no group", "Nobody yet: no members"):
+    for text in ("Add items to Empty", "Hand out Ready", "Give Poll a group",
+                 "Add 1 person to a group", "Add people to Nobody yet"):
         assert text in page, text
-    assert "and 3 more" in page  # two shown, the rest folded away
+    assert "Show 3 more" in page  # two shown, the rest folded away
     assert "/admin/users?show=none" in page
 
     # Once the tasks exist, that step is done
     db.session.add(AnnotationTask(project_id=to_hand_out.id, image_id=to_hand_out.images[0].id,
                                   question_id=to_hand_out.questions[0].id))
     db.session.commit()
-    assert "Ready: hand out tasks" not in admin_client.get("/admin/dashboard").data.decode()
+    assert "Hand out Ready" not in admin_client.get("/admin/dashboard").data.decode()
 
     # A manager sees only their own projects, and nothing about people or groups
     client = app.test_client()
     login(client, make_project_admin(survey).email)
     page = client.get("/admin/my-projects").data.decode()
-    assert "Poll: assign a group" in page
-    assert "Empty: add items" not in page and "no group" not in page and "Nobody yet" not in page
+    assert "Give Poll a group" in page
+    assert "Add items to Empty" not in page and "Add 1 person" not in page and "Nobody yet" not in page
 
 
 def test_needs_you_stays_short_with_many_projects(db, admin_client):
@@ -158,11 +158,11 @@ def test_needs_you_stays_short_with_many_projects(db, admin_client):
     db.session.add_all([UserGroup(name="Empty A"), UserGroup(name="Empty B")])
     db.session.commit()
     page = admin_client.get("/admin/dashboard").data.decode()
-    assert "2 empty groups" in page  # one line for many groups, shown before the projects
-    assert page.index("2 empty groups") < page.index("New 0: add items")
+    assert "Fill 2 empty groups" in page  # one line for many groups, shown before the projects
+    assert page.index("Fill 2 empty groups") < page.index("Add items to New 0")
     # 16 lines: the groups line and New 0 shown, New 1-8 folded (10 in all), the last 6 only counted
-    assert "New 8: add items" in page and "New 9: add items" not in page
-    assert "and 14 more</summary>" in page and "and 6 more: see all projects" in page
+    assert "Add items to New 8<" in page and "Add items to New 9<" not in page
+    assert "Show 14 more</span>" in page and "See all 16</a>" in page
 
 
 # ---- wrong passwords pause one address, not the account -------------------

@@ -40,18 +40,33 @@
     </div>
   </div>
 
+  {# Beside the form: who this is, how far they are, where they work, and their answers #}
   {% set tasks = user.task_assignments %}
+  {% set done = tasks | selectattr("is_completed") | list | length %}
+  {% set tones = ['blue', 'green', 'amber', 'violet', 'teal'] %}
   <div class="col-md-4 col-xs-12">
-    <div class="box">
-      <div class="box-header with-border"><h3 class="box-title">In the app</h3></div>
-      <div class="box-body">
-        <dl class="settings-list">
-          <dt>Role</dt><dd>{{ {"admin": "Admin", "project-admin": "Manager"}.get(user.role, "Member") }}</dd>
-          <dt>Groups</dt><dd>{% for m in user.group_memberships %}{{ m.group.name }}{{ ", " if not loop.last }}{% else %}None{% endfor %}</dd>
-          <dt>Tasks done</dt><dd>{{ tasks | selectattr("is_completed") | list | length }} of {{ tasks | length }}</dd>
-          <dt>Answers</dt><dd>{% if user.question_answers %}<a href="{{ url_for('admin.download_answers', user_id=user.id) }}" aria-label="Download their {{ user.question_answers | length }} answers">{{ user.question_answers | length }} {{ icon("download") }}</a>{% else %}0{% endif %}</dd>
-        </dl>
+    <div class="box side-card">
+      <div class="side-who">
+        <span class="person-avatar tone-{{ tones[user.id % 5] }}" aria-hidden="true">{{ user.full_name[:1] | upper }}</span>
+        <div><strong>{{ user.full_name }}</strong><span>{{ {"admin": "Admin", "project-admin": "Manager"}.get(user.role, "Member") }}</span></div>
       </div>
+      {% if tasks %}
+      <div class="side-section">
+        <div class="side-row"><span>Tasks done</span><strong>{{ done }} of {{ tasks | length }}</strong></div>
+        <div class="progress" role="progressbar" aria-label="Tasks done" aria-valuenow="{{ (done / tasks|length * 100)|round }}" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar" style="width: {{ (done / tasks|length * 100)|round(1) }}%"></div>
+        </div>
+      </div>
+      {% endif %}
+      <div class="side-section">
+        <span class="side-label">Groups</span>
+        <div class="side-chips">{% for m in user.group_memberships %}<span class="chip">{{ m.group.name }}</span>{% else %}<span class="chip chip-warn">No group</span>{% endfor %}</div>
+      </div>
+      {% if user.question_answers %}
+      <div class="box-footer">
+        <a class="btn btn-default btn-block" href="{{ url_for('admin.download_answers', user_id=user.id) }}">{{ icon("download") }} Download {{ plural(user.question_answers | length, "answer") }}</a>
+      </div>
+      {% endif %}
     </div>
   </div>
   </div>

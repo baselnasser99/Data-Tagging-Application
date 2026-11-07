@@ -223,10 +223,28 @@ a:hover, a:focus { color: var(--ink-soft); }
 .sidebar-todo a:hover, .sidebar-todo a:focus-visible { background: var(--canvas); text-decoration: underline; text-underline-offset: 3px; }
 .sidebar-todo .is-clear { color: var(--muted); font-size: 14px; }
 .sidebar-todo .is-clear .ic { color: var(--success); }
-.sidebar-todo-more { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
-.sidebar-todo-more > summary { cursor: pointer; padding: 2px 0; }
-.sidebar-todo-more > .sidebar-todo { margin-top: 2px; }
+.sidebar-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 4px; padding: 0 5px;
+  border-radius: 99px; background: var(--marker); color: var(--on-marker); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+/* "Show 2 more": the folded lines slide open and fade in; the chevron turns with them */
+.sidebar-todo-more { display: flex; flex-direction: column; align-items: flex-start; margin: 0; font-size: 13px; color: var(--muted); interpolate-size: allow-keywords; }
+.sidebar-todo-more > summary { order: 1; }  /* the toggle stays under the lines it reveals */
+.sidebar-todo-more::details-content { align-self: stretch; }
+.sidebar-todo-more > summary { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; padding: 2px 0; list-style: none; }
+.sidebar-todo-more > summary::-webkit-details-marker { display: none; }
+.sidebar-todo-more > summary:hover { color: var(--ink); }
+.sidebar-todo-more > summary .ic { width: 14px; height: 14px; transition: transform 220ms var(--ease-out); }
+.sidebar-todo-more[open] > summary .ic { transform: rotate(180deg); }
+.sidebar-todo-more .when-open, .sidebar-todo-more[open] .when-closed { display: none; }
+.sidebar-todo-more[open] .when-open { display: inline; }
+.sidebar-todo-more::details-content { block-size: 0; overflow: clip; opacity: 0;
+  transition: block-size 240ms var(--ease-drawer), opacity 180ms ease, content-visibility 240ms allow-discrete; }
+.sidebar-todo-more[open]::details-content { block-size: auto; opacity: 1; }
+.sidebar-todo-more .sidebar-todo { margin: 1px 0 2px; }  /* the same 1px step as the lines above it */
 .sidebar-todo-rest { display: block; margin-top: 4px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-todo-more::details-content { transition: opacity 150ms ease, content-visibility 150ms allow-discrete; }
+  .sidebar-todo-more > summary .ic { transition: none; }
+}
 .sidebar-account { display: flex; align-items: center; gap: 10px; padding: 10px 4px 0; border-top: 1px solid var(--line); }
 .sidebar-avatar { flex: none; text-decoration: none; transition: box-shadow 150ms ease; }
 .sidebar-avatar:hover, .sidebar-avatar:focus { color: var(--on-ink); text-decoration: none; box-shadow: 0 0 0 3px var(--line-strong); }
@@ -927,6 +945,28 @@ input[type="file"]::file-selector-button { margin-right: 10px; padding: 5px 12px
   border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer;
   transition: background-color 150ms ease; }
 input[type="file"]::file-selector-button:hover { background: var(--wash); }
+/* Side cards beside a form (Edit user, Questions and settings): identity or figures first,
+   then labelled sections divided by hairlines, then at most one action */
+.side-card { overflow: hidden; }
+.side-who { display: flex; align-items: center; gap: 12px; padding: 16px 18px; }
+.side-who > div { min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+.side-who strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-who span:not(.person-avatar) { color: var(--muted); font-size: 13.5px; }
+.side-figures { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+.side-figures > div { padding: 16px 18px; border-left: 1px solid var(--line); }
+.side-figures > div:first-child { border-left: 0; }
+.side-figures strong { display: block; font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.side-figures span { color: var(--muted); font-size: 13.5px; }
+.side-section { padding: 14px 18px; border-top: 1px solid var(--line); }
+.side-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.side-row > span, .side-label { color: var(--muted); font-size: 13.5px; }
+.side-label { display: block; margin-bottom: 6px; }
+.side-row strong { font-variant-numeric: tabular-nums; }
+.side-section .progress { margin: 8px 0 0; }
+.side-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.side-person { display: flex; align-items: center; gap: 10px; }
+.side-person .person-avatar { width: 28px; height: 28px; font-size: 13px; }
+.side-card .box-footer .btn-block .ic { margin-right: 4px; }
 .content.form-page { margin-left: 0; margin-right: 0; }  /* AdminLTE centres .content; keep forms in line with the title */
 .quiz-section + .quiz-section { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
 /* Elements hidden by script stay hidden even when a class gives them a display (e.g. .checkbox) */

@@ -165,7 +165,9 @@
           {% endif %}
         </section>
         <div class="sidebar-account">
-          <span class="avatar" aria-hidden="true">{{ current_user.full_name[:1] | upper }}</span>
+          {# A link, so it still opens your profile when the sidebar is collapsed to icons #}
+          <a class="avatar sidebar-avatar" href="{{ url_for('annotation.profile') if current_user.role == 'end-user' else url_for('admin.admin_profile') }}"
+             title="Profile settings" aria-label="Profile settings">{{ current_user.full_name[:1] | upper }}</a>
           <span class="sidebar-account-who">
             <strong>{{ current_user.full_name }}</strong>
             <span>{{ {"admin": "Admin", "project-admin": "Manager"}.get(current_user.role, "Member") }}</span>

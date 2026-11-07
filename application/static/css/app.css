@@ -228,6 +228,8 @@ a:hover, a:focus { color: var(--ink-soft); }
 .sidebar-todo-more > .sidebar-todo { margin-top: 2px; }
 .sidebar-todo-rest { display: block; margin-top: 4px; color: var(--muted); }
 .sidebar-account { display: flex; align-items: center; gap: 10px; padding: 10px 4px 0; border-top: 1px solid var(--line); }
+.sidebar-avatar { flex: none; text-decoration: none; transition: box-shadow 150ms ease; }
+.sidebar-avatar:hover, .sidebar-avatar:focus { color: var(--on-ink); text-decoration: none; box-shadow: 0 0 0 3px var(--line-strong); }
 .sidebar-account-who { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .sidebar-account-who > strong, .sidebar-account-who > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-account-who > span { color: var(--muted); font-size: 13px; }

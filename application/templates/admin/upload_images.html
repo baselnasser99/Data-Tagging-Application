@@ -7,7 +7,7 @@
   <div>
     <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ icon("arrow-left") }} {{ project.name }}</a>
     <h1>Upload items</h1>
-    <p class="page-lede">{{ plural(project.images|length, "item") }} in this project so far</p>
+    <p class="page-lede">{{ plural(project.images|length, "item") }} so far</p>
   </div>
 </section>
 

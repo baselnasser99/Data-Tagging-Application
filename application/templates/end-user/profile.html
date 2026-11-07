@@ -18,7 +18,7 @@
         <dt>Name</dt><dd>{{ current_user.full_name }}</dd>
         <dt>Email address</dt><dd>{{ current_user.email }}</dd>
       </dl>
-      <p class="help-block">You sign in with this address. To change your name or email, ask your admin.</p>
+      <p class="help-block">To change these, ask your admin.</p>
     </div>
   </div>
 
@@ -39,7 +39,7 @@
           <div class="col-sm-6 form-group">
             <label for="new_password">New password</label>
             <input type="password" class="form-control" id="new_password" name="new_password" required minlength="{{ min_password_length }}" autocomplete="new-password">
-            <p class="help-block">At least {{ min_password_length }} characters. A longer one is safer.</p>
+            <p class="help-block">At least {{ min_password_length }} characters.</p>
           </div>
           <div class="col-sm-6 form-group">
             <label for="confirm_password">New password again</label>

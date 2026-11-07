@@ -53,9 +53,10 @@
           <div class="balance-head">
             {% if per_project %}<strong>{{ b.project.name }}</strong>{% endif %}
             {% if b.share_min == b.share_max %}
-            <span class="balance-gap is-even">Everyone holds {{ plural(b.share_max, "task") }}</span>
+            <span class="balance-gap is-even">{{ icon("check") }}Everyone holds {{ plural(b.share_max, "task") }}</span>
             {% else %}
-            <span class="balance-gap{% if b.share_max - b.share_min <= 1 %} is-even{% endif %}">Shares: {{ b.share_min }} to {{ b.share_max }} tasks</span>
+            {% set even = b.share_max - b.share_min <= 1 %}
+            <span class="balance-gap{% if even %} is-even{% endif %}">{% if even %}{{ icon("check") }}{% endif %}{{ b.share_min }} to {{ b.share_max }} tasks each</span>
             {% endif %}
           </div>
           <ul class="balance-people">

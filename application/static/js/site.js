@@ -95,3 +95,16 @@ window.addEventListener('pageshow', function () { document.querySelectorAll('.is
   button.closest('.main-sidebar').addEventListener('scroll', function () { close(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(isOpen()); });
 })();
+
+// Collapsed sidebar: its links show only icons, so they get their names as tooltips.
+(function () {
+  var links = document.querySelectorAll('.sidebar-menu > li > a');
+  function name() {
+    var collapsed = document.body.classList.contains('sidebar-collapse');
+    links.forEach(function (a) {
+      if (collapsed) a.title = a.textContent.trim(); else a.removeAttribute('title');
+    });
+  }
+  new MutationObserver(name).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  name();
+})();

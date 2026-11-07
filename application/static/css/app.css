@@ -197,7 +197,6 @@ a:hover, a:focus { color: var(--ink-soft); }
 .sidebar-icon-link { width: 32px; height: 32px; border-radius: var(--radius-sm); display: inline-flex; align-items: center;
   justify-content: center; color: var(--muted); text-decoration: none; border: 0; padding: 0; background: none; }
 .sidebar-icon-link:hover, .sidebar-icon-link:focus { background: var(--canvas); color: var(--ink); }
-.sidebar-collapse .sidebar-foot { display: none; }  /* the narrow, icons-only panel has no room for it */
 
 /* Current page: highlighted like a marked passage. */
 .sidebar-menu > li.active > a,
@@ -252,9 +251,6 @@ a:hover, a:focus { color: var(--ink-soft); }
 .new-menu a > span { font-weight: 700; line-height: 1.3; }
 .new-menu a > small { color: var(--muted); font-size: 13px; line-height: 1.35; }
 .new-menu [role="separator"] { margin: 6px 4px; border-top: 1px solid var(--line); }
-.sidebar-mini.sidebar-collapse .sidebar-new { padding: 2px 6px 8px; }
-.sidebar-mini.sidebar-collapse .sidebar-new-button { justify-content: center; padding: 8px 0; }
-.sidebar-mini.sidebar-collapse .sidebar-new-button > :not(.ic-plus) { display: none; }
 @media (prefers-reduced-motion: reduce) {
   /* Fades only: nothing turns, grows or slides */
   .sidebar-new-button, .sidebar-new-button > .ic { transition: background-color 150ms ease; }
@@ -263,16 +259,52 @@ a:hover, a:focus { color: var(--ink-soft); }
   @starting-style { .new-menu.is-open { transform: none; filter: none; } }
 }
 
-/* collapsed sidebar on desktop */
-.sidebar-mini.sidebar-collapse .main-header .logo .logo-lg { display: none; }
-.sidebar-mini.sidebar-collapse .main-header .logo .logo-mini { display: flex; align-items: center; justify-content: center; height: 55px; }
-.sidebar-mini.sidebar-collapse .main-header .logo { padding: 0; }
-.sidebar-mini.sidebar-collapse .sidebar-menu > li.header { display: none; }
-.sidebar-mini.sidebar-collapse .sidebar-menu > li > a { margin: 1px 6px; justify-content: center; }
-.sidebar-mini.sidebar-collapse .sidebar-menu > li:hover > a > span:not(.pull-right) {
-  background: var(--ink);
-  color: var(--on-ink);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+/* Collapsed sidebar on desktop: the panel narrows to 62 px around icons that stay exactly where
+   they are (each sits on the same 31 px centre line in both states), while the words fade out
+   ahead of it, and back in once there is room. Nothing jumps, swaps or wraps. */
+@media (min-width: 768px) {
+  .sidebar-mini.sidebar-collapse .main-sidebar { width: 62px !important; }
+  .sidebar-mini.sidebar-collapse .content-wrapper,
+  .sidebar-mini.sidebar-collapse .main-footer { margin-left: 62px !important; }
+  .sidebar-mini.sidebar-collapse .main-header .navbar { margin-left: 62px; }
+  .sidebar-mini.sidebar-collapse .main-header .logo { width: 62px; }
+  .main-sidebar { overflow-x: hidden; transition: width 280ms var(--ease-drawer); }
+  .content-wrapper, .main-footer { transition: margin-left 280ms var(--ease-drawer); }
+  .main-header .navbar { transition: margin-left 280ms var(--ease-drawer); }
+  .main-header .logo { transition: width 280ms var(--ease-drawer); }
+
+  /* Keep everything laid out at full width; the narrow panel just covers the right part of it */
+  .sidebar-mini.sidebar-collapse .main-header .logo > .logo-lg { display: flex; }
+  .sidebar-mini.sidebar-collapse .main-header .logo > .logo-mini { display: none; }
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li > a > span,
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li.header { display: block !important; }
+  .sidebar-menu > li > a, .sidebar-menu > li.header, .sidebar-new-button,
+  .main-header .logo-name, .sidebar-foot { white-space: nowrap; }
+  .sidebar-foot { width: 230px; flex: none; }
+  .sidebar-menu > li > a, .sidebar-new-button { overflow: hidden; }
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li > a { margin-right: 10px; }  /* AdminLTE runs it to the edge */
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li:hover > a > span { position: static; }  /* no flyout: the link's title names it */
+
+  /* The words: out quickly, in a beat later */
+  .sidebar-menu > li > a > span, .sidebar-menu > li.header, .sidebar-new-button > span,
+  .sidebar-new-button > .ic-chevron-down, .main-header .logo-name,
+  .sidebar-card, .sidebar-account-who, .sidebar-account > .sidebar-icon-link, .sidebar-account > form {
+    transition: opacity 180ms ease 110ms, visibility 0s; }
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li > a > span,
+  .sidebar-mini.sidebar-collapse .sidebar-menu > li.header,
+  .sidebar-mini.sidebar-collapse .sidebar-new-button > span,
+  .sidebar-mini.sidebar-collapse .sidebar-new-button > .ic-chevron-down,
+  .sidebar-mini.sidebar-collapse .main-header .logo-name { opacity: 0; transition: opacity 90ms ease; }
+  /* Controls hidden by the narrow panel can't be reached with Tab either (the menu words above stay
+     in place as the links' names, for screen readers) */
+  .sidebar-mini.sidebar-collapse .sidebar-card,
+  .sidebar-mini.sidebar-collapse .sidebar-account-who,
+  .sidebar-mini.sidebar-collapse .sidebar-account > .sidebar-icon-link,
+  .sidebar-mini.sidebar-collapse .sidebar-account > form { opacity: 0; visibility: hidden; transition: opacity 90ms ease, visibility 0s 90ms; }
+  .sidebar-mini.sidebar-collapse .sidebar-account { border-top-color: transparent; }
+}
+@media (min-width: 768px) and (prefers-reduced-motion: reduce) {
+  .main-sidebar, .content-wrapper, .main-footer, .main-header .navbar, .main-header .logo { transition: none; }
 }
 
 /* ---------- page header ---------- */
@@ -571,14 +603,18 @@ code { color: var(--ink); background: var(--canvas); }
 .balance:first-of-type { border-top: 0; }
 .balance-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 10px; }
 .balance-gap { font-size: 13px; color: var(--muted); }
-.balance-gap.is-even { color: var(--success); font-weight: 700; }
+.balance-gap.is-even .ic { color: var(--ink); margin-right: 2px; }  /* within one task: a quiet tick, not an alert colour */
 .balance-people { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .balance-people > li { display: grid; grid-template-columns: minmax(0, 9.5rem) 1fr auto; align-items: center; gap: 12px; font-size: 14px; }
 .balance-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.balance-bar { display: flex; height: 10px; border-radius: 3px; background: var(--canvas); overflow: hidden; }
+.balance-bar { display: flex; height: 8px; border-radius: 99px; background: var(--canvas); overflow: hidden; }
 /* Done work is the solid yellow, open work is hatched: still to fill in */
 .balance-bar .is-done { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }
-.balance-bar .is-open, .key-open { background: repeating-linear-gradient(135deg, var(--line-strong) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--line-strong); }
+/* Open work: a solid grey after the yellow, split from it by a sliver of the card, so done and open
+   differ in lightness as well as colour (and the key names them) */
+.balance-bar .is-open, .key-open { background: var(--line-strong); }
+.balance-bar .is-done + .is-open { border-left: 2px solid var(--surface); }
+.balance-bar .is-done:last-child, .balance-bar .is-open:last-child { border-radius: 0 99px 99px 0; }
 .balance-count { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 4.5rem; text-align: right; }
 .balance-count b { color: var(--ink); }
 .balance-more { margin: 8px 0 0; font-size: 13px; color: var(--muted); }

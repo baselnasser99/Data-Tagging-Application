@@ -15,6 +15,7 @@
   --shadow-card: 0 1px 2px color-mix(in srgb, var(--shade) 5%, transparent), 0 6px 20px color-mix(in srgb, var(--shade) 6%, transparent);
   /* Motion: strong custom curves (the built-in ones are too weak), short durations */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);  /* things appearing and responding to a press */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);  /* a panel opening or closing: quick start, long gentle stop */
   --press: transform 160ms var(--ease-out);
 }
 

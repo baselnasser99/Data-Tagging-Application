@@ -8,7 +8,11 @@
   function colours() {
     const style = getComputedStyle(document.documentElement);
     const token = name => style.getPropertyValue(name).trim();
-    return { bar: token('--data'), edge: token('--data-edge'), text: token('--muted'), grid: token('--chart-grid') };
+    const bar = token('--data'), edge = token('--data-edge');
+    // The rim is only for contrast on the light theme; where it matches the fill (dark), a 1 px
+    // stroke just blurs at fractional display scaling and reads as a second, offset bar.
+    return { bar, edge, edgeWidth: edge.toLowerCase() === bar.toLowerCase() ? 0 : 1,
+             text: token('--muted'), grid: token('--chart-grid') };
   }
 
   const c = colours();
@@ -22,7 +26,7 @@
         data: weeks.map(w => w.answers),
         backgroundColor: c.bar,
         borderColor: c.edge,
-        borderWidth: 1,
+        borderWidth: c.edgeWidth,
         borderRadius: 4,
         maxBarThickness: 28
       }]
@@ -43,6 +47,7 @@
     const c = colours();
     chart.data.datasets[0].backgroundColor = c.bar;
     chart.data.datasets[0].borderColor = c.edge;
+    chart.data.datasets[0].borderWidth = c.edgeWidth;
     chart.options.scales.x.ticks.color = chart.options.scales.y.ticks.color = c.text;
     chart.options.scales.y.grid.color = c.grid;
     chart.update();

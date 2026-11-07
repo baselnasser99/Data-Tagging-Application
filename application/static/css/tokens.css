@@ -1,4 +1,4 @@
-/* Colour tokens for every page: the signed-in app (app.css, apple.css) and the sign-in
+/* Colour tokens for every page: the signed-in app (app.css, finish.css) and the sign-in
    and error pages (auth.css). Loaded before those stylesheets by base.html,
    includes/auth_layout.html and errors/_layout.html.
 
@@ -44,7 +44,7 @@
   --tint-teal: #E4F3F3;   --tint-teal-ink: #1C6E73;
   --on-ink: #FFFFFF;        /* text on an ink fill (primary buttons, avatars) */
   --on-marker: #1D1C18;     /* text on the yellow marker: always dark, in both themes */
-  --ink-hover: #3A3832;     /* primary buttons under the mouse (apple.css) */
+  --ink-hover: #3A3832;     /* primary buttons under the mouse (finish.css) */
   --success-solid: #1F7A4D; /* fills with white text: these stay dark in both themes */
   --danger-solid: #B42318;
   --danger-line: #E3B4AF;

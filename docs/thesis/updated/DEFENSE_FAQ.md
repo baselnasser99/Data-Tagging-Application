@@ -45,7 +45,7 @@ I measured first. On MySQL 8.4 (mean of 5 runs), handing out 10,000 tasks takes 
 Flask is small, and each part (sign-in, admin, groups, managers, projects, members) is its own blueprint. For a focused tool with three roles, Django's extra features would be overhead.
 
 **Why Bootstrap 3 and AdminLTE 2?**
-That is what the project started with. I kept them and added a design layer on top (`app.css`, `apple.css`) instead of spending the time on a migration that changes nothing for users.
+That is what the project started with. I kept them and added a design layer on top (`app.css`, `finish.css`) instead of spending the time on a migration that changes nothing for users.
 
 ## Security
 

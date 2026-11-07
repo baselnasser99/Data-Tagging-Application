@@ -116,7 +116,7 @@ window.addEventListener('pageshow', function () { document.querySelectorAll('.is
   name();
 })();
 
-// Progress bars draw in once per tab (apple.css, theme.js): a beat apart, then the class
+// Progress bars draw in once per tab (finish.css, theme.js): a beat apart, then the class
 // goes, so bars that change later (or pages opened later) never replay it.
 (function () {
   var root = document.documentElement;

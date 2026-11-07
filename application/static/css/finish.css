@@ -1,10 +1,10 @@
-/* Apple-style layer on top of app.css (WWDC design talks, translated for the web).
+/* Finishing layer on top of app.css: how the interface feels to read and to press.
    Loaded last, after app.css. It owns the typeface, the radius and shadow tokens and the
-   rounded, shadowed card style, so app.css no longer sets those itself.
+   rounded card style, so app.css no longer sets those itself.
    What it changes, and the principle behind each:
      - System font with size-specific tracking and leading   (typography)
      - Sticky top bar on the page colour                      (materials & depth)
-     - Softer, rounder surfaces with layered shadows          (depth encodes hierarchy)
+     - Rounded panels edged by a hairline, not a shadow       (depth: shadows only on what floats)
      - Instant press feedback on every button and link card   (response: feedback on pointer-down)
      - Messages "materialise" instead of popping in           (materialise, don't just fade)
      - Reduced motion / transparency / more contrast honoured  (accessibility) */
@@ -13,7 +13,6 @@
   --radius-sm: 8px;
   --radius: 12px;
   --shadow-small: 0 1px 2px color-mix(in srgb, var(--shade) 6%, transparent), 0 1px 1px color-mix(in srgb, var(--shade) 4%, transparent);
-  --shadow-card: 0 1px 2px color-mix(in srgb, var(--shade) 5%, transparent), 0 6px 20px color-mix(in srgb, var(--shade) 6%, transparent);
   /* Motion: strong custom curves (the built-in ones are too weak), short durations */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);  /* things appearing and responding to a press */
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);  /* a panel opening or closing: quick start, long gentle stop */
@@ -28,8 +27,10 @@ body, h1, h2, h3, h4, h5, h6,
 }
 body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .content-header > h1 { font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; }
+@media (max-width: 767px) {  /* an app title, not a headline, on a phone */
+  .content-header > h1, .page-heading h1, .answer-progress h1 { font-size: 24px; }
+}
 .box-title, .section-title { letter-spacing: -0.01em; }
-.text-muted, .help-block, small { letter-spacing: 0.01em; }
 
 /* ---------- sticky top bar ---------- */
 .wrapper { overflow-x: clip; overflow-y: visible; }  /* AdminLTE's hidden/auto would make .wrapper the scroller and stop the bar from sticking */
@@ -40,11 +41,13 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   border-bottom: 1px solid var(--hairline);
 }
 
-/* ---------- depth: soft, rounded surfaces ---------- */
+/* ---------- depth: rounded surfaces, one hairline edge ----------
+   A border or a shadow, never both: resting panels get the edge in both themes (shadows
+   vanish on near-black anyway); shadows are kept for what floats, the menus. */
 .box {
-  border: 0;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
 }
 .box-header.with-border { border-bottom-color: var(--hairline); }
 .box-footer { background: transparent; border-top-color: var(--hairline); border-radius: 0 0 var(--radius) var(--radius); }
@@ -56,12 +59,6 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   border: 0; border-radius: var(--radius); box-shadow: 0 12px 32px color-mix(in srgb, var(--shade) 16%, transparent);
   transform-origin: top right;  /* the menu grows out of the button that opened it */
 }
-
-/* Dark theme: shadows vanish on near-black, so panels get a hairline edge instead (tokens.css) */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .box { box-shadow: none; border: 1px solid var(--line); }
-}
-:root[data-theme="dark"] .box { box-shadow: none; border: 1px solid var(--line); }
 
 /* ---------- response: feedback the instant you press ---------- */
 .btn { border-radius: var(--radius-sm); transition: var(--press), background-color 150ms ease, box-shadow 150ms ease; }
@@ -84,7 +81,7 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .manager-form .btn { margin-top: 4px; }
 
 /* Whole cards that are a single link (task cards) press like buttons */
-.task-grid .box:has(.box-footer .btn-block) { transition: var(--press), box-shadow 200ms ease; }
+.task-grid .box:has(.box-footer .btn-block) { transition: var(--press), border-color 200ms ease; }
 .task-grid .box:has(.box-footer .btn-block:active) { transform: scale(0.99); }
 
 /* ---------- motion: messages materialise (scale + blur + opacity together) ---------- */
@@ -109,13 +106,13 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   /* Less motion, not none: colours and opacity still fade, nothing moves or scales */
   .btn { transition: background-color 150ms ease, box-shadow 150ms ease; }
   .sidebar-menu > li > a { transition: background-color 150ms ease; }
-  .task-grid .box { transition: box-shadow 200ms ease; }
+  .task-grid .box { transition: border-color 200ms ease; }
   .btn:active, .btn:hover, .sidebar-menu > li > a:active, .task-grid .box:has(.box-footer .btn-block:active) { transform: none; }
   .flash-area .alert { animation: fade 150ms ease both; }
   .is-drawing .progress-bar { animation: none; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 }
 @media (prefers-contrast: more) {
-  .box { box-shadow: none; border: 1px solid var(--line-strong); }
+  .box { border-color: var(--line-strong); }
   .main-header .logo, .main-header .navbar { border-bottom-color: var(--line-strong); }
 }

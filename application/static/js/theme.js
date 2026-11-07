@@ -24,7 +24,7 @@
 
   apply(saved());
 
-  // First page in this tab: progress bars may draw in (apple.css). Set here, before anything is
+  // First page in this tab: progress bars may draw in (finish.css). Set here, before anything is
   // drawn, so the bars never flash full first; site.js keeps it only if the page has bars.
   try { if (!sessionStorage.getItem('drawn')) root.classList.add('is-drawing'); } catch (e) { /* storage blocked: no animation */ }
 

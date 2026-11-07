@@ -97,15 +97,22 @@ window.addEventListener('pageshow', function () { document.querySelectorAll('.is
 })();
 
 // Collapsed sidebar: its links show only icons, so they get their names as tooltips.
+// The menu button says whether the menu is open: on phones AdminLTE adds sidebar-open
+// to show it; on wider screens sidebar-collapse narrows it to icons.
 (function () {
   var links = document.querySelectorAll('.sidebar-menu > li > a');
+  var toggle = document.querySelector('.sidebar-toggle');
+  var phone = window.matchMedia('(max-width: 767px)');
   function name() {
-    var collapsed = document.body.classList.contains('sidebar-collapse');
+    var body = document.body.classList;
+    var collapsed = body.contains('sidebar-collapse');
     links.forEach(function (a) {
       if (collapsed) a.title = a.textContent.trim(); else a.removeAttribute('title');
     });
+    if (toggle) toggle.setAttribute('aria-expanded', String(phone.matches ? body.contains('sidebar-open') : !collapsed));
   }
   new MutationObserver(name).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  phone.addEventListener('change', name);
   name();
 })();
 

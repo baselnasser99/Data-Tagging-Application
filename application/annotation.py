@@ -218,6 +218,8 @@ def annotation_tasks():
             cards[-1].append(a)
         else:
             cards.append([a])
+    # Work still to do first; sort is stable, so each half keeps its project and item order.
+    cards.sort(key=lambda card: all(a.is_completed for a in card))
 
     # Name the project only from the user's own assignments, so other projects' names never leak.
     project = assignments[0].task.project if project_id and assignments else None

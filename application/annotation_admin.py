@@ -111,7 +111,7 @@ def upload_images(project_id):
         # One field takes ZIP files and/or loose image and audio files.
         uploads = [f for f in request.files.getlist('image_zip') if f and f.filename]
         if not uploads:
-            flash("No file selected.", "error")
+            flash("Choose at least one picture, audio file or ZIP to upload.", "error")
             return redirect(request.url)
 
         result = save_project_items(project_id, uploads)

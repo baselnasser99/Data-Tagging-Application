@@ -52,14 +52,14 @@ def test_csv_import_creates_password_when_missing(admin_client):
 def test_csv_import_requires_expected_columns(admin_client):
     data = {"csv_file": _csv("name,mail\nA,a@example.com\n")}
     resp = admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data", follow_redirects=True)
-    assert b"must contain" in resp.data
+    assert b"must name the columns" in resp.data
     assert User.query.filter_by(email="a@example.com").first() is None
 
 
 def test_csv_import_rejects_non_csv(admin_client):
     data = {"csv_file": (io.BytesIO(b"x"), "users.txt")}
     resp = admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data", follow_redirects=True)
-    assert b"Invalid file type" in resp.data
+    assert b"is not a CSV file" in resp.data
 
 
 def test_csv_import_into_a_group_hands_out_the_groups_work(admin_client, db):

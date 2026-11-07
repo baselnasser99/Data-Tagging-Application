@@ -254,13 +254,13 @@ def import_users():
     back = redirect(url_for('admin.create_user', tab='csv'))
     csv_file = request.files.get('csv_file')
     if csv_file is None:
-        flash('No file part', 'danger')
+        flash('Choose a CSV file to import.', 'danger')
         return back
     if csv_file.filename == '':
-        flash('No selected file', 'danger')
+        flash('Choose a CSV file to import.', 'danger')
         return back
     if not csv_file.filename.lower().endswith('.csv'):
-        flash('Invalid file type. Please upload a CSV file.', 'danger')
+        flash(f'"{csv_file.filename}" is not a CSV file. In Excel, save it as "CSV UTF-8 (Comma delimited)" and try again.', 'danger')
         return back
 
     try:  # utf-8-sig: Excel's "CSV UTF-8" starts with a byte-order mark that would hide the first column's name
@@ -270,7 +270,7 @@ def import_users():
         return back
     header = rows[0] if rows else None
     if not header or not all(col in header for col in ['full_name', 'email', 'password']):
-        flash('CSV must contain "full_name", "email", and "password" columns.', 'danger')
+        flash('The first row of the CSV must name the columns full_name, email and password.', 'danger')
         return back
 
     users, created, duplicates, invalid, messages, passwords = _create_users_from_rows(header, rows[1:])
@@ -280,7 +280,7 @@ def import_users():
     if request.form.get('project_id'):
         _give_imported_project(users, request.form['project_id'])
 
-    flash(f"CSV Import Complete: {plural(created, 'user')} created, "
+    flash(f"Import finished: {plural(created, 'user')} created, "
           f"{plural(duplicates, 'duplicate')} skipped, "
           f"{plural(invalid, 'invalid row')} skipped.", 'info')
     for message in messages:

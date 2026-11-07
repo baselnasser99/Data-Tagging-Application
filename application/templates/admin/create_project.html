@@ -14,12 +14,12 @@
             <div class="box-header with-border"><h3 class="box-title">Details</h3></div>
             <div class="box-body">
                 <div class="form-group">
-                    <label class="form-label">Name</label>
-                    <input type="text" name="project_name" class="form-control" required>
+                    <label class="form-label" for="project-name">Name</label>
+                    <input type="text" id="project-name" name="project_name" class="form-control" required>
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label">Description</label>
-                    <textarea rows="3" class="form-control" name="project_desc"></textarea>
+                    <label class="form-label" for="project-desc">Description</label>
+                    <textarea rows="3" class="form-control" id="project-desc" name="project_desc"></textarea>
                 </div>
             </div>
         </div>
@@ -29,29 +29,29 @@
                 <input type="hidden" name="total_questions" id="total_questions" value="1">
                 <div id="questions">
                     <div class="quiz-section">
-                        <label class="form-label">Question 1</label>
-                        <textarea rows="1" class="form-control" name="question-1" placeholder="What do you want to ask?"></textarea>
+                        <label class="form-label" for="question-1">Question 1</label>
+                        <textarea rows="1" class="form-control" id="question-1" name="question-1" placeholder="What do you want to ask?"></textarea>
                         <div class="row" style="margin-top: 10px;">
                             <div class="col-sm-6 form-group">
-                                <label class="form-label">Answer type</label>
-                                <select name="dropdown-1" class="form-control dropdown-value">
+                                <label class="form-label" for="dropdown-1">Answer type</label>
+                                <select id="dropdown-1" name="dropdown-1" class="form-control dropdown-value">
                                     <option value="text">Free text</option>
                                     <option value="mcq">Multiple choice</option>
                                 </select>
                             </div>
                             <div class="col-sm-6 form-group">
-                                <label class="form-label">Attach a file (optional)</label>
-                                <input type="file" name="question-1-file" class="form-control">
+                                <label class="form-label" for="question-1-file">Attach a file (optional)</label>
+                                <input type="file" id="question-1-file" name="question-1-file" class="form-control">
                             </div>
                         </div>
                         <div class="form-group mcq-options" style="display: none;">
-                            <label class="form-label">Number of options</label>
-                            <input type="number" name="number_of_options-1" class="form-control number-of-options" min="2" max="6" value="2" style="max-width: 120px;">
+                            <label class="form-label" for="number-of-options-1">Number of options</label>
+                            <input type="number" id="number-of-options-1" name="number_of_options-1" class="form-control number-of-options" min="2" max="6" value="2" style="max-width: 120px;">
                             <label class="form-label" style="margin-top: 8px;">Options</label>
                             <div class="options-container"></div>
                         </div>
-                        <label class="form-label">Correct answer (optional)</label>
-                        <textarea rows="1" class="form-control" name="answer-1" placeholder="Only you see this"></textarea>
+                        <label class="form-label" for="answer-1">Correct answer (optional)</label>
+                        <textarea rows="1" class="form-control" id="answer-1" name="answer-1" placeholder="Only you see this"></textarea>
                     </div>
                     <!-- MORE QUESTIONS WILL BE ADDED USING JS -->
                 </div>

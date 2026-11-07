@@ -543,7 +543,7 @@ def test_a_count_that_is_not_a_number_is_refused_not_a_crash(admin_client):
 def test_a_project_with_a_manager_can_be_deleted(admin_client, db, survey, make_project_admin):
     manager = make_project_admin(survey)
     resp = admin_client.post(f"/admin/delete-project/{survey.id}", follow_redirects=True)
-    assert b"Project Deleted Successfully" in resp.data
+    assert b"The project was deleted" in resp.data
     assert db.session.get(Project, survey.id) is None and ProjectAdmin.query.count() == 0
     assert manager.role == "project-admin"  # still a manager, now without a project
 

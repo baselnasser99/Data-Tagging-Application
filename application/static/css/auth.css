@@ -206,13 +206,7 @@ a:hover { color: var(--ink-soft); }
 .auth-form h2 {
   font-size: 28px;
   line-height: 1.2;
-  margin: 0 0 8px;
-}
-
-.auth-form .lede {
   margin: 0 0 28px;
-  color: var(--muted);
-  text-wrap: pretty;
 }
 
 .password-field { position: relative; }

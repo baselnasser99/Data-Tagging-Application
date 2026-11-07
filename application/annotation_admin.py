@@ -75,7 +75,7 @@ def create_annotation_project():
                 parsed.append((text, kind, options))
 
             if len(parsed) != total_questions:
-                flash(f"Please provide exactly {total_questions} questions!", "error")
+                flash(f"Please provide exactly {total_questions} questions.", "error")
                 db.session.rollback()
                 return redirect(request.url)
 
@@ -91,7 +91,7 @@ def create_annotation_project():
                 db.session.add(question)
 
         db.session.commit() # Commit all changes related to project and questions
-        flash(f"Project '{project_name}' created successfully!", "success")
+        flash(f"Project '{project_name}' created successfully.", "success")
         return redirect(url_for("annotation_admin.upload_images", project_id=project.id))
 
     return render_template("admin/create_annotation_project.html", groups=usable_groups())
@@ -111,7 +111,7 @@ def upload_images(project_id):
         # One field takes ZIP files and/or loose image and audio files.
         uploads = [f for f in request.files.getlist('image_zip') if f and f.filename]
         if not uploads:
-            flash("No file selected!", "error")
+            flash("No file selected.", "error")
             return redirect(request.url)
 
         result = save_project_items(project_id, uploads)
@@ -136,7 +136,7 @@ def upload_images(project_id):
             parts.append(plural(saved['image'], 'image'))
         if saved["audio"]:
             parts.append(plural(saved['audio'], 'audio file'))
-        flash(f"Successfully uploaded {' and '.join(parts)}!", "success")
+        flash(f"Successfully uploaded {' and '.join(parts)}.", "success")
         return redirect(url_for("annotation_admin.generate_annotation_tasks", project_id=project.id))
 
     return render_template("admin/upload_images.html", project=project)
@@ -159,12 +159,12 @@ def generate_annotation_tasks(project_id):
     if request.method == "POST":
         selected_group_id = request.form.get("group_id")
         if not selected_group_id:
-            flash("Please select a user group!", "error")
+            flash("Please select a user group.", "error")
             return redirect(request.url)
 
         group = db.session.get(UserGroup, selected_group_id)
         if not group:
-            flash("Selected group not found!", "error")
+            flash("Selected group not found.", "error")
             return redirect(request.url)
         if group not in groups:
             abort(403)  # the group also works on other managers' projects

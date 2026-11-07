@@ -278,7 +278,7 @@ def _update_questions(project):
                 _update_question(question, value, form, files)
 
     db.session.commit()
-    flash('Project questions and settings updated successfully!', 'success')
+    flash('Project questions and settings updated successfully.', 'success')
     if project.is_annotation_project:
         flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))
     return redirect(url_for('manager.project_dashboard', project_id=project.id))
@@ -335,7 +335,7 @@ def _add_question(project):
             setattr(question, f'option{i}', request.form.get(f'new_question_option_{i}', ''))
     db.session.add(question)
     db.session.commit()
-    flash('New question added!', 'success')
+    flash('New question added.', 'success')
 
     # A new question creates new tasks for every item; existing answers stay.
     if project.is_annotation_project:
@@ -381,7 +381,7 @@ def _update_settings(project):
         if 'hand_out' in request.form:
             project.hand_out_per_item = request.form['hand_out'] == 'item'
     db.session.commit()
-    flash('Project settings updated successfully!', 'success')
+    flash('Project settings updated successfully.', 'success')
     if project.is_annotation_project:
         flash_distribution(distribution.apply_answers_per_task(project).merge(distribution.distribute(project)))
     return redirect(url_for('manager.project_dashboard', project_id=project.id))

@@ -59,6 +59,12 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   transform-origin: top right;  /* the menu grows out of the button that opened it */
 }
 
+/* Dark theme: shadows vanish on near-black, so panels get a hairline edge instead (tokens.css) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) :is(.box, .card, .panel, .nav-tabs-custom, .small-box) { box-shadow: none; border: 1px solid var(--line); }
+}
+:root[data-theme="dark"] :is(.box, .card, .panel, .nav-tabs-custom, .small-box) { box-shadow: none; border: 1px solid var(--line); }
+
 /* ---------- response: feedback the instant you press ---------- */
 .btn { border-radius: var(--radius-sm); transition: var(--press), background-color 150ms ease, box-shadow 150ms ease; }
 .btn:active, .btn.active { transform: scale(0.97); box-shadow: none; }

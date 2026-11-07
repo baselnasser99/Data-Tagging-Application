@@ -9,7 +9,7 @@
      muted    #56616F  secondary text
      marker   #F5CF3A  "highlighter": current page, focus halo, tags
 
-   Dark theme: the same tokens, darker. It follows the system setting unless the theme
+   Dark theme: the same tokens on a warm near-black, so the yellow reads like a highlighter on dark paper. It follows the system setting unless the theme
    switch in the account menu (static/js/theme.js) sets data-theme on <html>. The dark set
    is written twice, once per way of asking for it; keep the two copies the same. */
 
@@ -69,41 +69,41 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --ink: #E6EAF0;
-    --ink-soft: #C9D1DB;
-    --canvas: #12171D;
-    --surface: #1B222B;
-    --line: #2E3742;
-    --line-strong: #5A6573;
-    --muted: #9AA5B1;
-    --marker-soft: #3A3214;
+    --ink: #ECE9E1;
+    --ink-soft: #CFCBC0;
+    --canvas: #0E0E0C;
+    --surface: #171714;
+    --line: #2A2924;
+    --line-strong: #6A675D;
+    --muted: #A29E92;
+    --marker-soft: #3A3110;
     --danger: #F28B82;
     --danger-bg: #3A1D1B;
     --success: #5CC48F;
-    --success-bg: #15302A;
+    --success-bg: #182B1F;
     --warning: #E8B04B;
     --warning-bg: #3A2E14;
-    --info-bg: #1E2A3A;
+    --info-bg: #23221D;
     --accent: #6E9BF0;
     --accent-soft: #1E2A40;
     --tint-blue: #1E2A40;   --tint-blue-ink: #8FB2F5;
-    --tint-green: #15302A;  --tint-green-ink: #6FCF9B;
+    --tint-green: #182B1F;  --tint-green-ink: #6FCF9B;
     --tint-amber: #3A2E14;  --tint-amber-ink: #E8B04B;
     --tint-violet: #2A2140; --tint-violet-ink: #B9A2EE;
     --tint-teal: #12302F;   --tint-teal-ink: #6CC9CC;
-    --on-ink: #12171D;
+    --on-ink: #0E0E0C;
     --ink-hover: #FFFFFF;
     --danger-line: #6B3330;
     --data-edge: #F5CF3A;
-    --stripe: #1F2730;
-    --chart-grid: #2A323C;
-    --hairline: rgba(255, 255, 255, 0.07);
+    --stripe: #1C1C18;
+    --chart-grid: #2A2924;
+    --hairline: rgba(255, 248, 230, 0.07);
     --shade: #000000;
-    --dots: #2A323C;
-    --tile: #252D37;
-    --tile-ground: #2F3843;
-    --tile-shape: #36404C;
-    --tile-selected: #2B343F;
+    --dots: #2A2924;
+    --tile: #21201C;
+    --tile-ground: #2B2A25;
+    --tile-shape: #34332D;
+    --tile-selected: #282722;
     --hl-ink: #1C2733;   /* the stroke covers the whole word, so the word is dark on yellow */
     --hl-bottom: 0;
     --hl-height: 1.05em;
@@ -111,41 +111,41 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ink: #E6EAF0;
-  --ink-soft: #C9D1DB;
-  --canvas: #12171D;
-  --surface: #1B222B;
-  --line: #2E3742;
-  --line-strong: #5A6573;
-  --muted: #9AA5B1;
-  --marker-soft: #3A3214;
+  --ink: #ECE9E1;
+  --ink-soft: #CFCBC0;
+  --canvas: #0E0E0C;
+  --surface: #171714;
+  --line: #2A2924;
+  --line-strong: #6A675D;
+  --muted: #A29E92;
+  --marker-soft: #3A3110;
   --danger: #F28B82;
   --danger-bg: #3A1D1B;
   --success: #5CC48F;
-  --success-bg: #15302A;
+  --success-bg: #182B1F;
   --warning: #E8B04B;
   --warning-bg: #3A2E14;
-  --info-bg: #1E2A3A;
+  --info-bg: #23221D;
   --accent: #6E9BF0;
   --accent-soft: #1E2A40;
   --tint-blue: #1E2A40;   --tint-blue-ink: #8FB2F5;
-  --tint-green: #15302A;  --tint-green-ink: #6FCF9B;
+  --tint-green: #182B1F;  --tint-green-ink: #6FCF9B;
   --tint-amber: #3A2E14;  --tint-amber-ink: #E8B04B;
   --tint-violet: #2A2140; --tint-violet-ink: #B9A2EE;
   --tint-teal: #12302F;   --tint-teal-ink: #6CC9CC;
-  --on-ink: #12171D;
+  --on-ink: #0E0E0C;
   --ink-hover: #FFFFFF;
   --danger-line: #6B3330;
   --data-edge: #F5CF3A;
-  --stripe: #1F2730;
-  --chart-grid: #2A323C;
-  --hairline: rgba(255, 255, 255, 0.07);
+  --stripe: #1C1C18;
+  --chart-grid: #2A2924;
+  --hairline: rgba(255, 248, 230, 0.07);
   --shade: #000000;
-  --dots: #2A323C;
-  --tile: #252D37;
-  --tile-ground: #2F3843;
-  --tile-shape: #36404C;
-  --tile-selected: #2B343F;
+  --dots: #2A2924;
+  --tile: #21201C;
+  --tile-ground: #2B2A25;
+  --tile-shape: #34332D;
+  --tile-selected: #282722;
   --hl-ink: #1C2733;   /* the stroke covers the whole word, so the word is dark on yellow */
   --hl-bottom: 0;
   --hl-height: 1.05em;

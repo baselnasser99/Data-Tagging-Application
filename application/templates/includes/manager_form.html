@@ -22,7 +22,7 @@
   <div class="form-group">
     <label for="email">…or type their email</label>
     <input type="email" class="form-control" id="email" name="email" autocomplete="off">
-    <p class="help-block">A typed email is used instead of the list. People who become managers stop receiving tasks to answer.</p>
+    <p class="help-block">A typed email overrides the list. Managers stop getting tasks.</p>
   </div>
   <button type="submit" class="btn btn-primary">{{ "Change manager" if replace else "Add manager" }}</button>
 </form>

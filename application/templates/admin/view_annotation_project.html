@@ -60,7 +60,7 @@
             <strong>{{ r.agreement|capitalize }}</strong>
             <span class="text-muted">Fleiss' κ = {{ "%.2f"|format(k) }}</span>
             {% else %}
-            <span class="text-muted">Not enough data yet: it needs tasks with at least two answers.</span>
+            <span class="text-muted">Needs tasks with two or more answers.</span>
             {% endif %}
           </div>
           {% if k is not none %}
@@ -79,7 +79,7 @@
             <strong>{{ "%g"|format(r.percent_agreement) }}%</strong>
             <span class="text-muted">{{ r.agreement|capitalize }}, over {{ plural(r.percent_agreement_tasks, "task") }}</span>
             {% else %}
-            <span class="text-muted">Not enough data yet: it needs tasks with at least two short answers.</span>
+            <span class="text-muted">Needs tasks with two or more short answers.</span>
             {% endif %}
           </div>
         </div>
@@ -145,7 +145,7 @@
 
         {% if r.unclear %}
         <p class="result-label">Marked "can't tell": {{ plural(r.unclear_items, "item") }}</p>
-        <p class="text-muted result-note">Left out of the agreement and the counts above. Worth a look: the item may be unclear, or the question may need a better choice.</p>
+        <p class="text-muted result-note">Not counted above. The item may be unclear, or the question may need a better choice.</p>
         <ul class="disagreements is-unclear">
           {% for d in r.unclear %}
           <li>

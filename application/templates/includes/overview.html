@@ -45,7 +45,7 @@
       <div class="box">
         <div class="box-header with-border">
           <h2 class="box-title">Work balance</h2>
-          <p class="text-muted box-subtitle">Each person's share of the tasks. New tasks go to whoever has the fewest open.</p>
+          <p class="text-muted box-subtitle">New tasks go to whoever has the fewest open.</p>
         </div>
         {% for b in balance %}
         {% set shown = b.people[:8] if per_project else b.people %}

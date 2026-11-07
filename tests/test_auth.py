@@ -21,6 +21,14 @@ def test_login_with_wrong_password_is_rejected(client, end_user):
         assert "_user_id" not in sess
 
 
+def test_failed_login_keeps_the_typed_email_and_next(client, end_user):
+    resp = client.post("/login?next=/user/profile", data={"email": end_user.email, "password": "wrong"})
+    assert resp.headers["Location"].endswith("/login?next=/user/profile")
+    page = client.get("/login").data.decode()
+    assert f'value="{end_user.email}"' in page
+    assert 'value=""' in client.get("/login").data.decode()  # shown once only
+
+
 def test_login_with_unknown_email_is_rejected(client):
     resp = login(client, "nobody@example.com", follow=True)
     assert b"incorrect" in resp.data
@@ -34,7 +42,7 @@ def test_logged_in_user_visiting_login_is_sent_home(user_client):
 
 def test_logout_clears_session(user_client):
     resp = user_client.post("/logout", follow_redirects=True)
-    assert b"Logged out" in resp.data
+    assert b"You are signed out" in resp.data
     with user_client.session_transaction() as sess:
         assert "_user_id" not in sess and "id" not in sess
     assert user_client.get("/user/dashboard").status_code == 302

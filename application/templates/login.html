@@ -7,12 +7,12 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="field">
     <label for="email">Email address</label>
-    <input id="email" type="email" name="email" autocomplete="email" required autofocus>
+    <input id="email" type="email" name="email" value="{{ email }}" autocomplete="email" required{% if not email %} autofocus{% endif %}>
   </div>
   <div class="field">
     <label for="password">Password</label>
     <div class="password-field">
-      <input id="password" type="password" name="password" autocomplete="current-password" required>
+      <input id="password" type="password" name="password" autocomplete="current-password" required{% if email %} autofocus{% endif %}>
       {# Shown by auth.js; without JavaScript the field works as a plain password box. #}
       <button type="button" class="reveal" aria-controls="password" aria-pressed="false" hidden>Show</button>
     </div>

@@ -7,7 +7,7 @@
 	<div>
 		<h1>Projects</h1>
 		{% set surveys = projects|rejectattr("is_annotation_project")|list|length %}
-		<p class="page-lede">{{ plural(projects|length - surveys, "project") }} · {{ plural(surveys, "survey") }}</p>
+		<p class="page-lede">{{ plural(projects|length - surveys, "project") }}{% if surveys %} · {{ plural(surveys, "survey") }}{% endif %}</p>
 	</div>
 	<div class="page-actions">
 		<a class="btn btn-default" href="{{ url_for('admin.full_download') }}">{{ icon("download") }} Export all answers</a>

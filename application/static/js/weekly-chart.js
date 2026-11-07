@@ -34,6 +34,7 @@
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: document.documentElement.classList.contains('is-drawing') ? undefined : false,  // grows only with the other bars, once per tab
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: { display: false }, ticks: { color: c.text } },

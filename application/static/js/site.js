@@ -108,3 +108,18 @@ window.addEventListener('pageshow', function () { document.querySelectorAll('.is
   new MutationObserver(name).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   name();
 })();
+
+// Progress bars draw in once per tab (apple.css, theme.js): a beat apart, then the class
+// goes, so bars that change later (or pages opened later) never replay it.
+(function () {
+  var root = document.documentElement;
+  if (!root.classList.contains('is-drawing')) return;
+  var bars = document.querySelectorAll('.progress-bar');
+  if (!bars.length) { root.classList.remove('is-drawing'); return; }  // e.g. the sign-in page: wait for one with bars
+  try { sessionStorage.setItem('drawn', '1'); } catch (e) { /* nothing to remember it in */ }
+  bars.forEach(function (bar, i) { bar.style.animationDelay = Math.min(i, 10) * 35 + 'ms'; });
+  setTimeout(function () {
+    root.classList.remove('is-drawing');
+    bars.forEach(function (bar) { bar.style.animationDelay = ''; });
+  }, 700 + 10 * 35 + 100);
+})();

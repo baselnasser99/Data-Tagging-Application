@@ -98,6 +98,16 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   to   { opacity: 1; transform: none; filter: none; }
 }
 
+/* ---------- motion: progress draws in like a highlighter stroke ----------
+   Once per browser tab, on the first page that has progress bars (theme.js and site.js set
+   html.is-drawing): each fill sweeps left to right, a beat apart. Work balance stays still: it compares shares, it is not progress. Every later page shows
+   the bars as they are, so a page opened all day never makes you wait to read it. */
+@keyframes highlight-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+.is-drawing .progress-bar { animation: highlight-in 700ms var(--ease-drawer) both; }
+
 /* ---------- accessibility ---------- */
 @media (prefers-reduced-motion: reduce) {
   /* Less motion, not none: colours and opacity still fade, nothing moves or scales */
@@ -106,6 +116,7 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   .task-grid .box { transition: box-shadow 200ms ease; }
   .btn:active, .btn:hover, .sidebar-menu > li > a:active, .task-grid .box:has(.box-footer .btn-block:active) { transform: none; }
   .flash-area .alert { animation: fade 150ms ease both; }
+  .is-drawing .progress-bar { animation: none; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 }
 @media (prefers-contrast: more) {

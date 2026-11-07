@@ -65,8 +65,6 @@ a:hover, a:focus { color: var(--ink-soft); }
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
-.main-header .navbar .nav > li > a,
-.main-header .sidebar-toggle { padding-top: 13px; padding-bottom: 13px; }
 
 .main-header .logo {
   color: var(--ink);
@@ -85,12 +83,23 @@ a:hover, a:focus { color: var(--ink-soft); }
 .main-header .sidebar-toggle { color: var(--ink); font-family: inherit; display: flex; align-items: center; }
 .main-header .sidebar-toggle::before { content: none; }  /* AdminLTE drew it with the Font Awesome font */
 .main-header .sidebar-toggle > .ic { width: 20px; height: 20px; }
-.main-header .sidebar-toggle:hover { background: var(--canvas); color: var(--ink); }
-
-.main-header .navbar .nav > li > a { color: var(--ink); }
+/* Top-bar buttons (menu, account): a rounded pill inset from the bar, like the sidebar links.
+   Hover fades the colour only; pressing shrinks it a touch, like every other button. */
+.main-header .sidebar-toggle,
+.main-header .navbar .nav > li > a {
+  height: 40px; margin: 8px 4px; padding: 0 10px; border-radius: var(--radius-sm); color: var(--ink);
+  transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+.main-header .sidebar-toggle { margin-left: 8px; }
+.main-header .navbar .nav > li > a { margin-right: 10px; }
+.main-header .sidebar-toggle:hover, .main-header .sidebar-toggle:focus,
 .main-header .navbar .nav > li > a:hover,
 .main-header .navbar .nav > li > a:focus,
 .main-header .navbar .nav .open > a { background: var(--canvas); color: var(--ink); }
+.main-header .sidebar-toggle:active, .main-header .navbar .nav > li > a:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  .main-header .sidebar-toggle, .main-header .navbar .nav > li > a { transition: background-color 150ms ease; }
+  .main-header .sidebar-toggle:active, .main-header .navbar .nav > li > a:active { transform: none; }
+}
 
 .user-menu > a { display: flex; align-items: center; gap: 8px; }
 .avatar {
@@ -598,8 +607,9 @@ code { color: var(--ink); background: var(--canvas); }
 .balance { padding: 14px 18px; border-top: 1px solid var(--line); }
 .balance:first-of-type { border-top: 0; }
 .balance-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 10px; }
-.balance-gap { font-size: 13px; color: var(--muted); }
-.balance-gap.is-even .ic { color: var(--ink); margin-right: 2px; }  /* within one task: a quiet tick, not an alert colour */
+/* Balance status: the house tag (badge), green when shares are within one task, amber when not */
+.balance-gap { font-size: 12.5px; }
+.balance-gap .ic { margin-right: 4px; }
 .balance-people { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .balance-people > li { display: grid; grid-template-columns: minmax(0, 9.5rem) 1fr auto; align-items: center; gap: 12px; font-size: 14px; }
 .balance-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

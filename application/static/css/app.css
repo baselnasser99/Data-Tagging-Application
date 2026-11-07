@@ -162,7 +162,7 @@ a:hover, a:focus { color: var(--ink-soft); }
   border-left: 0;
   color: var(--ink);
 }
-.sidebar-menu > li > a > .ic { color: var(--muted); width: 18px; flex: none; }
+.sidebar-menu > li > a > .ic { color: var(--muted); width: 18px; height: 18px; }
 .sidebar-menu > li > a > span { flex: 1; text-align: left; }
 .sidebar-menu > li > a:hover { background: var(--canvas); color: var(--ink); }
 
@@ -212,7 +212,6 @@ a:hover, a:focus { color: var(--ink-soft); }
 .ic { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex: none; }
 .btn .ic { width: 1.05em; height: 1.05em; vertical-align: -0.17em; }
 .ic-lg { width: 3em; height: 3em; }
-.sidebar-menu > li > a > .ic { height: 18px; }
 
 /* "New": one menu for everything an admin or manager creates. It opens beside the sidebar
    (static/js/site.js places it), so it never covers the panel's own contents. */
@@ -269,8 +268,7 @@ a:hover, a:focus { color: var(--ink-soft); }
   .sidebar-mini.sidebar-collapse .main-header .navbar { margin-left: 62px; }
   .sidebar-mini.sidebar-collapse .main-header .logo { width: 62px; }
   .main-sidebar { overflow-x: hidden; transition: width 280ms var(--ease-drawer); }
-  .content-wrapper, .main-footer { transition: margin-left 280ms var(--ease-drawer); }
-  .main-header .navbar { transition: margin-left 280ms var(--ease-drawer); }
+  .content-wrapper, .main-footer, .main-header .navbar { transition: margin-left 280ms var(--ease-drawer); }
   .main-header .logo { transition: width 280ms var(--ease-drawer); }
 
   /* Keep everything laid out at full width; the narrow panel just covers the right part of it */
@@ -377,7 +375,6 @@ a:hover, a:focus { color: var(--ink-soft); }
   font-weight: 700;
 }
 .small-box > .small-box-footer:hover { background: var(--canvas); color: var(--ink); }
-.small-box > .small-box-footer .ic { display: none; }
 
 .info-box {
   background: var(--surface);
@@ -472,7 +469,6 @@ a:hover, a:focus { color: var(--ink-soft); }
   align-items: center;
   gap: 8px;
 }
-.btn-app > .ic { display: inline; font-size: 16px; }
 .btn-app:hover { background: var(--canvas); border-color: var(--line-strong); color: var(--ink); }
 
 /* ---------- forms ---------- */
@@ -614,7 +610,7 @@ code { color: var(--ink); background: var(--canvas); }
    differ in lightness as well as colour (and the key names them) */
 .balance-bar .is-open, .key-open { background: var(--line-strong); }
 .balance-bar .is-done + .is-open { border-left: 2px solid var(--surface); }
-.balance-bar .is-done:last-child, .balance-bar .is-open:last-child { border-radius: 0 99px 99px 0; }
+.balance-bar .is-open { border-radius: 0 99px 99px 0; }
 .balance-count { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 4.5rem; text-align: right; }
 .balance-count b { color: var(--ink); }
 .balance-more { margin: 8px 0 0; font-size: 13px; color: var(--muted); }

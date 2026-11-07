@@ -803,6 +803,7 @@ code { color: var(--ink); background: var(--canvas); }
    with a tinted, numbered header, so neighbouring questions never run together */
 .question-card { border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); margin-bottom: 14px; overflow: hidden; }
 .question-card-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+.question-card-head > label, .question-card-head > .question-kind { white-space: nowrap; }
 .question-card-head > label { margin: 0; }
 .question-card-head > .question-kind { font-size: 13px; }
 .question-card-head > .btn { margin-left: auto; }

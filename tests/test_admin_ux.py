@@ -264,6 +264,38 @@ def test_project_manager_page_has_the_picker(admin_client, db, make_user):
     assert b'class="content"' in page  # inside the normal page layout, not glued to the sidebar
 
 
+def test_admin_changes_a_project_manager_in_one_step(app, admin_client, db, make_user, make_project_admin):
+    from application.models import Project, ProjectAdmin
+
+    project = Project(name="Delta", desc="d")
+    db.session.add(project)
+    db.session.commit()
+    old = make_project_admin(project)
+    new = make_user(name="New Lead")
+    page = admin_client.get(f"/admin/project/{project.id}/admins").data
+    assert b"Change manager" in page and b'name="replace"' in page
+
+    admin_client.post(f"/admin/project/{project.id}/admins/add", data={"user_id": new.id, "replace": "1"})
+    assert [pa.user_id for pa in ProjectAdmin.query.filter_by(project_id=project.id)] == [new.id]
+    assert db.session.get(type(new), new.id).role == "project-admin"
+    assert db.session.get(type(old), old.id).role == "end-user"  # manages nothing else now, as after a removal
+
+
+def test_a_manager_cannot_swap_out_the_manager(app, db, make_user, make_project_admin):
+    from application.models import Project, ProjectAdmin
+
+    project = Project(name="Epsilon", desc="d")
+    db.session.add(project)
+    db.session.commit()
+    manager = make_project_admin(project)
+    other = make_user(name="Someone Else")
+    client = app.test_client()
+    client.post("/login", data={"email": manager.email, "password": "password123"})
+    assert client.get(f"/admin/project/{project.id}/admins").status_code == 200  # signed in as the manager
+    client.post(f"/admin/project/{project.id}/admins/add", data={"user_id": other.id, "replace": "1"})
+    assert [pa.user_id for pa in ProjectAdmin.query.filter_by(project_id=project.id)] == [manager.id]
+
+
 def test_create_a_manager_without_a_project(admin_client):
     resp = admin_client.post("/admin/create-user", data={
         "full_name": "Mia Manager", "email": "mia@example.com", "password": "secret123",

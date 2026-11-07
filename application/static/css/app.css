@@ -832,6 +832,7 @@ code { color: var(--ink); background: var(--canvas); }
 .btn-quiet-danger:hover, .btn-quiet-danger:focus { color: var(--danger); border-color: var(--danger); }
 .person.is-removed .person-who, .person.is-removed .person-avatar { opacity: .6; }
 .person.person-short { grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr) auto; padding: 10px 0; }
+.person.person-short:not(:has(.person-groups)) { grid-template-columns: 40px minmax(0, 1fr) auto; }  /* name, then actions */
 .list-search { margin-bottom: 8px; }
 .list-none { margin: 10px 0 0; }
 

@@ -91,10 +91,14 @@ a:hover, a:focus { color: var(--ink-soft); }
   transition: background-color 150ms ease, transform 160ms var(--ease-out); }
 .main-header .sidebar-toggle { margin-left: 8px; }
 .main-header .navbar .nav > li > a { margin-right: 10px; }
-.main-header .sidebar-toggle:hover, .main-header .sidebar-toggle:focus,
+/* Lit on hover, while its menu is open, or when reached with Tab; a mouse click leaves no highlight
+   behind. A wash of the text colour, so it lifts in the dark theme instead of sinking into the bar. */
+.main-header .sidebar-toggle:focus, .main-header .navbar .nav > li > a:focus { background: transparent; color: var(--ink); }
+.main-header .sidebar-toggle:hover, .main-header .sidebar-toggle:focus-visible,
 .main-header .navbar .nav > li > a:hover,
-.main-header .navbar .nav > li > a:focus,
-.main-header .navbar .nav .open > a { background: var(--canvas); color: var(--ink); }
+.main-header .navbar .nav > li > a:focus-visible,
+.main-header .navbar .nav .open > a,
+.main-header .navbar .nav .open > a:focus { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
 .main-header .sidebar-toggle:active, .main-header .navbar .nav > li > a:active { transform: scale(0.97); }
 @media (prefers-reduced-motion: reduce) {
   .main-header .sidebar-toggle, .main-header .navbar .nav > li > a { transition: background-color 150ms ease; }

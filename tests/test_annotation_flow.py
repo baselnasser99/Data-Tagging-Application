@@ -261,7 +261,8 @@ def test_answering_an_image_in_several_batches_skips_nothing(app, db, admin_clie
         if step < 2:
             assert resp.headers["Location"].endswith(base)
     assert all(a.is_completed for a in TaskAssignment.query.all())
-    assert b"Done" in client.get("/user/annotation-tasks").data
+    page = client.get("/user/annotation-tasks").data
+    assert b"All done" in page and b"answered-tasks" in page
 
 
 def test_hand_out_setting_from_the_forms(admin_client):

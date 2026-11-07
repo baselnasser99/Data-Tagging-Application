@@ -933,10 +933,25 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .item-strip > li > .media-audio-thumb { height: 96px; }
 .item-strip > li > span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Task cards: long file names end with an ellipsis; the question reads as text, not as a control */
-.task-card-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 96px); }
+/* Title and badge on one centred line; the title gets room for its descenders and shortens with an ellipsis */
+.task-grid .box-header { display: flex; align-items: center; gap: 8px; }
+.task-grid .box-header > .box-tools { position: static; margin-left: auto; flex: none; }
+.task-grid .box-header > .task-card-title { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.4; }
 .task-questions { margin: 12px 0 0; }
 .task-questions > li { padding: 3px 0; font-weight: 600; overflow-wrap: anywhere; }
 .task-questions > li.text-muted { font-weight: 400; }
+/* The whole picture, never cropped (the edges can decide the answer); no backdrop, so the space beside it is just card */
+.task-media { display: block; width: 100%; height: 200px; object-fit: contain; }
+/* My tasks: finished work folded into a compact list under the open cards */
+.answered-tasks > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px; font-weight: 700; cursor: pointer; list-style: none; }
+.answered-tasks > summary::-webkit-details-marker { display: none; }
+.answered-tasks > summary .ic { width: 16px; height: 16px; color: var(--muted); transition: transform 220ms var(--ease-out); }
+.answered-tasks[open] > summary .ic { transform: rotate(180deg); }
+.answered-list { list-style: none; margin: 0; padding: 0 16px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.answered-list > li { display: flex; align-items: center; gap: 12px; padding: 8px; background: var(--canvas); border-radius: var(--radius-sm); }
+.answered-thumb, .answered-list .media-audio-thumb { flex: none; width: 44px; height: 44px; object-fit: contain; border-radius: 3px; background: var(--surface); }
+.answered-text { display: flex; flex-direction: column; min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .answered-tasks > summary .ic { transition: none; } }
 /* Form pages read best at a comfortable width, not stretched across a wide screen */
 .form-page { max-width: 680px; }  /* a form reads best at about one line of text wide */
 .password-notice { margin: 0 0 14px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--marker-soft); color: var(--ink); }  /* member profile: temporary password */

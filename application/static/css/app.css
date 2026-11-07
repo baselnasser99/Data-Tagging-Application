@@ -1,39 +1,23 @@
 /* Data Tagging application theme.
    Refines the AdminLTE 2 / Bootstrap 3 defaults into a quieter, more legible
    interface. Loaded after AdminLTE, so selectors stay at AdminLTE's own
-   specificity wherever possible.
+   specificity wherever possible; apple.css loads after this file and sets the
+   typeface, radii, shadows and press feedback.
 
    Colours come from the light and dark tokens in tokens.css.
-   Typeface: Atkinson Hyperlegible, chosen for legibility during long
-   labelling sessions. */
 
-:root {
-  --radius-sm: 4px;
-  --radius: 6px;
-}
+   Sections: base, chrome (top bar, account menu, page header), sidebar and New menu,
+   cards, side cards, forms, charts, answering screen, member overview, motion. */
 
 /* ---------- base ---------- */
-html, body { font-size: 15px; }
-
-body,
-h1, h2, h3, h4, h5, h6,
-.h1, .h2, .h3, .h4, .h5, .h6,
-.main-header .logo,
-.btn, .form-control, .table, .label, .badge {
-  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
-}
-
-body {
-  color: var(--ink);
-  background: var(--canvas);
-  line-height: 1.5;
-}
+body { color: var(--ink); background: var(--canvas); }
 
 a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 a:hover, a:focus { color: var(--ink-soft); }
-.btn, .sidebar-menu a, .navbar a, .logo, .small-box-footer, .dropdown-menu a { text-decoration: none; }
+.btn, .sidebar-menu a, .navbar a, .logo, .dropdown-menu a { text-decoration: none; }
 
 .text-muted { color: var(--muted); }
+.text-green { color: var(--success) !important; }
 
 :focus-visible,
 .btn:focus-visible,
@@ -55,7 +39,15 @@ a:hover, a:focus { color: var(--ink-soft); }
 }
 .skip-link:focus { top: 12px; color: var(--on-ink); }
 
-.wrapper, .content-wrapper, .right-side { background: var(--canvas); }
+/* Elements hidden by script stay hidden even when a class gives them a display (e.g. .checkbox) */
+[hidden] { display: none !important; }
+
+/* Icons (application/icons.py): line drawings sized to the text beside them */
+.ic { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex: none; }
+.btn .ic { width: 1.05em; height: 1.05em; vertical-align: -0.17em; }
+.ic-lg { width: 3em; height: 3em; }
+
+.wrapper, .content-wrapper { background: var(--canvas); }
 /* Dot paper, the same as the sign-in page's, behind the top of every page: strongest behind the
    title, gone by the time the panels start. Static, and never inside panels or on the task
    screen, where nothing should compete with the item being labelled. */
@@ -69,14 +61,9 @@ a:hover, a:focus { color: var(--ink-soft); }
 }
 .content-wrapper:has(.answer-progress)::before { content: none; }
 
-/* ---------- header ---------- */
+/* ---------- chrome: top bar ---------- */
 .main-header .logo,
-.main-header .navbar {
-  height: 56px;
-  min-height: 56px;
-  background: var(--canvas);  /* the frame sits on the page colour; only content cards are lighter */
-  border-bottom: 1px solid var(--line);
-}
+.main-header .navbar { height: 56px; min-height: 56px; }
 
 .main-header .logo {
   color: var(--ink);
@@ -103,16 +90,15 @@ a:hover, a:focus { color: var(--ink-soft); }
 @media (prefers-reduced-motion: reduce) { .main-header .logo .brand-mark :is(path, rect) { animation: none !important; } }
 .main-header .logo .logo-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }  /* a long APP_NAME ends in "…" */
 
-.main-header .sidebar-toggle { color: var(--ink); font-family: inherit; display: flex; align-items: center; }
-.main-header .sidebar-toggle::before { content: none; }  /* AdminLTE drew it with the Font Awesome font */
-.main-header .sidebar-toggle > .ic { width: 20px; height: 20px; }
 /* Top-bar buttons (menu, account): a rounded pill inset from the bar, like the sidebar links.
    Hover fades the colour only; pressing shrinks it a touch, like every other button. */
 .main-header .sidebar-toggle,
 .main-header .navbar .nav > li > a {
   height: 40px; margin: 8px 4px; padding: 0 10px; border-radius: var(--radius-sm); color: var(--ink);
   transition: background-color 150ms ease, transform 160ms var(--ease-out); }
-.main-header .sidebar-toggle { margin-left: 8px; }
+.main-header .sidebar-toggle { margin-left: 8px; font-family: inherit; display: flex; align-items: center; }
+.main-header .sidebar-toggle::before { content: none; }  /* AdminLTE drew it with the Font Awesome font */
+.main-header .sidebar-toggle > .ic { width: 20px; height: 20px; }
 .main-header .navbar .nav > li > a { margin-right: 10px; }
 /* Lit on hover, while its menu is open, or when reached with Tab; a mouse click leaves no highlight
    behind. A wash of the text colour, so it lifts in the dark theme instead of sinking into the bar. */
@@ -128,8 +114,8 @@ a:hover, a:focus { color: var(--ink-soft); }
   .main-header .sidebar-toggle:active, .main-header .navbar .nav > li > a:active { transform: none; }
 }
 
-.main-header .navbar .nav > li.user-menu > a { display: flex; align-items: center; gap: 8px; }  /* beats Bootstrap's .nav > li > a { display: block } */
-.main-header .navbar .nav > li.user-menu > a { padding-left: 6px; }  /* the avatar sits evenly in the pill's rounded end */
+/* beats Bootstrap's .nav > li > a { display: block }; the avatar sits evenly in the pill's rounded end */
+.main-header .navbar .nav > li.user-menu > a { display: flex; align-items: center; gap: 8px; padding-left: 6px; }
 .avatar {
   display: inline-grid;
   place-items: center;
@@ -142,13 +128,8 @@ a:hover, a:focus { color: var(--ink-soft); }
   font-size: 13px;
 }
 
-.navbar-nav > .user-menu > .dropdown-menu.account-menu {
-  width: 240px;
-  padding: 6px 0;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--shade) 12%, transparent);
-}
+/* ---------- chrome: account menu ---------- */
+.navbar-nav > .user-menu > .dropdown-menu.account-menu { width: 240px; padding: 6px 0; }
 .account-menu .account-who {
   padding: 8px 16px 10px;
   margin-bottom: 4px;
@@ -175,11 +156,15 @@ a:hover, a:focus { color: var(--ink-soft); }
 .theme-choices > button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px color-mix(in srgb, var(--shade) 16%, transparent); }
 
 /* ---------- sidebar ---------- */
-.main-sidebar, .left-side {
+/* The panel runs the full height of the window, so its bottom can hold a summary and your account */
+.main-sidebar {
+  position: fixed; top: 0; bottom: 0; display: flex; flex-direction: column; overflow-y: auto;
+  padding-top: 64px;
   background: var(--canvas);
   border-right: 1px solid var(--line);
-  padding-top: 64px;
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent;  /* only scrolls on short windows; keep the bar quiet */
 }
+.main-sidebar > nav { flex: none; }
 
 .sidebar-menu > li.header {
   padding: 18px 20px 6px;
@@ -203,10 +188,6 @@ a:hover, a:focus { color: var(--ink-soft); }
 .sidebar-menu > li > a > span { flex: 1; text-align: left; }
 .sidebar-menu > li > a:hover { background: var(--wash); color: var(--ink); }
 
-/* The panel runs the full height of the window, so its bottom can hold a summary and your account */
-.main-sidebar { position: fixed; top: 0; bottom: 0; display: flex; flex-direction: column; overflow-y: auto;
-  scrollbar-width: thin; scrollbar-color: var(--line) transparent; }  /* only scrolls on short windows; keep the bar quiet */
-.main-sidebar > nav { flex: none; }
 .sidebar-foot { margin-top: auto; padding: 16px 12px 14px; display: flex; flex-direction: column; gap: 12px; }
 .sidebar-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
 .sidebar-card > h2 { font-size: 13px; font-weight: 700; color: var(--muted); margin: 0 0 8px; }
@@ -227,16 +208,15 @@ a:hover, a:focus { color: var(--ink-soft); }
   border-radius: 99px; background: var(--marker); color: var(--on-marker); font-size: 11.5px; font-variant-numeric: tabular-nums; }
 /* "Show 2 more": the folded lines slide open and fade in; the chevron turns with them */
 .sidebar-todo-more { display: flex; flex-direction: column; align-items: flex-start; margin: 0; font-size: 13px; color: var(--muted); interpolate-size: allow-keywords; }
-.sidebar-todo-more > summary { order: 1; }  /* the toggle stays under the lines it reveals */
-.sidebar-todo-more::details-content { align-self: stretch; }
-.sidebar-todo-more > summary { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; padding: 2px 0; list-style: none; }
+.sidebar-todo-more > summary { order: 1;  /* the toggle stays under the lines it reveals */
+  display: inline-flex; align-items: center; gap: 4px; cursor: pointer; padding: 2px 0; list-style: none; }
 .sidebar-todo-more > summary::-webkit-details-marker { display: none; }
 .sidebar-todo-more > summary:hover { color: var(--ink); }
 .sidebar-todo-more > summary .ic { width: 14px; height: 14px; transition: transform 220ms var(--ease-out); }
 .sidebar-todo-more[open] > summary .ic { transform: rotate(180deg); }
 .sidebar-todo-more .when-open, .sidebar-todo-more[open] .when-closed { display: none; }
 .sidebar-todo-more[open] .when-open { display: inline; }
-.sidebar-todo-more::details-content { block-size: 0; overflow: clip; opacity: 0;
+.sidebar-todo-more::details-content { align-self: stretch; block-size: 0; overflow: clip; opacity: 0;
   transition: block-size 240ms var(--ease-drawer), opacity 180ms ease, content-visibility 240ms allow-discrete; }
 .sidebar-todo-more[open]::details-content { block-size: auto; opacity: 1; }
 .sidebar-todo-more .sidebar-todo { margin: 1px 0 2px; }  /* the same 1px step as the lines above it */
@@ -265,12 +245,8 @@ a:hover, a:focus { color: var(--ink-soft); }
 }
 .sidebar-menu > li.active > a > .ic { color: var(--ink); }
 
-/* Icons (application/icons.py): line drawings sized to the text beside them */
-.ic { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex: none; }
-.btn .ic { width: 1.05em; height: 1.05em; vertical-align: -0.17em; }
-.ic-lg { width: 3em; height: 3em; }
-
-/* "New": one menu for everything an admin or manager creates. It opens beside the sidebar
+/* ---------- New menu ----------
+   One menu for everything an admin or manager creates. It opens beside the sidebar
    (static/js/site.js places it), so it never covers the panel's own contents. */
 .sidebar-new { padding: 2px 10px 8px; }
 .sidebar-new-button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 12px;
@@ -315,7 +291,8 @@ a:hover, a:focus { color: var(--ink-soft); }
   @starting-style { .new-menu.is-open { transform: none; filter: none; } }
 }
 
-/* Collapsed sidebar on desktop: the panel narrows to 62 px around icons that stay exactly where
+/* ---------- sidebar: collapsed and phone ----------
+   Collapsed sidebar on desktop: the panel narrows to 62 px around icons that stay exactly where
    they are (each sits on the same 31 px centre line in both states), while the words fade out
    ahead of it, and back in once there is room. Nothing jumps, swaps or wraps. */
 @media (min-width: 768px) {
@@ -362,97 +339,60 @@ a:hover, a:focus { color: var(--ink-soft); }
   .main-sidebar, .content-wrapper, .main-footer, .main-header .navbar, .main-header .logo { transition: none; }
 }
 
-/* ---------- page header ---------- */
+/* ---------- chrome: page header, content, footer ---------- */
 .flash-area { padding: 20px 24px 0; }
 .flash-area:empty { display: none; }
 
 .content-header { padding: 28px 24px 4px; }
-.content-header > h1 {
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--ink);
-}
+.content-header > h1 { color: var(--ink); }
 .content-header > h1 > small { color: var(--muted); font-size: 15px; display: block; margin-top: 6px; padding-left: 0; }
 /* The breadcrumbs only ever pointed at "#"; the sidebar shows where you are. */
 .content-header > .breadcrumb { display: none; }
+.content-header > .page-subtitle { margin: 4px 0 0; }  /* the line under the h1 */
 
 .content { padding: 20px 24px 32px; }
 
-/* ---------- panels ---------- */
-.box,
-.card,
-.panel,
-.nav-tabs-custom {
-  background: var(--surface);
-  border: 1px solid var(--line);
+/* Page title with its main action on the right */
+.page-heading { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.page-heading h1 { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; color: var(--ink); }
+.page-heading .page-lede { margin: 6px 0 0; color: var(--muted); }
+.page-heading .btn { margin-bottom: 4px; }
+.page-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.main-footer {
+  background: transparent;
   border-top: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: none;
-  margin-bottom: 20px;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 14px 24px;
 }
-.box.box-primary, .box.box-info, .box.box-success,
-.box.box-warning, .box.box-danger, .box.box-default { border-top-color: var(--line); }
+
+@media (max-width: 767px) {
+  .content-header { padding: 20px 16px 4px; }
+  .content, .flash-area { padding-left: 16px; padding-right: 16px; }
+  .main-header .logo {
+    position: absolute; top: 0; left: 50%; z-index: 1001; transform: translateX(-50%);  /* above Bootstrap's .navbar-static-top (1000) */
+    width: auto; max-width: calc(100% - 150px); overflow: hidden; padding: 0; border-right: 0;
+  }
+  .main-sidebar { padding-top: 56px; }
+}
+
+/* ---------- cards ---------- */
+.box { background: var(--surface); margin-bottom: 20px; }
+.box.box-primary, .box.box-success { border-top-color: var(--line); }  /* AdminLTE colours the top edge */
 
 .box-header { padding: 14px 18px; color: var(--ink); }
 .box-header.with-border { border-bottom: 1px solid var(--line); }
 .box-header .box-title,
 .box-title { font-size: 16px; font-weight: 700; }
 .box-body { padding: 18px; }
-.box-footer {
-  padding: 14px 18px;
-  background: transparent;
-  border-top: 1px solid var(--line);
-  border-radius: 0 0 var(--radius) var(--radius);
-}
-.box.box-solid > .box-header { color: var(--ink); background: transparent; }
+.box-footer { padding: 14px 18px; border-top: 1px solid var(--line); }
 
-.card-body { padding: 18px; }
-.card-header { padding: 14px 18px; background: transparent; border-bottom: 1px solid var(--line); font-weight: 700; }
+.box-header-split { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.box-header-split::before, .box-header-split::after { content: none; }  /* AdminLTE clearfix; would count as flex items */
+.box-subtitle { margin: 4px 0 0; font-size: 14px; }
 
-/* ---------- figures (AdminLTE small-box / info-box) ---------- */
-.small-box,
-.small-box[class*="bg-"] {
-  background: var(--surface) !important;
-  color: var(--ink) !important;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: none;
-}
-.small-box > .inner { padding: 16px 18px 12px; }
-.small-box h3 { font-size: 32px; font-weight: 700; margin: 0 0 2px; white-space: normal; }
-.small-box p { color: var(--muted); font-size: 15px; margin: 0; }
-.small-box .icon { display: none; }
-.small-box > .small-box-footer {
-  background: transparent;
-  color: var(--ink);
-  text-align: left;
-  padding: 10px 18px;
-  border-top: 1px solid var(--line);
-  font-weight: 700;
-}
-.small-box > .small-box-footer:hover { background: var(--canvas); color: var(--ink); }
-
-.info-box {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: none;
-  min-height: 0;
-}
-.info-box-icon,
-.info-box-icon[class*="bg-"] {
-  background: var(--canvas) !important;
-  color: var(--ink) !important;
-  border-radius: var(--radius) 0 0 var(--radius);
-  height: auto;
-  min-height: 80px;
-  font-size: 32px;
-}
-.info-box-text { text-transform: none; color: var(--muted); }
-.info-box-number { font-size: 24px; }
-
-/* ---------- tables ---------- */
+/* Tables */
 .table { color: var(--ink); background: var(--surface); }
 .table > thead > tr > th {
   border-bottom: 1px solid var(--line-strong);
@@ -464,147 +404,9 @@ a:hover, a:focus { color: var(--ink-soft); }
 }
 .table > tbody > tr > td,
 .table > tbody > tr > th { border-top: 1px solid var(--line); padding: 10px 12px; vertical-align: middle; }
-.table-bordered,
-.table-bordered > thead > tr > th,
-.table-bordered > tbody > tr > td { border-color: var(--line); }
-.table-bordered { border-radius: var(--radius-sm); }
 .table-striped > tbody > tr:nth-of-type(odd) { background: var(--stripe); }
-.table-hover > tbody > tr:hover { background: var(--canvas); }
 
-/* ---------- buttons ---------- */
-.btn {
-  border-radius: var(--radius-sm);
-  font-weight: 700;
-  border-width: 1px;
-  box-shadow: none;
-  padding: 7px 14px;
-}
-.btn-sm, .btn-group-sm > .btn { padding: 5px 10px; font-size: 13px; }
-.btn-lg { padding: 11px 20px; font-size: 16px; }
-
-.btn-primary,
-.btn-info {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--on-ink);
-}
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active,
-.btn-info:hover, .btn-info:focus, .btn-info:active {
-  background: var(--ink-soft);
-  border-color: var(--ink-soft);
-  color: var(--on-ink);
-}
-
-.btn-default {
-  background: var(--surface);
-  border-color: var(--line-strong);
-  color: var(--ink);
-}
-.btn-default:hover, .btn-default:focus { background: var(--canvas); border-color: var(--line-strong); color: var(--ink); }
-
-.btn-success { background: var(--success-solid); border-color: var(--success-solid); color: #FFFFFF; }
-.btn-success:hover, .btn-success:focus { background: #17603C; border-color: #17603C; color: #FFFFFF; }
-
-.btn-warning { background: var(--marker); border-color: #E2BB22; color: var(--on-marker); }
-.btn-warning:hover, .btn-warning:focus { background: #EDC42B; border-color: #D9B21A; color: var(--on-marker); }
-
-/* Destructive actions stay quiet until hovered, so they are not mistaken for the main action. */
-.btn-danger { background: var(--surface); border-color: var(--danger-line); color: var(--danger); }
-.btn-danger:hover, .btn-danger:focus { background: var(--danger-solid); border-color: var(--danger-solid); color: #FFFFFF; }
-
-.btn-app {
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  color: var(--ink);
-  height: auto;
-  min-width: 0;
-  padding: 10px 16px;
-  margin: 0 8px 8px 0;
-  font-size: 15px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.btn-app:hover { background: var(--canvas); border-color: var(--line-strong); color: var(--ink); }
-
-/* ---------- forms ---------- */
-label { font-weight: 700; color: var(--ink); }
-.form-control {
-  height: 40px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  color: var(--ink);
-  box-shadow: none;
-}
-textarea.form-control { height: auto; min-height: 64px; }
-select.form-control { padding-top: 6px; padding-bottom: 6px; }
-.form-control:focus { border-color: var(--ink); }
-.help-block, .form-text { color: var(--muted); font-size: 14px; }
-
-/* Bootstrap and AdminLTE paint these white or light grey themselves; put them on the tokens
-   so they turn dark with everything else. */
-.form-control { background-color: var(--surface); }
-.form-control[disabled], .form-control[readonly], fieldset[disabled] .form-control { background-color: var(--canvas); color: var(--muted); }
-.form-control::placeholder { color: var(--muted); opacity: .8; }
-legend { color: var(--ink); border-bottom-color: var(--line); }
-hr { border-top-color: var(--line); }
-code { color: var(--ink); background: var(--canvas); }
-.dropdown-menu { background: var(--surface); color: var(--ink); border-color: var(--line); }
-.dropdown-menu > li > a:hover, .dropdown-menu > li > a:focus { background: var(--canvas); color: var(--ink); }
-.btn-default:active, .btn-default.active, .open > .dropdown-toggle.btn-default { background: var(--canvas); border-color: var(--line-strong); color: var(--ink); }
-.table-responsive { border-color: var(--line); }
-
-/* ---------- messages ---------- */
-.alert {
-  border: 0;  /* the tint says what kind of message it is; no side stripe */
-  border-radius: var(--radius-sm);
-  background: var(--info-bg);
-  color: var(--ink);
-  padding: 10px 14px;
-  margin-bottom: 10px;
-}
-/* AdminLTE paints alerts with !important solid fills, so these must match it. */
-.alert-success { background: var(--success-bg) !important; color: var(--ink) !important; }
-.alert-danger  { background: var(--danger-bg) !important;  color: var(--ink) !important; }
-.alert-warning { background: var(--warning-bg) !important; color: var(--ink) !important; }
-.alert-info    { background: var(--info-bg) !important;    color: var(--ink) !important; }
-
-/* ---------- small status labels ---------- */
-.badge, .label {
-  border-radius: 3px;
-  font-weight: 700;
-  padding: 3px 7px;
-  font-size: 12px;
-  background: var(--canvas);
-  color: var(--ink);
-}
-.badge.bg-green, .label-success, .label.bg-green { background: var(--success-bg) !important; color: var(--success) !important; }
-.badge.bg-yellow, .label-warning, .label.bg-yellow { background: var(--marker-soft) !important; color: var(--warning) !important; }
-.badge.bg-red, .label-danger, .label.bg-red { background: var(--danger-bg) !important; color: var(--danger) !important; }
-.badge.bg-blue, .badge.bg-aqua, .label-primary, .label-info { background: var(--info-bg) !important; color: var(--ink) !important; }
-
-.progress { background: var(--canvas); border-radius: 3px; box-shadow: none; height: 8px; }
-.progress-bar, .progress-bar[class*="bg-"], .progress-bar-success, .progress-bar-primary { background: var(--data) !important; box-shadow: inset 0 0 0 1px var(--data-edge); }
-/* Finished work turns green: a whole project, a person's share, your own tasks */
-.state-done .progress-bar, .progress.is-done .progress-bar { background: var(--success) !important; box-shadow: none; }
-
-/* colored text helpers used for icons */
-.text-blue, .text-aqua, .text-light-blue { color: var(--ink) !important; }
-.text-green { color: var(--success) !important; }
-.text-red { color: var(--danger) !important; }
-.text-yellow { color: var(--warning) !important; }
-
-/* ---------- footer ---------- */
-.main-footer {
-  background: transparent;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 13px;
-  padding: 14px 24px;
-}
-
-/* ---------- dashboard pieces ---------- */
+/* Figures: a row of headline numbers on the dashboards */
 .figures {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -629,18 +431,6 @@ code { color: var(--ink); background: var(--canvas); }
 .figure-note { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
 .figure-bar { margin: 10px 0 0; height: 6px; }
 
-/* Page title with its main action on the right */
-.page-heading { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
-.page-heading h1 { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; color: var(--ink); }
-.page-heading .page-lede { margin: 6px 0 0; color: var(--muted); }
-.page-heading .btn { margin-bottom: 4px; }
-.page-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.box-header-split { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.box-header-split::before, .box-header-split::after { content: none; }  /* AdminLTE clearfix; would count as flex items */
-.box-subtitle { margin: 4px 0 0; font-size: 14px; }
-.section-title { font-size: 16px; font-weight: 700; margin: 8px 0 12px; }
-
 /* Projects on the dashboard: name, what it is, then its status line and bar */
 .project-list { list-style: none; margin: 0; padding: 0; }
 .project-list > li { padding: 14px 18px; border-top: 1px solid var(--line); }
@@ -649,35 +439,6 @@ code { color: var(--ink); background: var(--canvas); }
 .project-list-name:hover { text-decoration: underline; }
 .project-list-meta { display: block; color: var(--muted); font-size: 13px; margin: 2px 0 8px; }
 .project-list .project-status .progress { margin-bottom: 0; }
-
-/* Work balance: open tasks per person, the number the hand-out keeps even */
-.balance { padding: 14px 18px; border-top: 1px solid var(--line); }
-.balance:first-of-type { border-top: 0; }
-.balance-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 10px; }
-/* Balance status: the house tag (badge), green when shares are within one task, amber when not */
-.balance-gap { font-size: 12.5px; }
-.balance-gap .ic { margin-right: 4px; }
-.balance-people { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.balance-people > li { display: grid; grid-template-columns: minmax(0, 9.5rem) 1fr auto; align-items: center; gap: 12px; font-size: 14px; }
-.balance-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.balance-bar { display: flex; height: 8px; border-radius: 99px; background: var(--canvas); overflow: hidden; }
-/* Done work is the solid yellow, open work is hatched: still to fill in */
-.balance-bar .is-done { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }
-/* Open work: a solid grey after the yellow, split from it by a sliver of the card, so done and open
-   differ in lightness as well as colour (and the key names them) */
-.balance-bar .is-open, .key-open { background: var(--line-strong); }
-.balance-bar .is-done + .is-open { border-left: 2px solid var(--surface); }
-.balance-bar .is-open { border-radius: 0 99px 99px 0; }
-.balance-count { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 4.5rem; text-align: right; }
-.balance-count b { color: var(--ink); }
-.balance-more { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
-.balance-key { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
-.balance-key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-.key-done { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }
-
-.group-complete { display: flex; align-items: center; gap: 10px; }
-.group-complete .progress { flex: 1; margin: 0; min-width: 48px; }
-.group-complete span { font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; }
 
 .next-up {
   display: flex;
@@ -697,61 +458,6 @@ code { color: var(--ink); background: var(--canvas); }
 .empty-state { padding: 28px 22px; text-align: left; color: var(--muted); }
 .empty-state strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
 
-/* Form pages: a one-line summary at the top, and background info folded away until asked for */
-.lead-line { font-size: 16px; margin: 0 0 16px; }
-.how-it-works { background: var(--canvas); border-radius: var(--radius-sm); padding: 10px 14px; }
-.how-it-works > summary { cursor: pointer; font-weight: 700; }
-.how-it-works > ul { margin: 8px 0 0; padding-left: 20px; }
-.how-it-works > ul > li { padding: 2px 0; }
-
-@media (max-width: 767px) {
-  .content-header { padding: 20px 16px 4px; }
-  .content, .flash-area { padding-left: 16px; padding-right: 16px; }
-  .main-header .logo {
-    position: absolute; top: 0; left: 50%; z-index: 1001; transform: translateX(-50%);  /* above Bootstrap's .navbar-static-top (1000) */
-    width: auto; max-width: calc(100% - 150px); overflow: hidden; padding: 0; border-right: 0;
-  }
-  .main-sidebar { padding-top: 56px; }
-  .figure { border-left: 0; border-top: 1px solid var(--line); }
-  .figure:first-child { border-top: 0; }
-}
-
-/* Reduced motion: each moving element turns its own movement off (apple.css, the tiles,
-   the sign-in picture) and keeps its colour and opacity fades, which don't move anything. */
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-}
-
-/* ---------- audio items in annotation projects ---------- */
-.media-audio {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 24px 16px;
-  background: var(--canvas);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  color: var(--ink-soft);
-}
-.media-audio-name {
-  margin: 0;
-  color: var(--muted);
-  word-break: break-all;
-}
-.media-audio audio { width: 100%; max-width: 420px; }
-.media-audio audio:focus-visible { outline: 3px solid var(--marker); outline-offset: 2px; }
-.media-audio-thumb {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--canvas);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  color: var(--ink-soft);
-  font-size: 1.6em;
-}
-
 /* Task cards: a flex grid, so cards of uneven height never leave gaps
    (Bootstrap 3 floats do), and each row's cards share one height. */
 .task-grid { display: flex; flex-wrap: wrap; }
@@ -770,7 +476,8 @@ code { color: var(--ink); background: var(--canvas); }
 /* Action tiles: big, easy targets that fill the row instead of a strip of small buttons */
 .action-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .action-tile { text-decoration: none; display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; background: var(--surface);
-  border-radius: var(--radius); box-shadow: var(--shadow-card, none); border: 1px solid var(--line); color: var(--ink); }
+  border-radius: var(--radius); box-shadow: var(--shadow-card, none); border: 1px solid var(--line); color: var(--ink);
+  transition: transform 160ms var(--ease-out), box-shadow 150ms ease; }
 .action-tile:hover, .action-tile:focus { color: var(--ink); text-decoration: none; border-color: var(--line-strong); }
 .action-tile:focus-visible { outline: 3px solid var(--marker); outline-offset: 2px; }
 .action-tile-icon { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--canvas); color: var(--ink);
@@ -787,14 +494,11 @@ code { color: var(--ink); background: var(--canvas); }
 .action-tile-primary:hover, .action-tile-primary:focus { color: var(--on-ink); border-color: var(--ink); }
 .action-tile-primary .action-tile-icon { background: color-mix(in srgb, var(--on-ink) 14%, transparent); color: var(--on-ink); }
 .action-tile-primary .action-tile-text > span { color: color-mix(in srgb, var(--on-ink) 75%, transparent); }
-@media (hover: hover) and (pointer: fine) { .action-tile { transition: transform 160ms var(--ease-out), box-shadow 150ms ease; }
+@media (hover: hover) and (pointer: fine) {
   .action-tile:hover { transform: translateY(-1px); box-shadow: 0 6px 18px color-mix(in srgb, var(--shade) 10%, transparent); } }
-.action-tile:active { transform: scale(0.98); }
-.action-tile { transition: transform 160ms var(--ease-out), box-shadow 150ms ease; }  /* the press works on touch screens too */
+.action-tile:active { transform: scale(0.98); }  /* the press works on touch screens too */
 @media (prefers-reduced-motion: reduce) { .action-tile { transition: box-shadow 150ms ease; }
   .action-tile:hover, .action-tile:active { transform: none; } }
-/* Settings lists on a full-width card: two label/value columns side by side */
-@media (min-width: 900px) { .settings-list-wide { grid-template-columns: max-content 1fr max-content 1fr; } }
 
 /* Section heading between boxes on a page */
 .section-title { font-size: 18px; font-weight: 700; margin: 8px 0 14px; color: var(--ink); }
@@ -826,7 +530,6 @@ code { color: var(--ink); background: var(--canvas); }
 .person { display: grid; grid-template-columns: 40px minmax(0, 1.3fr) minmax(0, 1fr) 210px 150px;  /* fixed ends keep every row lined up */
   gap: 14px; align-items: center; padding: 12px 18px; border-top: 1px solid var(--line); }
 .person:first-child { border-top: 0; }
-.person[hidden] { display: none; }
 .person-avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; }
 .person-avatar.tone-blue { background: var(--tint-blue); color: var(--tint-blue-ink); }
 .person-avatar.tone-green { background: var(--tint-green); color: var(--tint-green-ink); }
@@ -848,7 +551,6 @@ code { color: var(--ink); background: var(--canvas); }
 .person-figures a .ic { font-size: 12px; margin-left: 2px; }
 .person-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .person-actions form { margin: 0; }
-.btn-quiet-danger:hover, .btn-quiet-danger:focus { color: var(--danger); border-color: var(--danger); }
 .person.is-removed .person-who, .person.is-removed .person-avatar { opacity: .6; }
 .person.person-short { grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr) auto; padding: 10px 0; }
 .person.person-short:not(:has(.person-groups)) { grid-template-columns: 40px minmax(0, 1fr) auto; }  /* name, then actions */
@@ -899,25 +601,11 @@ code { color: var(--ink); background: var(--canvas); }
 .balance-key::before, .balance-key::after { content: none; }  /* Bootstrap's clearfix: two extra flex items, each taking a gap */
 .project-actions .project-delete { margin: 0 0 0 auto; }
 
-/* Progress: numbers sit beside the label, never inside the bar */
-.progress-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.progress-label h4 { margin: 0 0 6px; }
-
-/* Project cards: status line and progress bar on top, and a coloured edge so the
-   state shows at a glance (the label says it in words too, never colour alone) */
+/* Project cards: the status line, then the progress bar (the label says the state in words) */
 .project-status { margin-bottom: 12px; }
 .project-status .progress { margin: 6px 0 0; }
 
-/* Text boxes: never wider than their column, never taller than half the screen.
-   Where the browser supports it they grow with the text by themselves (no
-   drag handle); elsewhere they can be dragged taller, up to the same limit. */
-textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height: 50vh; }
-@supports (field-sizing: content) {
-  textarea, textarea.form-control { field-sizing: content; resize: none; min-height: 64px; }
-}
-
-/* Page subtitle under the h1, and label/value lists on settings cards */
-.content-header > .page-subtitle { margin: 4px 0 0; }
+/* Label/value lists on settings cards */
 .settings-list { display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; margin: 0; }
 .settings-list dt { color: var(--muted); font-weight: 600; }
 .settings-list dd { margin: 0; overflow-wrap: anywhere; }
@@ -927,6 +615,37 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .table th.num, .table td.num { width: 1%; white-space: nowrap; text-align: right; padding-left: 24px; }
 .question-list { margin: 0; padding-left: 20px; }
 .question-list > li { padding: 4px 0; overflow-wrap: anywhere; }
+
+/* Audio items in annotation projects */
+.media-audio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink-soft);
+}
+.media-audio-name {
+  margin: 0;
+  color: var(--muted);
+  word-break: break-all;
+}
+.media-audio audio { width: 100%; max-width: 420px; }
+.media-audio audio:focus-visible { outline: 3px solid var(--marker); outline-offset: 2px; }
+.media-audio-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  font-size: 1.6em;
+}
+
 /* A row of small item previews that wraps, instead of a full-width grid */
 .item-strip { display: flex; flex-wrap: wrap; gap: 12px; list-style: none; margin: 0; padding: 0; }
 .item-strip > li { width: 132px; display: flex; flex-direction: column; gap: 6px; }
@@ -952,16 +671,9 @@ textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height:
 .answered-thumb, .answered-list .media-audio-thumb { flex: none; width: 44px; height: 44px; object-fit: contain; border-radius: 3px; background: var(--surface); }
 .answered-text { display: flex; flex-direction: column; min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) { .answered-tasks > summary .ic { transition: none; } }
-/* Form pages read best at a comfortable width, not stretched across a wide screen */
-.form-page { max-width: 680px; }  /* a form reads best at about one line of text wide */
-.password-notice { margin: 0 0 14px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--marker-soft); color: var(--ink); }  /* member profile: temporary password */
-/* File inputs: the browser's own "Choose File" button, drawn like the app's secondary buttons */
-input[type="file"].form-control { height: auto; padding: 5px 6px; }
-input[type="file"]::file-selector-button { margin-right: 10px; padding: 5px 12px; border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer;
-  transition: background-color 150ms ease; }
-input[type="file"]::file-selector-button:hover { background: var(--wash); }
-/* Side cards beside a form (Edit user, Questions and settings): identity or figures first,
+
+/* ---------- side cards ----------
+   Beside a form (Edit user, Questions and settings): identity or figures first,
    then labelled sections divided by hairlines, then at most one action */
 .side-card { overflow: hidden; }
 .side-who { display: flex; align-items: center; gap: 12px; padding: 16px 18px; }
@@ -983,10 +695,126 @@ input[type="file"]::file-selector-button:hover { background: var(--wash); }
 .side-person { display: flex; align-items: center; gap: 10px; }
 .side-person .person-avatar { width: 28px; height: 28px; font-size: 13px; }
 .side-card .box-footer .btn-block .ic { margin-right: 4px; }
+
+/* Numbered steps on a form's side card; the current one is marked like the selected tile */
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; display: grid; gap: 14px; }
+.steps > li { position: relative; padding-left: 40px; counter-increment: step; }
+.steps > li::before {
+  content: counter(step); position: absolute; left: 0; top: 0; width: 26px; height: 26px; display: grid; place-items: center;
+  font-size: 13px; font-weight: 700; color: var(--muted); background: var(--canvas); border-radius: 50%;
+}
+.steps > li.is-current::before { background: var(--marker); color: var(--on-marker); }
+.steps > li > strong { display: block; }
+.steps > li > span { display: block; color: var(--muted); font-size: 14px; }
+
+/* ---------- forms: buttons ---------- */
+.btn {
+  font-weight: 700;
+  border-width: 1px;
+  box-shadow: none;
+  padding: 7px 14px;
+}
+.btn-sm { padding: 5px 10px; font-size: 13px; }
+.btn-lg { padding: 11px 20px; font-size: 16px; }
+
+.btn-primary { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+  background: var(--ink-soft);
+  border-color: var(--ink-soft);
+  color: var(--on-ink);
+}
+
+.btn-default {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.btn-default:hover, .btn-default:focus { background: var(--canvas); border-color: var(--line-strong); color: var(--ink); }
+.btn-default:active, .btn-default.active, .open > .dropdown-toggle.btn-default { background: var(--canvas); border-color: var(--line-strong); color: var(--ink); }
+
+/* Destructive actions stay quiet until hovered, so they are not mistaken for the main action. */
+.btn-danger { background: var(--surface); border-color: var(--danger-line); color: var(--danger); }
+.btn-danger:hover, .btn-danger:focus { background: var(--danger-solid); border-color: var(--danger-solid); color: #FFFFFF; }
+.btn-quiet-danger:hover, .btn-quiet-danger:focus { color: var(--danger); border-color: var(--danger); }  /* a default button that turns red */
+
+/* ---------- forms: fields ---------- */
+label { font-weight: 700; color: var(--ink); }
+.form-control {
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  background-color: var(--surface);  /* Bootstrap paints it white; the token turns dark with everything else */
+}
+textarea.form-control { height: auto; min-height: 64px; }
+select.form-control { padding-top: 6px; padding-bottom: 6px; }
+.form-control:focus { border-color: var(--ink); }
+.help-block { color: var(--muted); font-size: 14px; }
+
+/* Bootstrap and AdminLTE paint these white or light grey themselves; put them on the tokens
+   so they turn dark with everything else. */
+.form-control[disabled], .form-control[readonly], fieldset[disabled] .form-control { background-color: var(--canvas); color: var(--muted); }
+.form-control::placeholder { color: var(--muted); opacity: .8; }
+legend { color: var(--ink); border-bottom-color: var(--line); }
+hr { border-top-color: var(--line); }
+code { color: var(--ink); background: var(--canvas); }
+.dropdown-menu { background: var(--surface); color: var(--ink); }
+.dropdown-menu > li > a:hover, .dropdown-menu > li > a:focus { background: var(--canvas); color: var(--ink); }
+.table-responsive { border-color: var(--line); }
+
+/* ---------- messages ---------- */
+.alert {
+  border: 0;  /* the tint says what kind of message it is; no side stripe */
+  border-radius: var(--radius-sm);
+  background: var(--info-bg);
+  color: var(--ink);
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+/* AdminLTE paints alerts with !important solid fills, so these must match it. */
+.alert-success { background: var(--success-bg) !important; color: var(--ink) !important; }
+.alert-danger  { background: var(--danger-bg) !important;  color: var(--ink) !important; }
+.alert-warning { background: var(--warning-bg) !important; color: var(--ink) !important; }
+.alert-info    { background: var(--info-bg) !important;    color: var(--ink) !important; }
+
+/* ---------- small status labels ---------- */
+.badge, .label {
+  border-radius: 3px;
+  font-weight: 700;
+  padding: 3px 7px;
+  font-size: 12px;
+  background: var(--canvas);
+  color: var(--ink);
+}
+.badge.bg-green, .label.bg-green { background: var(--success-bg) !important; color: var(--success) !important; }
+.badge.bg-yellow, .label.bg-yellow { background: var(--marker-soft) !important; color: var(--warning) !important; }
+
+/* ---------- forms: layout and helpers ---------- */
+/* Form pages: a one-line summary at the top, and background info folded away until asked for */
+.lead-line { font-size: 16px; margin: 0 0 16px; }
+.how-it-works { background: var(--canvas); border-radius: var(--radius-sm); padding: 10px 14px; }
+.how-it-works > summary { cursor: pointer; font-weight: 700; }
+.how-it-works > ul { margin: 8px 0 0; padding-left: 20px; }
+.how-it-works > ul > li { padding: 2px 0; }
+
+/* Text boxes: never wider than their column, never taller than half the screen.
+   Where the browser supports it they grow with the text by themselves (no
+   drag handle); elsewhere they can be dragged taller, up to the same limit. */
+textarea, textarea.form-control { resize: vertical; max-width: 100%; max-height: 50vh; }
+@supports (field-sizing: content) {
+  textarea, textarea.form-control { field-sizing: content; resize: none; min-height: 64px; }
+}
+
+/* Form pages read best at a comfortable width, not stretched across a wide screen */
+.form-page { max-width: 680px; }  /* a form reads best at about one line of text wide */
+.password-notice { margin: 0 0 14px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--marker-soft); color: var(--ink); }  /* member profile: temporary password */
+/* File inputs: the browser's own "Choose File" button, drawn like the app's secondary buttons */
+input[type="file"].form-control { height: auto; padding: 5px 6px; }
+input[type="file"]::file-selector-button { margin-right: 10px; padding: 5px 12px; border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer;
+  transition: background-color 150ms ease; }
+input[type="file"]::file-selector-button:hover { background: var(--wash); }
 .content.form-page { margin-left: 0; margin-right: 0; }  /* AdminLTE centres .content; keep forms in line with the title */
 .quiz-section + .quiz-section { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
-/* Elements hidden by script stay hidden even when a class gives them a display (e.g. .checkbox) */
-[hidden] { display: none !important; }
 /* Multiple-choice options: three per row on wide screens */
 .option-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0 16px; }
 
@@ -997,6 +825,101 @@ input[type="file"]::file-selector-button:hover { background: var(--wash); }
   border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: busy-spin 700ms linear infinite; }
 @keyframes busy-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .btn.is-busy::before { animation: none; border-right-color: currentColor; opacity: .5; } }
+
+/* Upload: a drop zone over the real file input */
+.dropzone {
+  position: relative; display: grid; justify-items: center; gap: 6px; padding: 36px 20px; text-align: center;
+  border: 2px dashed var(--line-strong); border-radius: var(--radius); background: var(--canvas);
+}
+.dropzone input[type=file] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.dropzone:hover, .dropzone.is-over { border-color: var(--ink); background: var(--marker-soft); }
+.dropzone:focus-within { outline: 3px solid var(--marker); outline-offset: 2px; }
+.dropzone-icon { font-size: 30px; color: var(--muted); }
+.dropzone-title { margin: 0; font-size: 17px; font-weight: 700; pointer-events: none; }
+.dropzone-hint { font-size: 13px; color: var(--muted); pointer-events: none; }
+.upload-chosen { margin-top: 14px; }
+.dropzone + .upload-chosen + .how-it-works { margin-top: 14px; }
+.upload-summary { margin: 0 0 6px; font-weight: 700; }
+.upload-chosen ul { margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 14px; max-height: 180px; overflow: auto; }
+.share-preview { margin-top: 10px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--accent-soft); font-weight: 700; }
+.task-sum { display: grid; gap: 2px; }
+.task-sum strong { font-size: 17px; font-variant-numeric: tabular-nums; }
+
+/* ---------- charts ---------- */
+.progress { background: var(--canvas); box-shadow: none; }
+.progress-bar, .progress-bar[class*="bg-"] { background: var(--data) !important; box-shadow: inset 0 0 0 1px var(--data-edge); }
+/* Finished work turns green: a whole project, a person's share, your own tasks */
+.state-done .progress-bar, .progress.is-done .progress-bar { background: var(--success) !important; box-shadow: none; }
+
+/* Progress: numbers sit beside the label, never inside the bar */
+.progress-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.progress-label h4 { margin: 0 0 6px; }
+
+.group-complete { display: flex; align-items: center; gap: 10px; }
+.group-complete .progress { flex: 1; margin: 0; min-width: 48px; }
+.group-complete span { font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; }
+
+/* Work balance: open tasks per person, the number the hand-out keeps even */
+.balance { padding: 14px 18px; border-top: 1px solid var(--line); }
+.balance:first-of-type { border-top: 0; }
+.balance-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 10px; }
+/* Balance status: the house tag (badge), green when shares are within one task, amber when not */
+.balance-gap { font-size: 12.5px; }
+.balance-gap .ic { margin-right: 4px; }
+.balance-people { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.balance-people > li { display: grid; grid-template-columns: minmax(0, 9.5rem) 1fr auto; align-items: center; gap: 12px; font-size: 14px; }
+.balance-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.balance-bar { display: flex; height: 8px; border-radius: 99px; background: var(--canvas); overflow: hidden; }
+/* Done work is the solid yellow. Open work is a solid grey after it, split from it by a sliver of
+   the card, so done and open differ in lightness as well as colour (and the key names them) */
+.balance-bar .is-done { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }
+.balance-bar .is-open, .key-open { background: var(--line-strong); }
+.balance-bar .is-done + .is-open { border-left: 2px solid var(--surface); }
+.balance-bar .is-open { border-radius: 0 99px 99px 0; }
+.balance-count { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 4.5rem; text-align: right; }
+.balance-count b { color: var(--ink); }
+.balance-more { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.balance-key { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
+.balance-key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.key-done { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }
+
+/* Progress and results: what the answers say */
+.results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 0 20px; align-items: start; }
+.result-label { margin: 18px 0 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.result .box-body > :first-child, .result .box-body > .result-label:first-child { margin-top: 0; }
+
+.agreement-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.agreement-head > span:first-child { font-size: 13px; font-weight: 700; color: var(--muted); }
+.agreement-head strong { font-size: 18px; }
+/* Landis and Koch's five bands, light to dark, with a marker at the project's kappa */
+.kappa-scale { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; height: 10px; margin-top: 10px; }
+.kappa-scale > span { border-radius: 2px; background: var(--line); }
+.kappa-scale > span.is-here { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }  /* the band the project's kappa falls in */
+.kappa-scale > i { position: absolute; top: -4px; width: 4px; height: 18px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
+.kappa-labels { display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.kappa-labels span { text-align: center; }
+
+.answer-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.answer-bars > li { display: grid; grid-template-columns: minmax(0, 8rem) 1fr 2.5rem; align-items: center; gap: 12px; font-size: 14px; }
+.answer-bars-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.answer-bars-track { height: 10px; border-radius: 3px; background: var(--canvas); overflow: hidden; }
+.answer-bars-track > span { display: block; height: 100%; background: var(--line-strong); }
+.answer-bars > li.is-top .answer-bars-track > span { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }  /* the most common answer, highlighted */
+.answer-bars > li.is-top .answer-bars-label, .answer-bars > li.is-top .answer-bars-count { font-weight: 700; color: var(--ink); }
+.answer-bars-count { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.result-agreed { margin: 0 0 10px; }
+
+.disagreements { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.disagreements > li { display: flex; align-items: center; gap: 12px; padding: 8px; background: var(--canvas); border-radius: var(--radius-sm); }
+.disagreement-thumb, .disagreements .media-audio-thumb { flex: none; width: 44px; height: 44px; object-fit: contain; border-radius: 3px; background: var(--surface); }
+.disagreement-text { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; font-size: 13px; }
+.disagreement-text > .text-muted { flex-basis: 100%; }
+.disagreements.is-unclear > li { background: var(--marker-soft); }
+.result-note { margin: -4px 0 8px; font-size: 13px; }
+.result ul + .result-note { margin-top: 10px; }  /* a note under a list, not under a label */
+.answer-chip { padding: 1px 8px; border-radius: 3px; background: var(--surface); border: 1px solid var(--line); }
+.answer-chip b { font-weight: 700; margin-right: 2px; }
+@media (max-width: 991px) { .results-grid { grid-template-columns: 1fr; } }
 
 /* ---------- answering screen (includes/answer.html) ----------
    The item large on the left inside the selection corners, the question on the right. */
@@ -1031,7 +954,6 @@ input[type="file"]::file-selector-button:hover { background: var(--wash); }
 .item-media { display: block; width: auto; max-width: 100%; height: min(56vh, 460px); object-fit: contain; border-radius: 3px; box-shadow: 0 8px 24px -12px color-mix(in srgb, var(--shade) 35%, transparent); }
 .item-stage.is-audio .media-audio { width: 100%; }
 .item-zoom { display: flex; align-items: center; gap: 6px; margin: 10px 0 0 auto; }
-.item-zoom[hidden] { display: none; }
 .item-zoom kbd, .zoom-close kbd { font-family: inherit; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--canvas);
   border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; box-shadow: none; }
 .item-media.is-zoomable { cursor: zoom-in; }
@@ -1073,6 +995,8 @@ input[type="file"]::file-selector-button:hover { background: var(--wash); }
 .answer-cant-tell-note { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
 .answer-hint { margin: 10px 0 0; font-size: 13px; color: var(--muted); text-align: center; }
 .answer-hint kbd { font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink); background: var(--canvas); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; box-shadow: none; }
+@media (hover: none) { .answer-hint { display: none; } }  /* touch screens: no keys to press */
+@media (pointer: coarse) { .answer-back, .item-zoom, .answer-cant-tell { min-height: 44px; } }  /* thumb-sized */
 .answer-done { color: var(--success); font-weight: 700; margin: 0 0 14px; }
 
 .about-project { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; }
@@ -1133,73 +1057,10 @@ input[type="file"]::file-selector-button:hover { background: var(--wash); }
   .next-task-go { grid-column: 1 / -1; }
   .next-task-question { font-size: 18px; }
 }
-@media (hover: none) { .answer-hint { display: none; } }  /* touch screens: no keys to press */
-@media (pointer: coarse) { .answer-back, .item-zoom, .answer-cant-tell { min-height: 44px; } }  /* thumb-sized */
 
-/* ---------- Progress and results: what the answers say ---------- */
-.results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 0 20px; align-items: start; }
-.result-label { margin: 18px 0 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
-.result .box-body > :first-child, .result .box-body > .result-label:first-child { margin-top: 0; }
-
-.agreement-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.agreement-head > span:first-child { font-size: 13px; font-weight: 700; color: var(--muted); }
-.agreement-head strong { font-size: 18px; }
-/* Landis and Koch's five bands, light to dark, with a marker at the project's kappa */
-.kappa-scale { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; height: 10px; margin-top: 10px; }
-.kappa-scale > span { border-radius: 2px; background: var(--line); }
-.kappa-scale > span.is-here { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }  /* the band the project's kappa falls in */
-.kappa-scale > i { position: absolute; top: -4px; width: 4px; height: 18px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
-.kappa-labels { display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 6px; font-size: 11.5px; color: var(--muted); }
-.kappa-labels span { text-align: center; }
-
-.answer-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.answer-bars > li { display: grid; grid-template-columns: minmax(0, 8rem) 1fr 2.5rem; align-items: center; gap: 12px; font-size: 14px; }
-.answer-bars-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.answer-bars-track { height: 10px; border-radius: 3px; background: var(--canvas); overflow: hidden; }
-.answer-bars-track > span { display: block; height: 100%; background: var(--line-strong); }
-.answer-bars > li.is-top .answer-bars-track > span { background: var(--data); box-shadow: inset 0 0 0 1px var(--data-edge); }  /* the most common answer, highlighted */
-.answer-bars > li.is-top .answer-bars-label, .answer-bars > li.is-top .answer-bars-count { font-weight: 700; color: var(--ink); }
-.answer-bars-count { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
-.result-agreed { margin: 0 0 10px; }
-
-.disagreements { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.disagreements > li { display: flex; align-items: center; gap: 12px; padding: 8px; background: var(--canvas); border-radius: var(--radius-sm); }
-.disagreement-thumb, .disagreements .media-audio-thumb { flex: none; width: 44px; height: 44px; object-fit: contain; border-radius: 3px; background: var(--surface); }
-.disagreement-text { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; font-size: 13px; }
-.disagreement-text > .text-muted { flex-basis: 100%; }
-.disagreements.is-unclear > li { background: var(--marker-soft); }
-.result-note { margin: -4px 0 8px; font-size: 13px; }
-.result ul + .result-note { margin-top: 10px; }  /* a note under a list, not under a label */
-.answer-chip { padding: 1px 8px; border-radius: 3px; background: var(--surface); border: 1px solid var(--line); }
-.answer-chip b { font-weight: 700; margin-right: 2px; }
-@media (max-width: 991px) { .results-grid { grid-template-columns: 1fr; } }
-
-/* ---------- upload: a drop zone over the real file input ---------- */
-.dropzone {
-  position: relative; display: grid; justify-items: center; gap: 6px; padding: 36px 20px; text-align: center;
-  border: 2px dashed var(--line-strong); border-radius: var(--radius); background: var(--canvas);
+/* ---------- motion ----------
+   Reduced motion: each moving element turns its own movement off (here, apple.css, the
+   sign-in picture) and keeps its colour and opacity fades, which don't move anything. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }
-.dropzone input[type=file] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-.dropzone:hover, .dropzone.is-over { border-color: var(--ink); background: var(--marker-soft); }
-.dropzone:focus-within { outline: 3px solid var(--marker); outline-offset: 2px; }
-.dropzone-icon { font-size: 30px; color: var(--muted); }
-.dropzone-title { margin: 0; font-size: 17px; font-weight: 700; pointer-events: none; }
-.dropzone-hint { font-size: 13px; color: var(--muted); pointer-events: none; }
-.upload-chosen { margin-top: 14px; }
-.dropzone + .upload-chosen + .how-it-works { margin-top: 14px; }
-.upload-summary { margin: 0 0 6px; font-weight: 700; }
-.upload-chosen ul { margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 14px; max-height: 180px; overflow: auto; }
-.share-preview { margin-top: 10px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--accent-soft); font-weight: 700; }
-.task-sum { display: grid; gap: 2px; }
-.task-sum strong { font-size: 17px; font-variant-numeric: tabular-nums; }
-
-/* Numbered steps on a form's side card; the current one is marked like the selected tile */
-.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; display: grid; gap: 14px; }
-.steps > li { position: relative; padding-left: 40px; counter-increment: step; }
-.steps > li::before {
-  content: counter(step); position: absolute; left: 0; top: 0; width: 26px; height: 26px; display: grid; place-items: center;
-  font-size: 13px; font-weight: 700; color: var(--muted); background: var(--canvas); border-radius: 50%;
-}
-.steps > li.is-current::before { background: var(--marker); color: var(--on-marker); }
-.steps > li > strong { display: block; }
-.steps > li > span { display: block; color: var(--muted); font-size: 14px; }

@@ -27,7 +27,8 @@
         backgroundColor: c.bar,
         borderColor: c.edge,
         borderWidth: c.edgeWidth,
-        borderRadius: 4,
+        borderRadius: { topLeft: 4, topRight: 4 },  // flat feet: bars stand square on the axis
+        borderSkipped: 'start',
         maxBarThickness: 28
       }]
     },

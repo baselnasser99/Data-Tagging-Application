@@ -36,10 +36,10 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .main-header { position: sticky; top: 0; z-index: 1030; }
 .main-header .logo,
 .main-header .navbar {
-  background: var(--surface);  /* solid: content scrolling under a see-through bar showed as smudges */
+  background: var(--canvas);  /* solid: content scrolling under a see-through bar showed as smudges */
   border-bottom: 1px solid var(--hairline);
 }
-.main-header .logo:hover { background: var(--surface); }
+.main-header .logo:hover { background: var(--canvas); }
 
 /* ---------- depth: soft, rounded surfaces ---------- */
 .box, .card, .panel, .nav-tabs-custom, .small-box, .small-box[class*="bg-"] {

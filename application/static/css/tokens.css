@@ -60,6 +60,7 @@
   /* Sign-in and error pages (auth.css): the dotted background, the picture of a batch of
      items, and the highlighter stroke under "fairly" */
   --dots: color-mix(in srgb, var(--ink) 18%, transparent);
+  --wash: color-mix(in srgb, var(--ink) 7%, transparent);  /* hover on the page colour (sidebar, top bar), both themes */
   --tile: #E2DFD7;
   --tile-ground: #D2CEC3;
   --tile-shape: #CBC6BA;

@@ -74,7 +74,7 @@ a:hover, a:focus { color: var(--ink-soft); }
 .main-header .navbar {
   height: 56px;
   min-height: 56px;
-  background: var(--surface);
+  background: var(--canvas);  /* the frame sits on the page colour; only content cards are lighter */
   border-bottom: 1px solid var(--line);
 }
 
@@ -86,10 +86,21 @@ a:hover, a:focus { color: var(--ink-soft); }
   padding: 0 18px;
   border-right: 1px solid var(--line);
 }
-.main-header .logo:hover { background: var(--surface); color: var(--ink); }
+.main-header .logo:hover { background: var(--canvas); color: var(--ink); }
 .main-header .logo .logo-lg { display: flex; align-items: center; gap: 10px; height: 55px; }
 .main-header .logo .logo-mini { display: none; }
 .main-header .logo .brand-mark { flex: none; color: var(--ink); }
+/* The mark tags itself: the brackets close in on the yellow square, it pops, they let go. Once on the
+   first page of a tab (with the progress draw-in, html.is-drawing) and whenever the logo is hovered;
+   never on a loop, so nothing moves in the corner of your eye while you work. */
+.main-header .logo .brand-mark :is(path, rect) { transform-box: view-box; transform-origin: 50% 50%; }
+.is-drawing .main-header .logo .brand-mark path,
+.main-header .logo:hover .brand-mark path { animation: mark-select 1100ms cubic-bezier(.65, 0, .35, 1); }
+.is-drawing .main-header .logo .brand-mark rect,
+.main-header .logo:hover .brand-mark rect { animation: mark-tag 1100ms cubic-bezier(.65, 0, .35, 1); }
+@keyframes mark-select { 0%, 100% { transform: scale(1); } 35%, 60% { transform: scale(.82); } }
+@keyframes mark-tag { 0%, 35%, 100% { transform: scale(1); } 52% { transform: scale(1.14); } 70% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .main-header .logo .brand-mark :is(path, rect) { animation: none !important; } }
 .main-header .logo .logo-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }  /* a long APP_NAME ends in "…" */
 
 .main-header .sidebar-toggle { color: var(--ink); font-family: inherit; display: flex; align-items: center; }
@@ -110,7 +121,7 @@ a:hover, a:focus { color: var(--ink-soft); }
 .main-header .navbar .nav > li > a:hover,
 .main-header .navbar .nav > li > a:focus-visible,
 .main-header .navbar .nav .open > a,
-.main-header .navbar .nav .open > a:focus { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+.main-header .navbar .nav .open > a:focus { background: var(--wash); color: var(--ink); }
 .main-header .sidebar-toggle:active, .main-header .navbar .nav > li > a:active { transform: scale(0.97); }
 @media (prefers-reduced-motion: reduce) {
   .main-header .sidebar-toggle, .main-header .navbar .nav > li > a { transition: background-color 150ms ease; }
@@ -165,7 +176,7 @@ a:hover, a:focus { color: var(--ink-soft); }
 
 /* ---------- sidebar ---------- */
 .main-sidebar, .left-side {
-  background: var(--surface);
+  background: var(--canvas);
   border-right: 1px solid var(--line);
   padding-top: 64px;
 }
@@ -190,26 +201,26 @@ a:hover, a:focus { color: var(--ink-soft); }
 }
 .sidebar-menu > li > a > .ic { color: var(--muted); width: 18px; height: 18px; }
 .sidebar-menu > li > a > span { flex: 1; text-align: left; }
-.sidebar-menu > li > a:hover { background: var(--canvas); color: var(--ink); }
+.sidebar-menu > li > a:hover { background: var(--wash); color: var(--ink); }
 
 /* The panel runs the full height of the window, so its bottom can hold a summary and your account */
 .main-sidebar { position: fixed; top: 0; bottom: 0; display: flex; flex-direction: column; overflow-y: auto;
   scrollbar-width: thin; scrollbar-color: var(--line) transparent; }  /* only scrolls on short windows; keep the bar quiet */
 .main-sidebar > nav { flex: none; }
 .sidebar-foot { margin-top: auto; padding: 16px 12px 14px; display: flex; flex-direction: column; gap: 12px; }
-.sidebar-card { background: var(--canvas); border-radius: var(--radius); padding: 14px; }
+.sidebar-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
 .sidebar-card > h2 { font-size: 13px; font-weight: 700; color: var(--muted); margin: 0 0 8px; }
 .sidebar-card dl { margin: 0; display: grid; gap: 4px; }
 .sidebar-card dl > div { display: flex; justify-content: space-between; gap: 8px; }
 .sidebar-card dt { font-weight: 400; color: var(--muted); }
 .sidebar-card dd { margin: 0; font-weight: 700; }
-.sidebar-card .progress { margin: 10px 0 0; background: var(--surface); }
+.sidebar-card .progress { margin: 10px 0 0; background: var(--canvas); }
 /* "Needs you": each line a link to the page where it gets done, marked with a small yellow square */
 .sidebar-todo { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
 .sidebar-todo a { display: block; position: relative; margin: 0 -8px; padding: 3px 8px 3px 20px; border-radius: var(--radius-sm);
   color: var(--ink); text-decoration: none; font-size: 13.5px; line-height: 1.25; }
 .sidebar-todo a::before { content: ""; position: absolute; left: 8px; top: .72em; width: 6px; height: 6px; border-radius: 1px; background: var(--marker); }
-.sidebar-todo a:hover, .sidebar-todo a:focus-visible { background: var(--surface); text-decoration: underline; text-underline-offset: 3px; }
+.sidebar-todo a:hover, .sidebar-todo a:focus-visible { background: var(--canvas); text-decoration: underline; text-underline-offset: 3px; }
 .sidebar-todo .is-clear { color: var(--muted); font-size: 14px; }
 .sidebar-todo .is-clear .ic { color: var(--success); }
 .sidebar-todo-more { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
@@ -222,7 +233,7 @@ a:hover, a:focus { color: var(--ink-soft); }
 .sidebar-account-who > span { color: var(--muted); font-size: 13px; }
 .sidebar-icon-link { width: 32px; height: 32px; border-radius: var(--radius-sm); display: inline-flex; align-items: center;
   justify-content: center; color: var(--muted); text-decoration: none; border: 0; padding: 0; background: none; }
-.sidebar-icon-link:hover, .sidebar-icon-link:focus { background: var(--canvas); color: var(--ink); }
+.sidebar-icon-link:hover, .sidebar-icon-link:focus { background: var(--wash); color: var(--ink); }
 
 /* Current page: highlighted like a marked passage. */
 .sidebar-menu > li.active > a,
@@ -249,7 +260,7 @@ a:hover, a:focus { color: var(--ink-soft); }
 .sidebar-new-button > span { flex: 1; text-align: left; }
 .sidebar-new-button > .ic { width: 16px; height: 16px; transition: transform 220ms var(--ease-out); }
 .sidebar-new-button > .ic-chevron-down { color: var(--muted); }
-.sidebar-new-button:hover, .sidebar-new-button[aria-expanded="true"] { background: var(--canvas); border-color: var(--line-strong); }
+.sidebar-new-button:hover, .sidebar-new-button[aria-expanded="true"] { background: var(--wash); border-color: var(--line-strong); }
 .sidebar-new-button:active { transform: scale(0.97); }
 /* Open: the plus turns a quarter (it still reads as a plus) and the chevron flips, together with the menu */
 .sidebar-new-button[aria-expanded="true"] > .ic-plus { transform: rotate(90deg); }

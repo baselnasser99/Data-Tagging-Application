@@ -316,7 +316,7 @@ def annotation_task(assignment_id):
         else:
             db.session.commit()
             flash("Marked as \"can't tell\". Your manager will see it." if cant_tell
-                  else "Answer submitted successfully!", "success")
+                  else "Answer submitted successfully.", "success")
             return _next_item(current_user.id, project.id)
 
     done, total = _my_progress(current_user.id, project.id)

@@ -28,10 +28,10 @@
 			   aria-label="Open {{ project.name }}">Open</a>
 			{# Annotation answers only make sense next to their item, so those projects get the dataset export. #}
 			{% if project.is_annotation_project %}
-			<a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-default btn-sm"><i class="fa fa-download" aria-hidden="true"></i> CSV</a>
-			<a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default btn-sm"><i class="fa fa-download" aria-hidden="true"></i> JSON</a>
+			<a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='csv') }}" class="btn btn-default btn-sm">{{ icon("download") }} CSV</a>
+			<a href="{{ url_for('annotation_admin.export_project', project_id=project.id, file_format='json') }}" class="btn btn-default btn-sm">{{ icon("download") }} JSON</a>
 			{% else %}
-			<a href="{{ url_for('admin.download_files', project_id=project.id) }}" class="btn btn-default btn-sm"><i class="fa fa-download" aria-hidden="true"></i> Download</a>
+			<a href="{{ url_for('admin.download_files', project_id=project.id) }}" class="btn btn-default btn-sm">{{ icon("download") }} Download</a>
 			{% endif %}
 			{% if current_user.role == 'admin' %}
 			<form method="POST" action="{{ url_for('admin.delete_project', project_id=project.id) }}" class="project-delete"

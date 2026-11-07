@@ -9,7 +9,7 @@
             <small>for {{ project.name }}</small>
         </h1>
         <ol class="breadcrumb">
-            <li><a href="{{ url_for('manager.my_projects') }}"><i class="fa fa-dashboard"></i> My Projects</a></li>
+            <li><a href="{{ url_for('manager.my_projects') }}">{{ icon("dashboard") }} My Projects</a></li>
             <li><a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ project.name }}</a></li>
             <li><a href="{{ url_for('manager.project_admins', project_id=project.id) }}">Project Admins</a></li>
             <li class="active">Create Project Admin</li>

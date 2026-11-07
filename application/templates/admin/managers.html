@@ -17,7 +17,7 @@
         <div class="box-body">
           {% if managers %}
           <div class="people-search list-search">
-            <i class="fa fa-search" aria-hidden="true"></i>
+            {{ icon("search") }}
             <label class="sr-only" for="manager-search">Search managers</label>
             <input type="search" id="manager-search" class="form-control" data-search-list="manager-list"
                    placeholder="Search by name, email or project" autocomplete="off">
@@ -53,7 +53,7 @@
         <div class="box-body">
           {% if projects %}
           <div class="people-search list-search">
-            <i class="fa fa-search" aria-hidden="true"></i>
+            {{ icon("search") }}
             <label class="sr-only" for="project-search">Search projects</label>
             <input type="search" id="project-search" class="form-control" data-search-list="project-list"
                    placeholder="Search by project or manager" autocomplete="off">

@@ -38,7 +38,7 @@
           {% if gp.done == gp.total %}Review tasks{% elif gp.done %}Continue tasks{% else %}Start tasks{% endif %}
         </a>
       {% elif gp.done == gp.total %}
-        <span class="text-muted"><i class="fa fa-check text-green" aria-hidden="true"></i> Completed</span>
+        <span class="text-muted">{{ icon("check", "text-green") }} Completed</span>
       {% else %}
         <a href="{{ url_for('annotation.view_group_project', group_project_id=gp.group_project_id) }}" class="btn btn-primary btn-sm">Answer the survey</a>
       {% endif %}

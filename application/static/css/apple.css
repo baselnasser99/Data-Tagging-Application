@@ -71,7 +71,7 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
   .btn-primary:hover, .btn-primary:focus, .btn-info:hover, .btn-info:focus { background: var(--ink-hover); border-color: var(--ink-hover); }
   .btn-success:hover { background: #238A57; border-color: #238A57; }  /* on --success-solid, the same in both themes */
   .btn-danger:hover { box-shadow: 0 4px 12px rgba(180, 35, 24, 0.18); }
-  .sidebar-menu > li > a:hover > .fa { color: var(--ink); }
+  .sidebar-menu > li > a:hover > .ic { color: var(--ink); }
 }
 .btn:active, .btn.active { transform: scale(0.97); box-shadow: none; }  /* press wins over hover */
 

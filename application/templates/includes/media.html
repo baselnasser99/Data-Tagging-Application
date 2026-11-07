@@ -23,12 +23,12 @@
   {%- if item.is_audio -%}
     {%- if thumbnail -%}
       <div class="media-audio-thumb" style="{{ img_style }}"{% if not label %} title="{{ item.original_filename }}"{% endif %}>
-        <i class="fa fa-music" aria-hidden="true"></i>
+        {{ icon("music") }}
         <span class="sr-only">{{ label or "Audio file: " ~ item.original_filename }}</span>
       </div>
     {%- else -%}
       <div class="media-audio">
-        <i class="fa fa-music fa-3x" aria-hidden="true"></i>
+        {{ icon("music", "ic-lg") }}
         {% if not label %}<p class="media-audio-name">{{ item.original_filename }}</p>{% endif %}
         <audio controls preload="metadata" src="{{ media_url(project, item) }}"
                aria-label="{{ label or "Audio clip " ~ item.original_filename }}">

@@ -82,21 +82,9 @@ a:hover, a:focus { color: var(--ink-soft); }
 .main-header .logo .brand-mark { flex: none; color: var(--ink); }
 .main-header .logo .logo-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }  /* a long APP_NAME ends in "…" */
 
-.main-header .sidebar-toggle { color: var(--ink); }
-
-/* Decorative mark centred in the top bar: the selection brackets close in on the
-   yellow square and let go, slowly, like an item being tagged. */
-.main-header .navbar { position: relative; }
-.header-mark { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  display: flex; color: var(--ink); opacity: .85; pointer-events: none; }
-.header-mark .brand-mark path { transform-box: view-box; transform-origin: 50% 50%;
-  animation: mark-select 7s cubic-bezier(.65, 0, .35, 1) infinite; }
-.header-mark .brand-mark rect { transform-box: view-box; transform-origin: 50% 50%;
-  animation: mark-tag 7s cubic-bezier(.65, 0, .35, 1) infinite; }
-@keyframes mark-select { 0%, 55%, 100% { transform: scale(1); } 70%, 80% { transform: scale(.82); } }
-@keyframes mark-tag { 0%, 62%, 100% { transform: scale(1); } 74% { transform: scale(1.12); } 82% { transform: scale(1); } }
-@media (max-width: 767px) { .header-mark { display: none; } }  /* no room beside the menu button and name */
-@media (prefers-reduced-motion: reduce) { .header-mark .brand-mark path, .header-mark .brand-mark rect { animation: none; } }
+.main-header .sidebar-toggle { color: var(--ink); font-family: inherit; display: flex; align-items: center; }
+.main-header .sidebar-toggle::before { content: none; }  /* AdminLTE drew it with the Font Awesome font */
+.main-header .sidebar-toggle > .ic { width: 20px; height: 20px; }
 .main-header .sidebar-toggle:hover { background: var(--canvas); color: var(--ink); }
 
 .main-header .navbar .nav > li > a { color: var(--ink); }
@@ -174,7 +162,7 @@ a:hover, a:focus { color: var(--ink-soft); }
   border-left: 0;
   color: var(--ink);
 }
-.sidebar-menu > li > a > .fa { color: var(--muted); width: 18px; flex: none; }
+.sidebar-menu > li > a > .ic { color: var(--muted); width: 18px; flex: none; }
 .sidebar-menu > li > a > span { flex: 1; text-align: left; }
 .sidebar-menu > li > a:hover { background: var(--canvas); color: var(--ink); }
 
@@ -197,7 +185,7 @@ a:hover, a:focus { color: var(--ink-soft); }
 .sidebar-todo a::before { content: ""; position: absolute; left: 8px; top: .72em; width: 6px; height: 6px; border-radius: 1px; background: var(--marker); }
 .sidebar-todo a:hover, .sidebar-todo a:focus-visible { background: var(--surface); text-decoration: underline; text-underline-offset: 3px; }
 .sidebar-todo .is-clear { color: var(--muted); font-size: 14px; }
-.sidebar-todo .is-clear .fa { color: var(--success); }
+.sidebar-todo .is-clear .ic { color: var(--success); }
 .sidebar-todo-more { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
 .sidebar-todo-more > summary { cursor: pointer; padding: 2px 0; }
 .sidebar-todo-more > .sidebar-todo { margin-top: 2px; }
@@ -219,7 +207,61 @@ a:hover, a:focus { color: var(--ink-soft); }
   font-weight: 700;
   color: var(--ink);
 }
-.sidebar-menu > li.active > a > .fa { color: var(--ink); }
+.sidebar-menu > li.active > a > .ic { color: var(--ink); }
+
+/* Icons (application/icons.py): line drawings sized to the text beside them */
+.ic { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex: none; }
+.btn .ic { width: 1.05em; height: 1.05em; vertical-align: -0.17em; }
+.ic-lg { width: 3em; height: 3em; }
+.sidebar-menu > li > a > .ic { height: 18px; }
+
+/* "New": one menu for everything an admin or manager creates. It opens beside the sidebar
+   (static/js/site.js places it), so it never covers the panel's own contents. */
+.sidebar-new { padding: 2px 10px 8px; }
+.sidebar-new-button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink);
+  font-weight: 700; box-shadow: 0 1px 2px color-mix(in srgb, var(--shade) 6%, transparent);
+  transition: transform 160ms var(--ease-out), background-color 150ms ease, border-color 150ms ease; }
+.sidebar-new-button > span { flex: 1; text-align: left; }
+.sidebar-new-button > .ic { width: 16px; height: 16px; transition: transform 220ms var(--ease-out); }
+.sidebar-new-button > .ic-chevron-down { color: var(--muted); }
+.sidebar-new-button:hover, .sidebar-new-button[aria-expanded="true"] { background: var(--canvas); border-color: var(--line-strong); }
+.sidebar-new-button:active { transform: scale(0.97); }
+/* Open: the plus turns a quarter (it still reads as a plus) and the chevron flips, together with the menu */
+.sidebar-new-button[aria-expanded="true"] > .ic-plus { transform: rotate(90deg); }
+.sidebar-new-button[aria-expanded="true"] > .ic-chevron-down { transform: rotate(180deg); }
+
+.new-menu { position: fixed; z-index: 1040; width: 280px; margin: 0; padding: 6px; list-style: none;
+  background: var(--surface); border-radius: var(--radius);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--shade) 16%, transparent), 0 0 0 1px var(--hairline);
+  transform-origin: top left;
+  /* Closed, and the way it leaves: a quick fade back toward the button */
+  display: none; opacity: 0; transform: translateX(-6px) scale(0.97); filter: blur(2px);
+  transition: opacity 120ms ease, transform 120ms ease, filter 120ms ease, display 120ms allow-discrete; }
+/* Open: it grows out of the button and comes into focus (the same "materialise" as the messages) */
+.new-menu.is-open { display: block; opacity: 1; transform: none; filter: none;
+  transition-duration: 220ms; transition-timing-function: var(--ease-out); }
+@starting-style { .new-menu.is-open { opacity: 0; transform: translateX(-6px) scale(0.97); filter: blur(2px); } }
+.new-menu.is-below { transform-origin: top center; }
+.new-menu a { display: grid; grid-template-columns: 20px 1fr; column-gap: 10px; padding: 8px 10px;
+  border-radius: var(--radius-sm); color: var(--ink); text-decoration: none; }
+.new-menu a:hover, .new-menu a:focus { background: var(--canvas); color: var(--ink); text-decoration: none; outline: none; }
+.new-menu a:focus-visible { box-shadow: 0 0 0 3px var(--marker); }
+.new-menu a > .ic { grid-row: span 2; width: 18px; height: 18px; margin-top: 2px; color: var(--muted); }
+.new-menu a:hover > .ic, .new-menu a:focus > .ic { color: var(--ink); }
+.new-menu a > span { font-weight: 700; line-height: 1.3; }
+.new-menu a > small { color: var(--muted); font-size: 13px; line-height: 1.35; }
+.new-menu [role="separator"] { margin: 6px 4px; border-top: 1px solid var(--line); }
+.sidebar-mini.sidebar-collapse .sidebar-new { padding: 2px 6px 8px; }
+.sidebar-mini.sidebar-collapse .sidebar-new-button { justify-content: center; padding: 8px 0; }
+.sidebar-mini.sidebar-collapse .sidebar-new-button > :not(.ic-plus) { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  /* Fades only: nothing turns, grows or slides */
+  .sidebar-new-button, .sidebar-new-button > .ic { transition: background-color 150ms ease; }
+  .sidebar-new-button:active, .sidebar-new-button[aria-expanded="true"] > .ic { transform: none; }
+  .new-menu, .new-menu.is-open { transform: none; filter: none; }
+  @starting-style { .new-menu.is-open { transform: none; filter: none; } }
+}
 
 /* collapsed sidebar on desktop */
 .sidebar-mini.sidebar-collapse .main-header .logo .logo-lg { display: none; }
@@ -303,7 +345,7 @@ a:hover, a:focus { color: var(--ink-soft); }
   font-weight: 700;
 }
 .small-box > .small-box-footer:hover { background: var(--canvas); color: var(--ink); }
-.small-box > .small-box-footer .fa { display: none; }
+.small-box > .small-box-footer .ic { display: none; }
 
 .info-box {
   background: var(--surface);
@@ -398,7 +440,7 @@ a:hover, a:focus { color: var(--ink-soft); }
   align-items: center;
   gap: 8px;
 }
-.btn-app > .fa { display: inline; font-size: 16px; }
+.btn-app > .ic { display: inline; font-size: 16px; }
 .btn-app:hover { background: var(--canvas); border-color: var(--line-strong); color: var(--ink); }
 
 /* ---------- forms ---------- */
@@ -688,7 +730,7 @@ code { color: var(--ink); background: var(--canvas); }
 /* Users page: a searchable list of people instead of a spreadsheet. */
 .people-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
 .people-search { position: relative; flex: 1 1 280px; }
-.people-search .fa { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.people-search .ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
 .people-search .form-control { padding-left: 34px; }
 .people-filter { width: auto; flex: 0 0 auto; }
 .people-list { list-style: none; margin: 0; padding: 0; }
@@ -714,7 +756,7 @@ code { color: var(--ink); background: var(--canvas); }
 .person-figures > * { min-width: 92px; }
 .person-figures a { color: var(--muted); text-decoration: none; border-radius: 6px; }
 .person-figures a:hover, .person-figures a:focus-visible { color: var(--accent); }
-.person-figures a .fa { font-size: 12px; margin-left: 2px; }
+.person-figures a .ic { font-size: 12px; margin-left: 2px; }
 .person-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .person-actions form { margin: 0; }
 .btn-quiet-danger:hover, .btn-quiet-danger:focus { color: var(--danger); border-color: var(--danger); }

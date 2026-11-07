@@ -11,7 +11,7 @@
     <h1>Dashboard</h1>
     <p class="page-lede">{{ today.strftime('%A') }}, {{ today.day }} {{ today.strftime('%B') }}</p>
   </div>
-  <a class="btn btn-primary" href="{{ url_for('annotation_admin.create_annotation_project') }}"><i class="fa fa-plus" aria-hidden="true"></i> New project</a>
+  <a class="btn btn-primary" href="{{ url_for('annotation_admin.create_annotation_project') }}">{{ icon("plus") }} New project</a>
 </section>
 
 <section class="content">
@@ -58,11 +58,11 @@
 
   <h2 class="section-title">Shortcuts</h2>
   <div class="action-tiles">
-    {{ tile(url_for('annotation_admin.create_annotation_project'), "picture-o", "New project", "Images or audio, shared across a team", primary=True) }}
-    {{ tile(url_for('admin.create_project'), "list-ul", "New survey", "Everyone answers every question") }}
+    {{ tile(url_for('annotation_admin.create_annotation_project'), "image", "New project", "Images or audio, shared across a team", primary=True) }}
+    {{ tile(url_for('admin.create_project'), "list", "New survey", "Everyone answers every question") }}
     {{ tile(url_for('admin.create_user'), "user-plus", "Add users", "One person, or many from a CSV file") }}
     {{ tile(url_for('groups.create_group'), "users", "New group", "A team that works on projects") }}
-    {{ tile(url_for('manager.managers'), "id-badge", "Managers", "Who runs each project") }}
+    {{ tile(url_for('manager.managers'), "briefcase", "Managers", "Who runs each project") }}
   </div>
 </section>
 {% endblock %}

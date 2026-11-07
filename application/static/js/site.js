@@ -39,3 +39,59 @@ function unbusy(button) {
 }
 // Back button: the browser may restore the page as it was, busy button and all.
 window.addEventListener('pageshow', function () { document.querySelectorAll('.is-busy').forEach(unbusy); });
+
+// The sidebar's "New" menu (base.html). It opens beside the sidebar, or under the button when
+// there is no room (phones); it lives in <body> so the sidebar's scrolling never clips it.
+(function () {
+  var button = document.querySelector('.sidebar-new-button');
+  if (!button) return;
+  var menu = document.getElementById(button.getAttribute('aria-controls'));
+  var items = Array.prototype.slice.call(menu.querySelectorAll('[role=menuitem]'));
+  menu.hidden = false;  // shown and hidden by .is-open from here on, so it can fade out
+  document.body.appendChild(menu);
+
+  function isOpen() { return menu.classList.contains('is-open'); }
+  function place() {
+    var r = button.getBoundingClientRect();
+    var beside = button.closest('.main-sidebar').getBoundingClientRect().right + 8;
+    // phones (AdminLTE's 768px breakpoint): the sidebar slides in, so measure nothing beside it
+    var below = window.innerWidth < 768 || beside + menu.offsetWidth + 8 > window.innerWidth;
+    menu.classList.toggle('is-below', below);
+    menu.style.left = (below ? Math.max(10, r.left) : beside) + 'px';  // max: the sidebar may still be sliding in
+    menu.style.top = (below ? r.bottom + 6 : r.top) + 'px';
+  }
+  function open(focusFirst) {
+    menu.classList.add('is-open');
+    button.setAttribute('aria-expanded', 'true');
+    place();
+    if (focusFirst) items[0].focus({ preventScroll: true });
+  }
+  function close(refocus) {
+    if (!isOpen()) return;
+    menu.classList.remove('is-open');
+    button.setAttribute('aria-expanded', 'false');
+    if (refocus) button.focus();
+  }
+
+  // detail is 0 when the button was pressed with the keyboard: then the first item gets focus
+  button.addEventListener('click', function (e) { isOpen() ? close() : open(e.detail === 0); });
+  button.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); open(true); }
+  });
+  menu.addEventListener('keydown', function (e) {
+    var i = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') { e.preventDefault(); close(true); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+    else if (e.key === 'Home') { e.preventDefault(); items[0].focus(); }
+    else if (e.key === 'End') { e.preventDefault(); items[items.length - 1].focus(); }
+    else if (e.key === 'Tab') close(true);
+  });
+  document.addEventListener('click', function (e) {
+    if (!menu.contains(e.target) && !button.contains(e.target)) close();
+  });
+  // The menu doesn't follow the page, so it closes when the layout moves under it
+  window.addEventListener('resize', function () { close(); });
+  button.closest('.main-sidebar').addEventListener('scroll', function () { close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(isOpen()); });
+})();

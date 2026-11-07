@@ -14,7 +14,7 @@
 			{{ today.strftime('%A') }}, {{ today.day }} {{ today.strftime('%B') }} · you manage {{ plural(figures.projects, "project") }}
 		</p>
 	</div>
-	<a class="btn btn-primary" href="{{ url_for('annotation_admin.create_annotation_project') }}"><i class="fa fa-plus" aria-hidden="true"></i> New project</a>
+	<a class="btn btn-primary" href="{{ url_for('annotation_admin.create_annotation_project') }}">{{ icon("plus") }} New project</a>
 </section>
 
 <section class="content">
@@ -59,8 +59,8 @@
 
 	<h2 class="section-title">Shortcuts</h2>
 	<div class="action-tiles">
-		{{ tile(url_for('annotation_admin.create_annotation_project'), "picture-o", "New project", "Images or audio, shared across a team", primary=True) }}
-		{{ tile(url_for('admin.create_project'), "list-ul", "New survey", "Everyone answers every question") }}
+		{{ tile(url_for('annotation_admin.create_annotation_project'), "image", "New project", "Images or audio, shared across a team", primary=True) }}
+		{{ tile(url_for('admin.create_project'), "list", "New survey", "Everyone answers every question") }}
 		{{ tile(url_for('groups.assign_project_to_group'), "share", "Assign to a group", "Give one of your projects to a group") }}
 	</div>
 </section>

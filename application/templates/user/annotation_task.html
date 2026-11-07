@@ -20,7 +20,7 @@
         <h2 class="answer-question">{{ question.question }}</h2>
 
         {% if assignment.is_completed %}
-        <p class="answer-done"><i class="fa fa-check" aria-hidden="true"></i> You have already answered this one.</p>
+        <p class="answer-done">{{ icon("check") }} You have already answered this one.</p>
         <a class="btn btn-default btn-block" href="{{ url_for('annotation.annotation_tasks', project_id=project.id) }}">Back to my tasks</a>
         {% else %}
         {{ answer_field(question, "answer", "answer", autofocus=True) }}

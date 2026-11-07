@@ -13,7 +13,7 @@
 {% set count = project.questions|length %}
 <section class="content-header answer-top">
   <a class="answer-back" href="{{ url_for('annotation.my_projects') }}">
-    <i class="fa fa-arrow-left" aria-hidden="true"></i> My projects
+    {{ icon("arrow-left") }} My projects
   </a>
   <div class="answer-progress">
     <h1>{{ project.name }}</h1>
@@ -47,7 +47,7 @@
         {% elif ext in ['mp3', 'wav', 'ogg'] %}
         <audio controls preload="metadata" src="{{ file_url }}">Your browser cannot play this audio file. <a href="{{ file_url }}">Download it</a> instead.</audio>
         {% else %}
-        <a class="btn btn-default" href="{{ file_url }}" target="_blank" rel="noopener"><i class="fa fa-download" aria-hidden="true"></i> Open the attached file</a>
+        <a class="btn btn-default" href="{{ file_url }}" target="_blank" rel="noopener">{{ icon("download") }} Open the attached file</a>
         {% endif %}
       </div>
       {% endif %}

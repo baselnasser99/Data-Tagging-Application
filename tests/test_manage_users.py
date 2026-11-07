@@ -133,7 +133,7 @@ def test_users_rows_link_the_answer_count_to_the_download(admin_client, make_use
     db.session.commit()
     page = admin_client.get("/admin/users").data
     assert f'href="/admin/download-answers/{a.id}"'.encode() in page
-    assert b"<strong>1</strong> answer <i" in page  # the count itself is the download link
+    assert b"<strong>1</strong> answer <svg class=\"ic ic-download\"" in page  # the count itself is the download link
 
 
 def test_refused_pages_and_account_changes_are_audited(caplog, admin_client, user_client):

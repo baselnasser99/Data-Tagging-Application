@@ -1,11 +1,15 @@
 {% from "includes/brand.html" import mark %}
-{% macro nav(endpoint, icon, label) -%}
-  {% set active = request.endpoint == endpoint %}
-  <li class="{{ 'active' if active }}">
-    <a href="{{ url_for(endpoint) }}" {% if active %}aria-current="page"{% endif %}>
-      <i class="fa fa-{{ icon }} fa-fw" aria-hidden="true"></i> <span>{{ label }}</span>
+{# A sidebar link. `also`: pages that belong to this one (its "New …" pages), which keep it highlighted. #}
+{% macro nav(endpoint, glyph, label, also=()) -%}
+  {% set here = request.endpoint == endpoint %}
+  <li class="{{ 'active' if here or request.endpoint in also }}">
+    <a href="{{ url_for(endpoint) }}" {% if here %}aria-current="page"{% endif %}>
+      {{ icon(glyph) }} <span>{{ label }}</span>
     </a>
   </li>
+{%- endmacro %}
+{% macro new_item(endpoint, glyph, label, text) -%}
+  <li role="none"><a role="menuitem" href="{{ url_for(endpoint) }}">{{ icon(glyph) }}<span>{{ label }}</span><small>{{ text }}</small></a></li>
 {%- endmacro %}
 <!doctype html>
 <html lang="en">
@@ -20,7 +24,6 @@
   <script src="{{ url_for('static', filename='new/plugins/jQuery/jquery-3.7.1.min.js') }}"></script>
   <link href="{{ url_for('static', filename='css/tokens.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='new/css/bootstrap.min.css') }}" rel="stylesheet">
-  <link href="{{ url_for('static', filename='vendor/font-awesome/css/font-awesome.min.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='new/css/AdminLTE.min.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/atkinson-hyperlegible/fonts.css') }}" rel="stylesheet">
   <!-- Application theme: loaded last so it refines the AdminLTE defaults -->
@@ -41,10 +44,8 @@
 
       <nav class="navbar navbar-static-top" aria-label="Account">
         <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
-          <span class="sr-only">Show or hide the menu</span>
+          {{ icon("menu") }}<span class="sr-only">Show or hide the menu</span>
         </a>
-
-        <span class="header-mark" aria-hidden="true">{{ mark(22) }}</span>
 
         <div class="navbar-custom-menu">
           <ul class="nav navbar-nav">
@@ -52,7 +53,7 @@
               <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <span class="avatar" aria-hidden="true">{{ current_user.full_name[:1] | upper }}</span>
                 <span class="hidden-xs">{{ current_user.full_name }}</span>
-                <i class="fa fa-angle-down" aria-hidden="true"></i>
+                {{ icon("chevron-down") }}
               </a>
               <ul class="dropdown-menu dropdown-menu-right account-menu">
                 <li class="account-who">
@@ -69,9 +70,9 @@
                 <li class="theme-switch" role="group" aria-labelledby="theme-switch-label">
                   <span class="theme-switch-label" id="theme-switch-label">Theme</span>
                   <div class="theme-choices">
-                    <button type="button" data-theme-choice="light" aria-pressed="false"><i class="fa fa-sun-o" aria-hidden="true"></i> Light</button>
-                    <button type="button" data-theme-choice="dark" aria-pressed="false"><i class="fa fa-moon-o" aria-hidden="true"></i> Dark</button>
-                    <button type="button" data-theme-choice="system" aria-pressed="true"><i class="fa fa-desktop" aria-hidden="true"></i> System</button>
+                    <button type="button" data-theme-choice="light" aria-pressed="false">{{ icon("sun") }} Light</button>
+                    <button type="button" data-theme-choice="dark" aria-pressed="false">{{ icon("moon") }} Dark</button>
+                    <button type="button" data-theme-choice="system" aria-pressed="true">{{ icon("monitor") }} System</button>
                   </div>
                 </li>
                 <li><form class="sign-out-form" method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="sign-out-item">Sign out</button></form></li>
@@ -83,30 +84,41 @@
     </header>
 
     <aside class="main-sidebar">
+      {# Admins and managers create things from one menu; the sidebar below lists only places. #}
+      {% if current_user.role in ('admin', 'project-admin') %}
+      <div class="sidebar-new">
+        <button type="button" class="sidebar-new-button" aria-haspopup="menu" aria-expanded="false" aria-controls="new-menu">
+          {{ icon("plus") }}<span>New</span>{{ icon("chevron-down") }}
+        </button>
+        <ul class="new-menu" id="new-menu" role="menu" aria-label="Create" hidden>
+          {{ new_item('annotation_admin.create_annotation_project', 'image', 'Project', 'Label images or audio clips') }}
+          {{ new_item('admin.create_project', 'list', 'Survey', 'Everyone answers every question') }}
+          {% if current_user.role == 'admin' %}
+          <li role="separator"></li>
+          {{ new_item('admin.create_user', 'user-plus', 'People', 'One at a time or from a CSV') }}
+          {{ new_item('groups.create_group', 'users', 'Group', 'A team to hand work to') }}
+          {% endif %}
+          <li role="separator"></li>
+          {{ new_item('groups.assign_project_to_group', 'share', 'Assign a project', 'Give a project to a group') }}
+        </ul>
+      </div>
+      {% endif %}
+      {% set project_pages = ('annotation_admin.create_annotation_project', 'admin.create_project', 'groups.assign_project_to_group') %}
       <nav aria-label="Main">
       <ul class="sidebar-menu">
         {% if current_user.role == 'admin' %}
-        {{ nav('admin.dashboard', 'home', 'Dashboard') }}
-        <li class="header">Projects</li>
-        {{ nav('admin.view_projects', 'folder-open-o', 'All projects') }}
-        {{ nav('annotation_admin.create_annotation_project', 'picture-o', 'New project') }}
-        {{ nav('admin.create_project', 'list-ul', 'New survey') }}
-        {{ nav('groups.assign_project_to_group', 'share', 'Assign to a group') }}
+        {{ nav('admin.dashboard', 'dashboard', 'Dashboard') }}
+        {{ nav('admin.view_projects', 'folder', 'Projects', also=project_pages) }}
         <li class="header">People</li>
-        {{ nav('admin.users', 'user-o', 'Users') }}
-        {{ nav('admin.create_user', 'user-plus', 'Add users') }}
-        {{ nav('groups.view_groups', 'users', 'Groups') }}
-        {{ nav('groups.create_group', 'plus', 'New group') }}
-        {{ nav('manager.managers', 'id-badge', 'Managers') }}
+        {{ nav('admin.users', 'user', 'Users', also=('admin.create_user',)) }}
+        {{ nav('groups.view_groups', 'users', 'Groups', also=('groups.create_group',)) }}
+        {{ nav('manager.managers', 'briefcase', 'Managers') }}
         {% elif current_user.role == 'project-admin' %}
-        {{ nav('manager.my_projects', 'folder-open-o', 'My projects') }}
-        {{ nav('annotation_admin.create_annotation_project', 'picture-o', 'New project') }}
-        {{ nav('admin.create_project', 'list-ul', 'New survey') }}
-        {{ nav('groups.assign_project_to_group', 'share', 'Assign to a group') }}
+        {{ nav('manager.my_projects', 'folder', 'My projects', also=project_pages) }}
         {% elif current_user.role == 'end-user' %}
-        {{ nav('annotation.dashboard', 'home', 'Overview') }}
-        {{ nav('annotation.annotation_tasks', 'picture-o', 'My tasks') }}
-        {{ nav('annotation.my_projects', 'folder-open-o', 'My projects') }}
+        {{ nav('annotation.dashboard', 'dashboard', 'Overview') }}
+        {{ nav('annotation.annotation_tasks', 'image', 'My tasks') }}
+        {{ nav('annotation.my_projects', 'folder', 'My projects') }}
         {% endif %}
       </ul>
       </nav>
@@ -121,7 +133,7 @@
             {% for text, url in summary.todo %}
             <li><a href="{{ url }}">{{ text }}</a></li>
             {% else %}
-            <li class="is-clear"><i class="fa fa-check" aria-hidden="true"></i> Nothing needs you right now.</li>
+            <li class="is-clear">{{ icon("check") }} Nothing needs you right now.</li>
             {% endfor %}
           </ul>
           {% if summary.more %}
@@ -159,8 +171,8 @@
             <span>{{ {"admin": "Admin", "project-admin": "Manager"}.get(current_user.role, "Member") }}</span>
           </span>
           <a href="{{ url_for('annotation.profile') if current_user.role == 'end-user' else url_for('admin.admin_profile') }}"
-             class="sidebar-icon-link" title="Profile settings" aria-label="Profile settings"><i class="fa fa-cog" aria-hidden="true"></i></a>
-          <form class="sign-out-form" method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="sidebar-icon-link" title="Sign out" aria-label="Sign out"><i class="fa fa-sign-out" aria-hidden="true"></i></button></form>
+             class="sidebar-icon-link" title="Profile settings" aria-label="Profile settings">{{ icon("settings") }}</a>
+          <form class="sign-out-form" method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="sidebar-icon-link" title="Sign out" aria-label="Sign out">{{ icon("log-out") }}</button></form>
         </div>
       </div>
     </aside>

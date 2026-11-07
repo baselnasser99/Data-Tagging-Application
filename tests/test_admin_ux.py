@@ -213,7 +213,8 @@ def test_projects_page_shows_the_whole_description_as_text(admin_client):
     page = admin_client.get("/admin/view-projects").data.decode()
     assert "Label street photos. " * 40 in page  # not cut off
     assert "&lt;b&gt;end&lt;/b&gt;" in page  # shown as text, never run as HTML
-    assert "1 question" in page and "Survey" not in page
+    main = page.split("<main", 1)[1]  # the sidebar's New menu offers a survey on every page
+    assert "1 question" in main and "Survey" not in main
 
 
 def test_managers_page_add_from_list_or_by_email(admin_client, db, make_user):
@@ -457,3 +458,14 @@ def test_both_dashboards_count_survey_answers_the_same_way(app, db, admin_client
     login(manager, make_project_admin(survey).email)
     for page in (admin_client.get("/admin/dashboard"), manager.get("/admin/my-projects")):
         assert "6<small> of 6</small>" in page.data.decode()
+
+
+def test_sidebar_lists_places_and_creates_from_the_new_menu(admin_client):
+    page = admin_client.get("/admin/create-user").data.decode()
+    menu = page.split('id="new-menu"', 1)[1].split("</ul>", 1)[0]
+    for href in ("/admin/create-annotation-project", "/admin/create-project", "/admin/create-user",
+                 "/admin/create-group", "/admin/assign-project-to-group"):
+        assert f'href="{href}"' in menu
+    nav = page.split('aria-label="Main"', 1)[1].split("</nav>", 1)[0]
+    assert "/admin/create-user" not in nav  # creating lives in the menu, not the sidebar
+    assert '<li class="active">\n    <a href="/admin/users"' in nav  # Add users keeps Users highlighted

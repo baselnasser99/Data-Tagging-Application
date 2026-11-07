@@ -52,6 +52,7 @@ def create_app(config_object=None):
     from .uploads import upload_dir
     from .jinja_utils import plural
     from .sidebar import sidebar_summary
+    from .icons import icon
 
     app.register_blueprint(auth)
     app.register_blueprint(admin)
@@ -63,6 +64,7 @@ def create_app(config_object=None):
     app.jinja_env.globals["plural"] = plural
     app.jinja_env.globals["min_password_length"] = MIN_PASSWORD_LENGTH
     app.jinja_env.globals["sidebar_summary"] = sidebar_summary
+    app.jinja_env.globals["icon"] = icon
     app.jinja_env.globals["app_name"] = app.config["APP_NAME"]
 
     _register_error_handlers(app)

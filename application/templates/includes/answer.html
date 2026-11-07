@@ -19,7 +19,7 @@
 {% macro answer_top(project, done, total, heading) -%}
 <section class="content-header answer-top">
   <a class="answer-back" href="{{ url_for('annotation.annotation_tasks', project_id=project.id) }}">
-    <i class="fa fa-arrow-left" aria-hidden="true"></i> My tasks · {{ project.name }}
+    {{ icon("arrow-left") }} My tasks · {{ project.name }}
   </a>
   {# "Saved" goes next to the count, where the eye already is; other messages stay full alerts.
      The page leaves out base.html's flash area (an empty flash block), so each message shows once. #}
@@ -32,7 +32,7 @@
     <h1>{{ heading }}</h1>
     {% if total %}
     <span class="answer-count">
-      {%- if saved %}<span class="answer-saved" role="status"><i class="fa fa-check" aria-hidden="true"></i> Saved<span class="sr-only">: {{ saved | join(" ") }}</span></span> · {% endif -%}
+      {%- if saved %}<span class="answer-saved" role="status">{{ icon("check") }} Saved<span class="sr-only">: {{ saved | join(" ") }}</span></span> · {% endif -%}
       {{ done }} of {{ plural(total, "task") }} done</span>
     <div class="progress" role="progressbar" aria-label="Your progress in {{ project.name }}"
          aria-valuenow="{{ done }}" aria-valuemin="0" aria-valuemax="{{ total }}">
@@ -52,7 +52,7 @@
   {% if not image.is_audio %}
   {# Zoom (static/js/answer.js): the picture as large as the screen allows; Esc closes it #}
   <button type="button" class="btn btn-default btn-sm item-zoom" data-zoom="zoom-view" hidden>
-    <i class="fa fa-search-plus" aria-hidden="true"></i> Zoom <kbd>Z</kbd>
+    {{ icon("zoom-in") }} Zoom <kbd>Z</kbd>
   </button>
   <dialog class="zoom-view" id="zoom-view" aria-label="The picture, full size">
     <img src="{{ media_url(project, image) }}" alt="Picture to label, full size">

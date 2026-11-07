@@ -16,7 +16,7 @@
     <div class="people-toolbar">
       <label class="sr-only" for="people-search">Search users</label>
       <div class="people-search">
-        <i class="fa fa-search" aria-hidden="true"></i>
+        {{ icon("search") }}
         <input type="search" id="people-search" class="form-control" placeholder="Search by name, email or group" autocomplete="off">
       </div>
       <label class="sr-only" for="people-filter">Show</label>
@@ -27,7 +27,7 @@
         <option value="removed">Removed</option>
       </select>
       <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary">
-        <i class="fa fa-user-plus" aria-hidden="true"></i> Add users
+        {{ icon("user-plus") }} Add users
       </a>
     </div>
 
@@ -57,7 +57,7 @@
             {% if d.answer_count %}
             <a href="{{ url_for('admin.download_answers', user_id=u.id) }}" title="Download as CSV"
                aria-label="Download {{ u.full_name }}'s {{ d.answer_count }} answers as CSV">
-              <strong>{{ d.answer_count }}</strong> {{ "answer" if d.answer_count == 1 else "answers" }} <i class="fa fa-download" aria-hidden="true"></i></a>
+              <strong>{{ d.answer_count }}</strong> {{ "answer" if d.answer_count == 1 else "answers" }} {{ icon("download") }}</a>
             {% else %}
             <span><strong>0</strong> answers</span>
             {% endif %}

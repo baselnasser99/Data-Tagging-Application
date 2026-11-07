@@ -5,7 +5,7 @@
 {% block content %}
 <section class="content-header page-heading">
   <div>
-    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}"><i class="fa fa-arrow-left" aria-hidden="true"></i> {{ project.name }}</a>
+    <a class="answer-back" href="{{ url_for('manager.project_dashboard', project_id=project.id) }}">{{ icon("arrow-left") }} {{ project.name }}</a>
     <h1>Hand out tasks</h1>
     <p class="page-lede">{{ plural(images|length * questions|length, "task") }}, each answered by {{ plural(project.answers_per_task, "person", "different people") }}</p>
   </div>
@@ -65,7 +65,7 @@
             </details>
           </div>
           <div class="box-footer quick-actions">
-            <button type="submit" class="btn btn-primary"><i class="fa fa-tasks"></i> Hand out tasks</button>
+            <button type="submit" class="btn btn-primary">{{ icon("tasks") }} Hand out tasks</button>
             <a href="{{ url_for('manager.project_dashboard', project_id=project.id) }}" class="btn btn-default">Cancel</a>
           </div>
         </form>

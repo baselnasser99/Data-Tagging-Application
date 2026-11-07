@@ -1,8 +1,9 @@
 /* Apple-style layer on top of app.css (WWDC design talks, translated for the web).
-   Loaded last; deleting this file and its <link> in base.html restores the current look.
+   Loaded last, after app.css. It owns the typeface, the radius and shadow tokens and the
+   rounded, shadowed card style, so app.css no longer sets those itself.
    What it changes, and the principle behind each:
      - System font with size-specific tracking and leading   (typography)
-     - Translucent, sticky top bar; content scrolls under it  (materials & depth)
+     - Sticky top bar on the page colour                      (materials & depth)
      - Softer, rounder surfaces with layered shadows          (depth encodes hierarchy)
      - Instant press feedback on every button and link card   (response: feedback on pointer-down)
      - Messages "materialise" instead of popping in           (materialise, don't just fade)

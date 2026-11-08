@@ -1,12 +1,12 @@
 /* Sign-in, registration and error pages.
-   Colours come from the light and dark tokens in tokens.css. Typeface: Atkinson Hyperlegible. */
+   Colours come from the light and dark tokens in tokens.css. Typeface: the system font, as in the app (finish.css). */
 
 * { box-sizing: border-box; }
 
 html, body { margin: 0; height: 100%; }
 
 body {
-  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 16px;
   line-height: 1.5;
   color: var(--ink);

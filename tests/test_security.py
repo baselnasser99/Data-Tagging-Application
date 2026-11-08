@@ -425,15 +425,6 @@ def test_pages_and_stylesheets_link_nothing_from_other_sites():
     assert offenders == []
 
 
-def test_bundled_fonts_are_served(client):
-    for path in ("/static/vendor/atkinson-hyperlegible/fonts.css",
-                 "/static/vendor/atkinson-hyperlegible/atkinson-400-latin.woff2",
-                 "/static/vendor/atkinson-hyperlegible/atkinson-700-latin-ext.woff2"):
-        resp = client.get(path)
-        assert resp.status_code == 200, path
-        resp.close()
-
-
 # Oldest versions without published vulnerabilities: jQuery 3.5.0 fixed CVE-2020-11022/-11023 (and
 # CVE-2019-11358, CVE-2015-9251 before it); Bootstrap 3.4.1 fixed CVE-2018-14040/-14041/-14042, CVE-2019-8331.
 SAFE_VERSIONS = {"jQuery": (3, 5, 0), "Bootstrap": (3, 4, 1)}

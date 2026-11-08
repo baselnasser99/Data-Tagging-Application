@@ -1,6 +1,6 @@
-<h1><img src="docs/preview/logo.svg#gh-light-mode-only" alt="Data Tagging" width="260"><img src="docs/preview/logo-dark.svg#gh-dark-mode-only" alt="Data Tagging" width="260"></h1>
+<h1 align="center"><img src="docs/preview/logo.svg#gh-light-mode-only" alt="Data Tagging" width="260"><img src="docs/preview/logo-dark.svg#gh-dark-mode-only" alt="Data Tagging" width="260"></h1>
 
-<p>
+<p align="center">
   <a href="docs/walkthrough.md#gh-light-mode-only"><img src="https://img.shields.io/badge/demo-watch%20(77%20s)-F5CF3A" alt="Watch the demo, 77 seconds"></a><a href="docs/walkthrough-dark.md#gh-dark-mode-only"><img src="https://img.shields.io/badge/demo-watch%20(76%20s)-F5CF3A" alt="Watch the demo, 76 seconds"></a>
   <a href="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml"><img src="https://github.com/baselnasser99/Data-Tagging-Application/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
   <img src="https://img.shields.io/badge/coverage-~95%25-1C2733" alt="About 95% line coverage">
@@ -29,14 +29,15 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
   </tr>
 </table>
 
-<img src="docs/screenshots/admin-dashboard.png#gh-light-mode-only" alt="Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group"><img src="docs/screenshots/admin-dashboard-dark.png#gh-dark-mode-only" alt="Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group">
-
 <details>
-<summary><b>More screens (6)</b></summary>
+<summary><b>More screens (7)</b></summary>
 
 <br>
 
 <table>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/admin-dashboard.png#gh-light-mode-only" alt="Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group"><img src="docs/screenshots/admin-dashboard-dark.png#gh-dark-mode-only" alt="Admin dashboard: answers given, projects with their progress, each person's share of the work, answers per week and progress per group"><br><sub><b>Dashboard:</b> answers, projects, each person's share of the work and progress per group</sub></td>
+  </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/progress-results.png#gh-light-mode-only" alt="Progress and results: agreement per question as Fleiss' kappa, how often each answer was given, and the items people disagreed on"><img src="docs/screenshots/progress-results-dark.png#gh-dark-mode-only" alt="Progress and results: agreement per question as Fleiss' kappa, how often each answer was given, and the items people disagreed on"><br><sub><b>Results:</b> agreement per question, answer counts, and where people disagreed</sub></td>
     <td width="50%"><img src="docs/screenshots/project-overview.png#gh-light-mode-only" alt="A project's page: tasks done, answers given, each person's share of the tasks, questions and settings"><img src="docs/screenshots/project-overview-dark.png#gh-dark-mode-only" alt="A project's page: tasks done, answers given, each person's share of the tasks, questions and settings"><br><sub><b>Project:</b> progress, work balance, questions and settings</sub></td>

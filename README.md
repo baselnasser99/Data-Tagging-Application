@@ -219,7 +219,7 @@ On Windows PowerShell, run `$env:PYTHONTRACEMALLOC = "25"` first, then `pytest -
 |---|---|
 | **Backend** | Python 3.11 and 3.12, Flask (app factory and blueprints), SQLAlchemy 2, Flask-Login, Flask-WTF (CSRF) |
 | **Database** | MySQL 8 in production, SQLite for development and tests; older databases are upgraded automatically on start |
-| **Frontend** | Jinja templates, Bootstrap 3 and AdminLTE 2, a custom design layer (`app.css`, `apple.css`) with reduced-motion and high-contrast fallbacks, Chart.js |
+| **Frontend** | Jinja templates, Bootstrap 3 and AdminLTE 2, a custom design layer (`app.css`, `finish.css`) with reduced-motion and high-contrast fallbacks, Chart.js |
 | **Quality** | pytest with ~95% line coverage, GitHub Actions, Dependabot |
 | **Deployment** | Docker Compose (Gunicorn and MySQL) |
 

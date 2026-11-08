@@ -26,7 +26,7 @@
 | Task leases | 4, 5 | Short-lived task leases with a time limit | Dropped by design: the app uses balanced assignment with lasting ownership, protected by database constraints, not self-selection with leases |
 | Email notifications | 6.5 | Flask-Mail notifications | Future work |
 | Autosave, backups, versioned edits, caching, minified assets, password reset | 5, 6 | Listed as features | Not features of the system; removed from the text or listed as future work |
-| Frontend | 6.1 | Bootstrap 5 | Bootstrap 3 and AdminLTE 2, with a custom design layer (`app.css`, `apple.css`) |
+| Frontend | 6.1 | Bootstrap 5 | Bootstrap 3 and AdminLTE 2, with a custom design layer (`app.css`, `finish.css`) |
 | Original `DOCUMENTATION.md` | n/a | REST API under `/api/`, PostgreSQL, a task queue, offline mode, auto-scaling, data encryption | None of these existed; the [updated documentation](updated/DOCUMENTATION.md) describes only what the code does |
 
 ## Found and fixed after grading

@@ -118,6 +118,11 @@ def add_manager(project, user, replace=False):
         return f'{user.full_name} already manages "{project.name}".', 'info'
     if current and not replace:
         return f'"{project.name}" already has a manager. Remove them first; a project has one manager.', 'danger'
+    if user.role == 'end-user':
+        # In no group (checked above), but an older CSV import may have given them work: it goes to others.
+        distribution.release_everywhere(user)
+        surveys.drop_unanswered(user)
+        db.session.commit()
     if current:
         previous = current.user
         db.session.delete(current)

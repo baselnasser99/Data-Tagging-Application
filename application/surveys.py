@@ -6,10 +6,27 @@ Annotation projects are handed out by application/distribution.py instead.
 """
 from .extns import db
 from .models import GroupProject, UserQuestionAssignment
+from .stats import answered
 
 
 def group_key(group, project):
     return f"{group.id}-{project.id}"
+
+
+def drop_unanswered(user, keys=None):
+    """Delete the person's survey questions they haven't answered, under these keys or under any.
+
+    Answered ones are kept as history, so the survey's results and progress still count them.
+    Nothing is committed.
+    """
+    rows = UserQuestionAssignment.query.filter_by(user_id=user.id)
+    if keys is not None:
+        rows = rows.filter(UserQuestionAssignment.group_project_id.in_(keys))
+    rows = rows.all()
+    done = answered(rows)
+    for row in rows:
+        if (row.user_id, row.question_id) not in done:
+            db.session.delete(row)
 
 
 def give_questions(users, project, key, held_under_any_key=False):

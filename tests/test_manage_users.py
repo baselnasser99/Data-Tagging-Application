@@ -214,3 +214,84 @@ def test_removing_a_former_manager_who_created_a_project_unlinks_it(admin_client
     admin_client.post(f"/admin/users/{creator.id}/remove")
     db.session.expire_all()
     assert db.session.get(User, creator.id) is None and project.user_id is None
+
+
+def _given_outside_the_group(db, make_user, n=2):
+    """What an older CSV import did: some of a project's tasks held by someone in none of its groups."""
+    person = make_user()
+    for assignment in TaskAssignment.query.order_by(TaskAssignment.id).limit(n):
+        assignment.user_id = person.id
+    db.session.commit()
+    return person
+
+
+def test_removing_someone_releases_tasks_they_hold_outside_any_group(admin_client, make_user, db):
+    project, _, (member,) = _team(db, make_user, people=1)
+    outsider = _given_outside_the_group(db, make_user)
+    done, still_open = TaskAssignment.query.filter_by(user_id=outsider.id).order_by(TaskAssignment.id).all()
+    done.is_completed = True
+    db.session.commit()
+
+    admin_client.post(f"/admin/users/{outsider.id}/remove")
+
+    assert outsider.active is False
+    assert TaskAssignment.query.filter_by(user_id=outsider.id).all() == [done]  # finished work kept
+    assert {t.user_id for t in TaskAssignment.query if t.id != done.id} == {member.id}  # the rest went to the group
+    assert TaskAssignment.query.count() == 4
+
+
+def test_deleting_someone_hands_their_group_less_tasks_to_the_group(admin_client, make_user, db):
+    project, _, (member,) = _team(db, make_user, people=1)
+    outsider = _given_outside_the_group(db, make_user)
+
+    admin_client.post(f"/admin/users/{outsider.id}/remove")
+
+    assert db.session.get(User, outsider.id) is None
+    assert TaskAssignment.query.count() == 4 and {t.user_id for t in TaskAssignment.query} == {member.id}
+
+
+def test_removing_someone_drops_their_unanswered_imported_survey_questions(admin_client, make_user, db):
+    from application.models import QuestionAnswer, UserQuestionAssignment
+    from application.stats import project_progress
+
+    survey = Project(name="S", desc="d")
+    db.session.add(survey)
+    db.session.flush()
+    answered, unanswered = Question(question="A", project_id=survey.id), Question(question="B", project_id=survey.id)
+    db.session.add_all([answered, unanswered])
+    db.session.flush()
+    person = make_user()
+    db.session.add_all([UserQuestionAssignment(user_id=person.id, question_id=q.id, group_project_id=f"imported-{survey.id}")
+                        for q in (answered, unanswered)])
+    db.session.add(QuestionAnswer(user_id=person.id, question_id=answered.id, answer="x"))
+    db.session.commit()
+
+    admin_client.post(f"/admin/users/{person.id}/remove")
+
+    assert person.active is False
+    assert [r.question_id for r in UserQuestionAssignment.query.filter_by(user_id=person.id)] == [answered.id]
+    assert project_progress(survey) == (1, 1)  # the survey can reach 100% again
+
+
+def test_making_someone_a_manager_hands_their_group_less_work_to_others(admin_client, make_user, db):
+    from application.models import UserQuestionAssignment
+
+    project, _, (member,) = _team(db, make_user, people=1)
+    outsider = _given_outside_the_group(db, make_user)
+    survey = Project(name="S", desc="d")
+    db.session.add(survey)
+    db.session.flush()
+    question = Question(question="A", project_id=survey.id)
+    db.session.add(question)
+    db.session.flush()
+    db.session.add(UserQuestionAssignment(user_id=outsider.id, question_id=question.id,
+                                          group_project_id=f"imported-{survey.id}"))
+    db.session.commit()
+
+    resp = admin_client.post("/admin/managers/add", data={"project_id": survey.id, "user_id": outsider.id},
+                             follow_redirects=True)
+
+    assert b"now manages" in resp.data and outsider.role == "project-admin"
+    assert TaskAssignment.query.filter_by(user_id=outsider.id).count() == 0
+    assert {t.user_id for t in TaskAssignment.query} == {member.id}
+    assert UserQuestionAssignment.query.filter_by(user_id=outsider.id).count() == 0

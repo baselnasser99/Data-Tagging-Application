@@ -446,6 +446,37 @@ def release_user(user: User, project: Project) -> DistributionResult:
     return result
 
 
+def release_outsiders(project: Project) -> DistributionResult:
+    """Release unfinished work held by people in none of the project's groups. Finished work stays.
+
+    Every way of leaving releases work already, so only older data holds such work: a CSV import
+    used to hand a project's tasks to people outside its groups, who could never open them.
+    """
+    result = DistributionResult()
+    members = {u.id for u in eligible_users(project)}
+    held = (db.session.query(TaskAssignment.id, TaskAssignment.user_id).join(AnnotationTask)
+            .filter(AnnotationTask.project_id == project.id, TaskAssignment.is_completed.is_(False)))
+    result.assignments_released = _delete_unfinished([aid for aid, uid in held if uid not in members])
+    db.session.commit()
+    return result
+
+
+def release_everywhere(user: User) -> DistributionResult:
+    """Call once someone may no longer answer tasks (removed, or made a manager) and is in no group.
+
+    Their unfinished work in every project is released and handed to its groups, however
+    they got it, so none is left with someone who can't do it.
+    """
+    result = DistributionResult()
+    project_ids = [pid for (pid,) in db.session.query(AnnotationTask.project_id).join(TaskAssignment)
+                   .filter(TaskAssignment.user_id == user.id, TaskAssignment.is_completed.is_(False)).distinct()]
+    for project_id in project_ids:
+        project = db.session.get(Project, project_id)
+        result.merge(release_user(user, project))
+        result.merge(assign_open_slots(project))
+    return result
+
+
 def on_member_removed(user: User, group_id: int) -> DistributionResult:
     """Call after a user leaves a group (the membership row is already gone).
 
@@ -521,8 +552,10 @@ def release_over_cap(project: Project) -> DistributionResult:
 
 
 def distribute(project: Project) -> DistributionResult:
-    """Full pass for a project: create missing tasks, enforce the cap, fill slots, balance loads."""
+    """Full pass for a project: create missing tasks, free work held outside its groups, enforce the cap,
+    fill slots, balance loads."""
     result = generate_tasks(project)
+    result.merge(release_outsiders(project))
     result.merge(release_over_cap(project))
     result.merge(assign_open_slots(project))
     result.merge(rebalance(project))

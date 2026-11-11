@@ -96,15 +96,23 @@ def project_for_upload(name):
 
 
 def can_see_project(user, project_id):
-    """Admins, the project's managers, and members of a group assigned to it."""
-    from .models import GroupProject, UserGroupMembership
+    """Admins, the project's managers, members of a group assigned to it, and people imported into the survey."""
+    from .models import GroupProject, Question, UserGroupMembership, UserQuestionAssignment
 
     if user.role == "admin" or user.is_project_admin(project_id):
         return True
-    return (GroupProject.query
-            .join(UserGroupMembership, UserGroupMembership.group_id == GroupProject.group_id)
-            .filter(GroupProject.project_id == project_id, UserGroupMembership.user_id == user.id)
-            .first() is not None)
+    in_group = (GroupProject.query
+                .join(UserGroupMembership, UserGroupMembership.group_id == GroupProject.group_id)
+                .filter(GroupProject.project_id == project_id, UserGroupMembership.user_id == user.id)
+                .first() is not None)
+    # A CSV import gives a survey without a group (admin.py, "imported-<project id>"): its files open too.
+    # Only a row whose question is in that project counts, as on the survey page: an old database can hold
+    # a row whose key names a project id that SQLite has since given to another project.
+    return in_group or (UserQuestionAssignment.query.join(Question, Question.id == UserQuestionAssignment.question_id)
+                        .filter(UserQuestionAssignment.user_id == user.id,
+                                UserQuestionAssignment.group_project_id == f"imported-{project_id}",
+                                Question.project_id == project_id)
+                        .first() is not None)
 
 
 def can_open_upload(name):

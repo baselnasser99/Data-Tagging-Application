@@ -377,15 +377,13 @@ def _give_imported_project(users, project_id):
         return
 
     if project.is_annotation_project:
-        if not AnnotationTask.query.filter_by(project_id=project.id).first():
-            flash(f"No tasks found for project '{project.name}'. Hand out tasks first.", 'warning')
-            return
-        everyone = {u.id: u for u in distribution.eligible_users(project)}
-        everyone.update({u.id: u for u in users})
-        result = distribution.assign_open_slots(project, users=list(everyone.values()))
-        flash_distribution(result)
-        if not result.assignments_created:
-            flash(f"No open tasks were left to assign in '{project.name}'.", 'info')
+        # A project's tasks go to its groups' members only: work given to anyone else could not be opened,
+        # balanced or handed back. People put in one of its groups above already have their share.
+        members = {u.id for u in distribution.eligible_users(project)}
+        outside = [u for u in users if u.id not in members]
+        if outside:
+            flash(f"{plural(len(outside), 'person', 'people')} got no tasks in '{project.name}': a project's tasks "
+                  "go to the members of its groups. Add them to one of its groups to give them work.", 'warning')
         return
 
     # Surveys: every imported person gets every question they don't already hold, through a group or otherwise.

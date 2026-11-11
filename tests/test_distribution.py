@@ -149,6 +149,27 @@ def test_cap_is_respected_and_reported(setup):
     assert any("Max tasks per person" in w for w in result.warnings)
 
 
+def test_an_unset_cap_means_no_limit_everywhere(db, make_user, admin_client, setup):
+    """Older databases can hold no 'Max tasks per person': it limits nobody, in every step."""
+    project, group, users = setup(n_images=6, n_questions=1, n_users=1)
+    db.session.execute(update(Project).where(Project.id == project.id).values(max_questions_per_user=None))
+    db.session.commit()
+    db.session.expire_all()
+
+    result = distribution.distribute(project)  # hand out, and release over the cap
+    assert result.assignments_created == 6 and not result.unfilled_slots and not result.warnings
+
+    newcomer = make_user()
+    db.session.add(UserGroupMembership(user_id=newcomer.id, group_id=group.id))
+    db.session.commit()
+    distribution.on_member_added(newcomer, group.id)  # rebalance
+    assert sorted(open_load(project).values()) == [3, 3]
+
+    for page in (f"/admin/generate-annotation-tasks/{project.id}", f"/admin/project/{project.id}/edit-questions",
+                 f"/admin/project/{project.id}/dashboard", f"/admin/view-annotation-project/{project.id}"):
+        assert b"None" not in admin_client.get(page).data, page
+
+
 def test_small_group_warning(setup):
     project, _, _ = setup(n_images=2, n_questions=1, n_users=2, answers_per_task=5)
     result = distribution.distribute(project)

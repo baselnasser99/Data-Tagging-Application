@@ -153,3 +153,31 @@ def test_static_route_never_serves_uploads(static_uploads_app, path):
 
 def test_static_route_still_serves_other_files(static_uploads_app):
     assert static_uploads_app.test_client().get("/static/css/site.css").data == b"public"
+
+
+def test_people_imported_into_a_survey_open_its_attachments_only(app, db, make_user):
+    """A CSV import gives a survey without a group, so its attachments open for them too."""
+    from application.models import UserQuestionAssignment
+
+    surveys = [Project(name=n, desc="d") for n in ("Mine", "Theirs")]
+    db.session.add_all(surveys)
+    db.session.flush()
+    mine, theirs = (Question(question="What?", project_id=s.id, file_path=f"{s.name}.png") for s in surveys)
+    db.session.add_all([mine, theirs])
+    db.session.flush()
+    imported = make_user()
+    db.session.add(UserQuestionAssignment(user_id=imported.id, question_id=mine.id,
+                                          group_project_id=f"imported-{surveys[0].id}"))
+    db.session.commit()
+    for name in ("Mine.png", "Theirs.png"):
+        _write(upload_path(name))
+
+    client = _client(app, imported)
+    assert client.get("/files/Mine.png").status_code == 200
+    assert client.get("/files/Theirs.png").status_code == 403
+
+    # A stale row whose key names the other survey, but whose question isn't in it, opens nothing there.
+    db.session.add(UserQuestionAssignment(user_id=imported.id, question_id=mine.id,
+                                          group_project_id=f"imported-{surveys[1].id}"))
+    db.session.commit()
+    assert client.get("/files/Theirs.png").status_code == 403

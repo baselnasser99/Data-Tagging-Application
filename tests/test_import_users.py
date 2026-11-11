@@ -62,9 +62,9 @@ def test_csv_import_rejects_non_csv(admin_client):
     assert b"is not a CSV file" in resp.data
 
 
-def test_csv_import_into_a_group_hands_out_the_groups_work(admin_client, db):
-    from application.models import (AnnotationTask, GroupProject, Project, ProjectImage, Question,
-                                    TaskAssignment)
+def _photo_project(db):
+    """An annotation project with 4 open tasks, handed out to the group "Class"."""
+    from application.models import AnnotationTask, GroupProject, Project, ProjectImage, Question
 
     group = UserGroup(name="Class")
     project = Project(name="Photos", desc="d", is_annotation_project=True, answers_per_task=1)
@@ -78,7 +78,13 @@ def test_csv_import_into_a_group_hands_out_the_groups_work(admin_client, db):
     db.session.add_all([AnnotationTask(project_id=project.id, image_id=img.id, question_id=question.id,
                                        required_answers=1) for img in images])
     db.session.commit()
+    return group, project
 
+
+def test_csv_import_into_a_group_hands_out_the_groups_work(admin_client, db):
+    from application.models import TaskAssignment
+
+    group, _project = _photo_project(db)
     data = {
         "csv_file": _csv("full_name,email,password\nAda,ada@example.com,secret123\nAlan,alan@example.com,secret456\n"),
         "user_group_id": str(group.id),
@@ -132,3 +138,42 @@ def test_csv_import_does_not_put_admins_managers_or_removed_people_in_a_group(ad
                              data={"csv_file": _csv("full_name,email,password\n" + rows), "user_group_id": str(group.id)})
     assert UserGroupMembership.query.filter_by(group_id=group.id).count() == 0
     assert resp.data.count(b"were not added to the group or project") == 3
+
+
+def test_csv_import_gives_a_project_s_tasks_only_through_its_groups(admin_client, db):
+    """Tasks go to members of a project's groups: an import with no group hands out none, and says why."""
+    from application.models import TaskAssignment
+    from tests.conftest import flashes
+
+    _group, project = _photo_project(db)
+    admin_client.post("/admin/import-users", content_type="multipart/form-data", data={
+        "csv_file": _csv("full_name,email,password\nAda,ada@example.com,secret123\n"), "project_id": str(project.id)})
+
+    ada = User.query.filter_by(email="ada@example.com").one()  # still created
+    assert TaskAssignment.query.filter_by(user_id=ada.id).count() == 0
+    assert any("go to the members of its groups" in m for m in flashes(admin_client))
+
+
+def test_csv_import_into_one_of_the_project_s_groups_needs_no_warning(admin_client, db):
+    from application.models import TaskAssignment
+    from tests.conftest import flashes
+
+    group, project = _photo_project(db)
+    admin_client.post("/admin/import-users", content_type="multipart/form-data", data={
+        "csv_file": _csv("full_name,email,password\nAda,ada@example.com,secret123\n"),
+        "user_group_id": str(group.id), "project_id": str(project.id)})
+
+    ada = User.query.filter_by(email="ada@example.com").one()
+    assert TaskAssignment.query.filter_by(user_id=ada.id).count() == 4  # her group's work
+    assert not any("go to the members of its groups" in m for m in flashes(admin_client))
+
+
+def test_import_form_offers_surveys_only(admin_client, db):
+    from application.models import Project
+
+    db.session.add_all([Project(name="Photo tagging", desc="d", is_annotation_project=True),
+                        Project(name="Opinion poll", desc="d")])
+    db.session.commit()
+    page = admin_client.get("/admin/create-user?tab=csv").data
+    choices = page.split(b'name="project_id"')[1].split(b"</select>")[0]  # the sidebar names projects too
+    assert b"Opinion poll" in choices and b"Photo tagging" not in choices

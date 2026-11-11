@@ -87,14 +87,14 @@
               <p class="help-block">They get their share of the group's work straight away.</p>
             </div>
             <div class="col-sm-6 form-group">
-              <label for="project">Give them a project (optional)</label>
+              <label for="project">Give them a survey (optional)</label>
               <select class="form-control" id="project" name="project_id">
-                <option value="">No project</option>
-                {% for project in projects %}
-                <option value="{{ project.id }}">{{ project.name }} ({{ "project" if project.is_annotation_project else "survey" }})</option>
+                <option value="">No survey</option>
+                {% for project in projects if not project.is_annotation_project %}
+                <option value="{{ project.id }}">{{ project.name }}</option>
                 {% endfor %}
               </select>
-              <p class="help-block">Surveys: every question. Projects: a fair share of open tasks.</p>
+              <p class="help-block">They answer every question. A project's tasks come with one of its groups.</p>
             </div>
           </div>
         </div>

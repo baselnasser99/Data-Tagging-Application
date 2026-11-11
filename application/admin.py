@@ -153,6 +153,10 @@ def remove_user(user_id):
         db.session.delete(membership)
         db.session.commit()
         remove_pending_assignments_from_removed_group_member(user, group)
+    # Work held outside any group too (an older CSV import gave some): none may stay with them.
+    distribution.release_everywhere(user)
+    surveys.drop_unanswered(user)
+    db.session.commit()
     if _has_finished_work(user):
         user.active = False
         user.end_all_sessions()  # so a cookie from before can't come back to life if they are restored

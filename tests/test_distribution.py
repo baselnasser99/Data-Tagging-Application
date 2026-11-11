@@ -458,6 +458,24 @@ def test_a_reopened_task_of_someone_who_left_goes_to_the_group(db, admin_client,
     assert kept and all(db.session.get(TaskAssignment, i).is_completed for i in kept)
 
 
+def test_handing_out_releases_open_work_held_outside_the_groups(db, make_user, setup):
+    """An older CSV import gave tasks to people in none of the project's groups; the next hand-out frees them."""
+    project, _, (member,) = setup(n_images=4, n_questions=1, n_users=1)
+    distribution.distribute(project)
+    outsider = make_user()
+    held = sorted(assignments(project), key=lambda a: a.id)[:2]
+    for a in held:
+        a.user_id = outsider.id
+    complete(held[0])
+
+    result = distribution.distribute(project)
+
+    assert result.assignments_released == 1
+    mine = [a for a in assignments(project) if a.user_id == outsider.id]
+    assert [a.id for a in mine] == [held[0].id] and mine[0].is_completed  # finished work is kept
+    assert len(assignments(project)) == 4 and stranded_slots(project) == 0
+
+
 def test_rewording_an_answered_question_warns_and_keeps_answers_and_settings(admin_client, setup):
     project, _, users = setup(n_images=1, n_questions=1, n_users=2, answers_per_task=2)
     distribution.distribute(project)

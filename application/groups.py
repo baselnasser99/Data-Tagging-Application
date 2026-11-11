@@ -12,7 +12,7 @@ from .extns import db
 from .feedback import flash_distribution, warn_idle_members
 from .models import GroupProject, Project, ProjectAdmin, User, UserGroup, UserGroupMembership, UserQuestionAssignment
 from .permissions import admin_required, project_admin_access_required, project_admin_required
-from .stats import answered, group_progress
+from .stats import group_progress
 
 groups = Blueprint("groups", __name__, url_prefix="/admin")
 
@@ -183,16 +183,9 @@ def remove_pending_assignments_from_removed_group_member(user, group):
     Annotation projects: unfinished tasks are released and redistributed to the
     remaining members. Completed work is always kept.
     """
-    for gp in GroupProject.query.filter_by(group_id=group.id).all():
-        project = gp.project
-        if project is None or project.is_annotation_project:
-            continue
-        assignments = UserQuestionAssignment.query.filter_by(
-            user_id=user.id, group_project_id=f"{group.id}-{project.id}").all()
-        done = answered(assignments)
-        for assignment in assignments:
-            if (assignment.user_id, assignment.question_id) not in done:
-                db.session.delete(assignment)
+    surveys.drop_unanswered(user, keys=[surveys.group_key(group, gp.project)
+                                        for gp in GroupProject.query.filter_by(group_id=group.id)
+                                        if gp.project is not None and not gp.project.is_annotation_project])
     db.session.commit()
     return distribution.on_member_removed(user, group.id)
 

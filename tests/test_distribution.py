@@ -434,6 +434,30 @@ def test_changing_a_question_type_reopens_its_tasks(admin_client, setup):
     assert len(assignments(project)) == 2 and not any(a.is_completed for a in assignments(project))
 
 
+def test_a_reopened_task_of_someone_who_left_goes_to_the_group(db, admin_client, setup):
+    project, group, users = setup(n_images=2, n_questions=2, n_users=2)
+    distribution.distribute(project)
+    for a in assignments(project):
+        complete(a)
+    leaver, stayer = users
+    admin_client.post(f"/admin/manage-group/{group.id}", data={"action": "remove_user", "user_id": leaver.id})
+    changed, untouched = project.questions
+    kept = [a.id for a in assignments(project) if a.user_id == leaver.id and a.task.question_id == untouched.id]
+
+    _edit_questions(admin_client, project, **{
+        f"question-{changed.id}": changed.question, f"question-{untouched.id}": untouched.question,
+        f"dropdown-{changed.id}": "mcq", f"confirm_delete_answers_{changed.id}": "true",
+        f"number_of_options-{changed.id}": "2", f"mcq-option-1-{changed.id}": "Yes", f"mcq-option-2-{changed.id}": "No",
+    })
+
+    reopened = [a for a in assignments(project) if a.task.question_id == changed.id]
+    # Nobody outside the group holds the question again: the one who stayed answers all of it.
+    assert {a.user_id for a in reopened} == {stayer.id} and len(reopened) == 2
+    assert not any(a.is_completed for a in reopened) and stranded_slots(project) == 0
+    # What the leaver finished on the other question is kept.
+    assert kept and all(db.session.get(TaskAssignment, i).is_completed for i in kept)
+
+
 def test_rewording_an_answered_question_warns_and_keeps_answers_and_settings(admin_client, setup):
     project, _, users = setup(n_images=1, n_questions=1, n_users=2, answers_per_task=2)
     distribution.distribute(project)

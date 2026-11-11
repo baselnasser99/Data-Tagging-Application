@@ -189,13 +189,20 @@ def reopen_question(question: Question) -> None:
     """Delete a question's answers and reopen its tasks, so they are asked again.
 
     Used when a question's type changes: old answers no longer fit it. The same
-    people keep the tasks. The caller commits.
+    people keep the tasks, if they are still in one of the project's groups: an
+    unfinished task is never left with someone who has left (guarantee 4), so the
+    tasks of those who have are deleted, for the caller's next hand-out to give to
+    the group. The caller commits.
     """
     QuestionAnswer.query.filter_by(question_id=question.id).delete()
+    staying = {u.id for u in eligible_users(question.belongs_to)}
     for task in AnnotationTask.query.filter_by(question_id=question.id).all():
         task.current_answers = 0
         task.is_completed = False
         for assignment in task.assignments:
+            if assignment.user_id not in staying:
+                db.session.delete(assignment)
+                continue
             assignment.is_completed = False
             assignment.completed_date = None
 

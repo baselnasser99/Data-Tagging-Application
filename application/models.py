@@ -114,6 +114,11 @@ class Project(db.Model):
     images = db.relationship("ProjectImage", back_populates="project", lazy=True)
     annotation_tasks = db.relationship("AnnotationTask", back_populates="project", lazy=True)
 
+    @property
+    def task_limit(self):
+        """'Max tasks per person'. Older databases can hold none: then it limits nobody, the most the form allows."""
+        return self.max_questions_per_user or MAX_TASKS_PER_PERSON
+
 
 class AnswerType(enum.Enum):
     TEXT = "text"

@@ -227,7 +227,7 @@ def assign_open_slots(project: Project, users: list[User] | None = None) -> Dist
     if not users:
         return result
 
-    cap = project.max_questions_per_user or 0
+    cap = project.task_limit
     loads = user_loads(project, users)
     open_load = {u.id: loads[u.id][0] for u in users}
     total = {u.id: loads[u.id][1] for u in users}
@@ -347,7 +347,7 @@ def rebalance(project: Project, users: list[User] | None = None) -> Distribution
     users = eligible_users(project) if users is None else users
     if len(users) < 2:
         return result
-    cap = project.max_questions_per_user or 0
+    cap = project.task_limit
     ids = {u.id for u in users}
     names = {u.id: u.full_name for u in users}
 
@@ -530,9 +530,7 @@ def release_over_cap(project: Project) -> DistributionResult:
     if it alone exceeds the new limit.
     """
     result = DistributionResult()
-    cap = project.max_questions_per_user
-    if not cap:  # unset limit (old data): never take work away because of it
-        return result
+    cap = project.task_limit
     users = eligible_users(project)
     loads = user_loads(project, users)
     for user in users:

@@ -211,7 +211,7 @@
         <dt>Items</dt>
         <dd>{{ 'Images and audio' if stats.total_audio and stats.total_audio < stats.total_images else ('Audio' if stats.total_audio else 'Images') }}</dd>
         <dt>Max tasks per person</dt>
-        <dd>{{ project.max_questions_per_user }}</dd>
+        <dd>{{ project.task_limit }}</dd>
         <dt>Answers per task</dt>
         <dd>{{ project.answers_per_task }}</dd>
         <dt>Hand out work</dt>

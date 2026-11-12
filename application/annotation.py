@@ -22,9 +22,12 @@ def dashboard():
     # Group projects assigned (both survey and annotation)
     group_projects_count = sum(len(m.group.assigned_projects) for m in current_user.group_memberships)
 
-    # Total assigned tasks (survey questions + annotation tasks)
-    total_assigned_tasks = (UserQuestionAssignment.query.filter_by(user_id=user_id).count()
-                            + TaskAssignment.query.filter_by(user_id=user_id).count())
+    # Open work: unfinished tasks and survey questions still without an answer. Counted per
+    # assignment, not answers subtracted from assignments: one survey given to two of the
+    # person's groups is held twice and answered once.
+    survey = UserQuestionAssignment.query.filter_by(user_id=user_id).all()
+    unanswered = (TaskAssignment.query.filter_by(user_id=user_id, is_completed=False).count()
+                  + len(survey) - count_answered(survey))
     # Every answer counts: survey answers and annotation answers alike
     total_solved = QuestionAnswer.query.filter_by(user_id=user_id).count()
 
@@ -37,9 +40,9 @@ def dashboard():
                            assigned_projects=group_projects_count,
                            group_memberships=len(current_user.group_memberships),
                            solved_questions=total_solved,
-                           unanswered_questions=max(0, total_assigned_tasks - total_solved),
+                           unanswered_questions=unanswered,
                            # projects with pending tasks
-                           available_projects=group_projects_count if total_assigned_tasks > total_solved else 0,
+                           available_projects=group_projects_count if unanswered else 0,
                            answered_this_week=answered_this_week,
                            next_up=_next_open_task(user_id))
 

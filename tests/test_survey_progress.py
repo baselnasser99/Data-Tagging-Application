@@ -122,3 +122,20 @@ def test_a_survey_shared_by_two_groups_is_done_once_answered(app, db, make_user)
     page = client.get("/user/dashboard").get_data(as_text=True)
     assert "waiting for you" not in page
     assert "You are all caught up" in page
+
+
+def test_handing_a_survey_out_again_keeps_leavers_answers(db, make_user):
+    """Someone who answered and then left still counts in the survey's results after it is re-handed."""
+    from application import surveys
+    project, group, (ada, bob), (q1, q2) = _survey(db, make_user)
+    _answer(db, ada, q1)
+    UserGroupMembership.query.filter_by(user_id=ada.id, group_id=group.id).delete()
+    db.session.commit()
+    remove_pending_assignments_from_removed_group_member(ada, group)
+    assert project_progress(project) == (1, 3)
+
+    surveys.give_to_group(group, project)
+
+    assert {a.question_id for a in UserQuestionAssignment.query.filter_by(user_id=ada.id)} == {q1.id}
+    assert UserQuestionAssignment.query.filter_by(user_id=bob.id).count() == 2
+    assert project_progress(project) == (1, 3)

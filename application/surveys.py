@@ -64,14 +64,16 @@ def give_to_new_member(user, group):
 def give_to_group(group, project):
     """Hand a survey out to a group again from the start, e.g. after a question was added or deleted.
 
-    The group's rows for the survey are replaced, so each current member holds each current
-    question once. Answers are stored separately, so they are kept. Commits.
+    The current members' rows for the survey are replaced, so each holds each current question
+    once. Answers are stored separately, so they are kept. Rows of people who left are the
+    answered ones kept as history (drop_unanswered) and stay. Commits.
     """
     members = [m.user for m in group.members if m.user]
     if not members or not project.questions:
         return
     key = group_key(group, project)
-    UserQuestionAssignment.query.filter_by(group_project_id=key).delete()
+    UserQuestionAssignment.query.filter(UserQuestionAssignment.group_project_id == key,
+                                        UserQuestionAssignment.user_id.in_([u.id for u in members])).delete()
     db.session.commit()
     give_questions(members, project, key)
     db.session.commit()

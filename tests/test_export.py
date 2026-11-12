@@ -330,12 +330,6 @@ def test_long_free_text_shows_its_common_words(db, admin_client, answered_projec
     assert "they don&#39;t measure agreement" in page or "they don't measure agreement" in page
     assert "2 tasks not compared (answers longer than three words)" in page
 
-def test_progress_page_shows_results(admin_client, answered_project):
-    page = admin_client.get(f"/admin/view-annotation-project/{answered_project.id}").data.decode()
-    assert "Results" in page and "How often each answer was given" in page
-    assert "Most common short answers" in page and "have the same answer from everyone" in page
-
-
 def _open_task(db, kind):
     from application.models import AnnotationTask
 

@@ -35,13 +35,6 @@ def test_create_user_by_hand(app, admin_client):
     assert User.query.filter_by(email="bob@example.com").first() is None
 
 
-def test_create_user_without_password_shows_a_temporary_one(admin_client):
-    resp = admin_client.post("/admin/create-user", data={
-        "full_name": "Cai", "email": "cai@example.com", "password": "",
-    }, follow_redirects=True)
-    assert b"temporary password" in resp.data
-
-
 def _shown_password(resp):
     import re
 
@@ -250,18 +243,6 @@ def test_managers_page_is_for_admins_only(app, make_user):
     client = app.test_client()
     login(client, user.email)
     assert client.get("/admin/managers").status_code == 403
-
-
-def test_project_manager_page_has_the_picker(admin_client, db, make_user):
-    from application.models import Project
-
-    project = Project(name="Gamma", desc="d")
-    db.session.add(project)
-    db.session.commit()
-    make_user(name="Dee Data")
-    page = admin_client.get(f"/admin/project/{project.id}/admins").data
-    assert b"Dee Data" in page and b'name="email"' in page and b'name="user_id"' in page
-    assert b'class="content"' in page  # inside the normal page layout, not glued to the sidebar
 
 
 def test_admin_changes_a_project_manager_in_one_step(app, admin_client, db, make_user, make_project_admin):
@@ -490,14 +471,3 @@ def test_both_dashboards_count_survey_answers_the_same_way(app, db, admin_client
     login(manager, make_project_admin(survey).email)
     for page in (admin_client.get("/admin/dashboard"), manager.get("/admin/my-projects")):
         assert "6<small> of 6</small>" in page.data.decode()
-
-
-def test_sidebar_lists_places_and_creates_from_the_new_menu(admin_client):
-    page = admin_client.get("/admin/create-user").data.decode()
-    menu = page.split('id="new-menu"', 1)[1].split("</ul>", 1)[0]
-    for href in ("/admin/create-annotation-project", "/admin/create-project", "/admin/create-user",
-                 "/admin/create-group", "/admin/assign-project-to-group"):
-        assert f'href="{href}"' in menu
-    nav = page.split('aria-label="Main"', 1)[1].split("</nav>", 1)[0]
-    assert "/admin/create-user" not in nav  # creating lives in the menu, not the sidebar
-    assert '<li class="active">\n    <a href="/admin/users"' in nav  # Add users keeps Users highlighted

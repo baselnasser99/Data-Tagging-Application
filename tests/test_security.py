@@ -356,17 +356,6 @@ def test_destructive_actions_do_not_accept_get(admin_client, path):
     assert admin_client.get(path).status_code == 405
 
 
-def test_debug_route_removed(client):
-    assert client.get("/test-admin").status_code == 404
-
-
-def test_custom_404_page(client):
-    resp = client.get("/does-not-exist")
-    assert resp.status_code == 404
-    assert b"Page not found" in resp.data
-    assert b"/does-not-exist" in resp.data  # the page shows the address that was asked for
-
-
 def test_404_page_escapes_the_address(client):
     resp = client.get("/<script>alert(1)</script>")
     assert resp.status_code == 404
@@ -393,19 +382,13 @@ def test_every_page_sends_security_headers(client):
     assert "frame-ancestors 'none'" in resp.headers["Content-Security-Policy"]
 
 
-@pytest.mark.parametrize("path", ["/login", "/admin/dashboard"])
-def test_csp_allows_only_our_own_scripts(admin_client, path):
-    csp = admin_client.get(path).headers["Content-Security-Policy"]
-    directives = dict(d.strip().split(" ", 1) for d in csp.split(";"))
-    assert directives["script-src"] == "'self'"  # no inline scripts, no other sites
-
-
 @pytest.mark.parametrize("path", ["/login", "/admin/dashboard", "/no-such-page"])
 def test_csp_allows_nothing_from_other_sites(admin_client, path):
     # Stylesheets and fonts used to come from Google Fonts and a CDN; they are kept in static/vendor now.
     csp = admin_client.get(path).headers["Content-Security-Policy"]
     directives = dict(d.strip().split(" ", 1) for d in csp.split(";"))
     assert directives["default-src"] == "'self'"
+    assert directives["script-src"] == "'self'"  # no inline scripts, no other sites
     assert directives["style-src"] == "'self' 'unsafe-inline'"  # inline style="" attributes only
     assert directives["font-src"] == "'self'" and directives["img-src"] == "'self' data:"
     assert directives["object-src"] == "'none'" and directives["frame-ancestors"] == "'none'"

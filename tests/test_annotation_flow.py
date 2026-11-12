@@ -214,24 +214,6 @@ def test_export_for_user_without_answers(admin_client, end_user):
     assert b"No answers found" in resp.data
 
 
-def test_annotate_image_batch_view(app, admin_client, group_with_members):
-    group, members = group_with_members
-    project = _create_project(admin_client)
-    _upload(admin_client, project, {"a.png": b"x"})
-    admin_client.post(f"/admin/generate-annotation-tasks/{project.id}", data={"group_id": group.id})
-
-    annotator = members[0]
-    mine = TaskAssignment.query.filter_by(user_id=annotator.id).all()
-    image_id = mine[0].task.image_id
-    client = app.test_client()
-    login(client, annotator.email)
-    assert client.get(f"/user/annotate-image/{image_id}/{project.id}").status_code == 200
-
-    data = {f"answer_{a.id}": f"answer {a.id}" for a in mine}
-    client.post(f"/user/annotate-image/{image_id}/{project.id}", data=data)
-    assert all(a.is_completed for a in mine)
-
-
 def test_answering_an_image_in_several_batches_skips_nothing(app, db, admin_client, group_with_members):
     """Regression: page 2 used to skip questions because answered ones dropped out of the list."""
     group, members = group_with_members

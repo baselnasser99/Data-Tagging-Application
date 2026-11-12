@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover - optional dependency
 
 from .config import Config  # noqa: E402  (must come after load_dotenv)
 from .extns import csrf, db, login_manager  # noqa: E402
-from .models import ProjectImage, User  # noqa: E402
+from .models import MAX_ANSWERS_PER_TASK, MAX_QUESTIONS, MAX_TASKS_PER_PERSON, ProjectImage, User  # noqa: E402
 
 
 def create_app(config_object=None):
@@ -63,6 +63,10 @@ def create_app(config_object=None):
 
     app.jinja_env.globals["plural"] = plural
     app.jinja_env.globals["min_password_length"] = MIN_PASSWORD_LENGTH
+    # The settings forms' limits are the server's own (models.py), so a form never refuses what the server accepts.
+    app.jinja_env.globals["max_tasks_per_person"] = MAX_TASKS_PER_PERSON
+    app.jinja_env.globals["max_answers_per_task"] = MAX_ANSWERS_PER_TASK
+    app.jinja_env.globals["max_questions"] = MAX_QUESTIONS
     app.jinja_env.globals["sidebar_summary"] = sidebar_summary
     app.jinja_env.globals["icon"] = icon
     app.jinja_env.globals["app_name"] = app.config["APP_NAME"]

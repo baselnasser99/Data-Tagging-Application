@@ -119,6 +119,11 @@ class Project(db.Model):
         """'Max tasks per person'. Older databases can hold none: then it limits nobody, the most the form allows."""
         return self.max_questions_per_user or MAX_TASKS_PER_PERSON
 
+    @property
+    def page_size(self):
+        """How many of an item's questions a person sees at once. A project made with no questions stores 0: then 5."""
+        return self.questions_per_image if (self.questions_per_image or 0) > 0 else 5
+
 
 class AnswerType(enum.Enum):
     TEXT = "text"

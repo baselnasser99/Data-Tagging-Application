@@ -101,8 +101,8 @@
                 <div class="form-group">
                   <label for="max_questions_per_user">Max tasks per person</label>
                   <input type="number" class="form-control" id="max_questions_per_user"
-                         name="max_questions_per_user" value="100" min="1" max="1000" required>
-                  <p class="help-block">Nobody is given more tasks than this.</p>
+                         name="max_questions_per_user" value="100" min="1" max="{{ max_tasks_per_person }}" required>
+                  <p class="help-block">Nobody is given more tasks than this in the project, finished ones included.</p>
                 </div>
               </div>
 
@@ -110,7 +110,7 @@
                 <div class="form-group">
                   <label for="answers_per_task">Answers per task</label>
                   <input type="number" class="form-control" id="answers_per_task"
-                         name="answers_per_task" value="1" min="1" max="50" required>
+                         name="answers_per_task" value="1" min="1" max="{{ max_answers_per_task }}" required>
                   <p class="help-block">1 for simple labelling; 3 or more to measure agreement.</p>
                 </div>
               </div>

@@ -52,13 +52,13 @@
           <div class="col-sm-6 form-group">
             <label for="max_questions_per_user">Max tasks per person</label>
             <input type="number" class="form-control" id="max_questions_per_user" name="max_questions_per_user"
-                   value="{{ project.task_limit }}" min="1">
-            <p class="help-block">Nobody is given more tasks than this.</p>
+                   value="{{ project.task_limit }}" min="1" max="{{ max_tasks_per_person }}">
+            <p class="help-block">Nobody is given more tasks than this in the project, finished ones included.</p>
           </div>
           <div class="col-sm-6 form-group">
             <label for="answers_per_task">Answers per task</label>
             <input type="number" class="form-control" id="answers_per_task" name="answers_per_task"
-                   value="{{ project.answers_per_task }}" min="1">
+                   value="{{ project.answers_per_task }}" min="1" max="{{ max_answers_per_task }}">
             <p class="help-block">How many different people answer each task.</p>
           </div>
         </div>
@@ -75,7 +75,7 @@
           <div class="col-sm-6 form-group">
             <label for="questions_per_image">Questions per page</label>
             <input type="number" class="form-control" id="questions_per_image" name="questions_per_image"
-                   value="{{ project.questions_per_image }}" min="1" max="20">
+                   value="{{ project.page_size }}" min="1" max="{{ max_questions }}">
             <p class="help-block">How many of an item's questions a person sees at once.</p>
           </div>
           {% endif %}

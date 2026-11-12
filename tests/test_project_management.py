@@ -531,7 +531,42 @@ def test_project_settings_stay_within_bounds(admin_client, annotation_project):
         "action": "update_project_settings", "questions_per_image": "-3", "max_questions_per_user": "0",
         "answers_per_task": "lots"})
     assert resp.status_code == 302
-    assert project.questions_per_image == 0 and project.max_questions_per_user == 1 and project.answers_per_task == 1
+    assert project.questions_per_image == 1 and project.max_questions_per_user == 1 and project.answers_per_task == 1
+
+
+def _number_input(page, name):
+    """The min, max and value of the number box called ``name`` on a page, as text (None when absent)."""
+    import re
+    tag = re.search(rb'<input[^>]*name="' + name.encode() + rb'"[^>]*>', page).group(0)
+    return tuple((m.group(1).decode() if m else None)
+                 for m in (re.search(rb'\b' + a + rb'="([^"]*)"', tag) for a in (b"min", b"max", b"value")))
+
+
+def test_settings_forms_ask_for_exactly_what_the_server_accepts(admin_client, annotation_project, db):
+    """Both forms take their limits from the server's, so neither refuses a value the other allows."""
+    from application.models import MAX_ANSWERS_PER_TASK, MAX_QUESTIONS, MAX_TASKS_PER_PERSON
+
+    project, _, _ = annotation_project
+    project.hand_out_per_item = True  # "Questions per page" is shown in this mode
+    db.session.commit()
+    new = admin_client.get("/admin/create-annotation-project").data
+    settings = admin_client.get(f"/admin/project/{project.id}/edit-questions").data
+    for page in (new, settings):
+        assert _number_input(page, "max_questions_per_user")[:2] == ("1", str(MAX_TASKS_PER_PERSON))
+        assert _number_input(page, "answers_per_task")[:2] == ("1", str(MAX_ANSWERS_PER_TASK))
+    assert _number_input(settings, "questions_per_image")[:2] == ("1", str(MAX_QUESTIONS))
+
+
+def test_questions_per_page_never_starts_out_of_bounds(admin_client, annotation_project, db):
+    """A per-item project made with no questions, or more than a page used to allow, can still save its settings."""
+    project, _, _ = annotation_project
+    project.hand_out_per_item = True
+    for stored, shown in ((0, "5"), (25, "25")):  # 0 has always meant the default, 5
+        project.questions_per_image = stored
+        db.session.commit()
+        low, high, value = _number_input(admin_client.get(f"/admin/project/{project.id}/edit-questions").data,
+                                         "questions_per_image")
+        assert value == shown and int(low) <= int(value) <= int(high)
 
 
 def test_a_count_that_is_not_a_number_is_refused_not_a_crash(admin_client):

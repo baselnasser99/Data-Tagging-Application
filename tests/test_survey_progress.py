@@ -98,3 +98,27 @@ def test_progress_queries_do_not_grow_with_assignments(db, make_user):
         return len(statements)
 
     assert queries(2) == queries(6)
+
+
+def test_a_survey_shared_by_two_groups_is_done_once_answered(app, db, make_user):
+    """Someone in both groups holds each question twice; one answer finishes both copies."""
+    from tests.conftest import login
+    project, group, (ada,), (q1, q2) = _survey(db, make_user, members=1)
+    second = UserGroup(name="Board")
+    db.session.add(second)
+    db.session.commit()
+    db.session.add_all([UserGroupMembership(user_id=ada.id, group_id=second.id),
+                        GroupProject(group_id=second.id, project_id=project.id)])
+    db.session.add_all(UserQuestionAssignment(user_id=ada.id, question_id=q.id,
+                                              group_project_id=f"{second.id}-{project.id}") for q in (q1, q2))
+    db.session.commit()
+    client = app.test_client()
+    login(client, ada.email)
+
+    _answer(db, ada, q1)
+    assert "2 tasks waiting for you" in client.get("/user/dashboard").get_data(as_text=True)
+
+    _answer(db, ada, q2)
+    page = client.get("/user/dashboard").get_data(as_text=True)
+    assert "waiting for you" not in page
+    assert "You are all caught up" in page

@@ -123,6 +123,7 @@ def test_every_slot_is_filled_and_load_is_even(setup):
     assert stranded_slots(project) == 0
 
 
+@pytest.mark.parametrize("setup", [True], ids=["per-item"], indirect=True)
 def test_whoever_gets_an_image_gets_all_its_questions(setup):
     """One sitting per image: an image's questions are not split between people."""
     project, _, _ = setup(n_images=7, n_questions=3, n_users=3, per_item=True)
@@ -342,6 +343,7 @@ def test_workload_summary(setup):
 
 # ---- partial work and changed settings ------------------------------------------
 
+@pytest.mark.parametrize("setup", [True], ids=["per-item"], indirect=True)
 def test_leaving_with_an_item_half_answered(db, setup):
     """The answered question stays with the leaver; only the open one moves."""
     project, group, users = setup(n_images=2, n_questions=2, n_users=2, per_item=True)
@@ -364,6 +366,7 @@ def test_leaving_with_an_item_half_answered(db, setup):
     assert stranded_slots(project) == 0
 
 
+@pytest.mark.parametrize("setup", [True], ids=["per-item"], indirect=True)
 def test_a_new_question_goes_to_whoever_is_working_on_the_item(db, setup):
     """Per-item mode: all open questions about an item stay with one annotator,
     also when a question is added after work has started."""
@@ -540,6 +543,7 @@ def _tasks_by_user(project):
     return mine
 
 
+@pytest.mark.parametrize("setup", [False], ids=["per-question"], indirect=True)
 def test_one_item_two_questions_two_people_get_one_each(setup):
     project, _, users = setup(n_images=1, n_questions=2, n_users=2, per_item=False)
     distribution.distribute(project)
@@ -548,6 +552,7 @@ def test_one_item_two_questions_two_people_get_one_each(setup):
     assert {t.question_id for tasks in mine.values() for t in tasks} == {q.id for q in project.questions}
 
 
+@pytest.mark.parametrize("setup", [False], ids=["per-question"], indirect=True)
 def test_twenty_five_unique_tasks_for_five_people(setup):
     """5 items x 5 questions, 5 people, 1 answer each: 5 unique tasks per person."""
     project, _, users = setup(n_images=5, n_questions=5, n_users=5, per_item=False)
@@ -561,6 +566,7 @@ def test_twenty_five_unique_tasks_for_five_people(setup):
         assert sorted(Counter(t.question_id for t in tasks).values()) == [1] * 5
 
 
+@pytest.mark.parametrize("setup", [False], ids=["per-question"], indirect=True)
 def test_everyone_gets_a_mix_of_questions(setup):
     """Regression for the first version: with 4 people and 2 questions, each
     person only ever received one of the two questions."""
@@ -570,12 +576,14 @@ def test_everyone_gets_a_mix_of_questions(setup):
         assert sorted(Counter(t.question_id for t in tasks).values()) == [2, 2]
 
 
+@pytest.mark.parametrize("setup", [False], ids=["per-question"], indirect=True)
 def test_uneven_numbers_stay_within_one_task(setup):
     project, _, users = setup(n_images=7, n_questions=1, n_users=3, per_item=False)
     distribution.distribute(project)
     assert sorted(len(t) for t in _tasks_by_user(project).values()) == [2, 2, 3]
 
 
+@pytest.mark.parametrize("setup", [False], ids=["per-question"], indirect=True)
 def test_projects_from_before_this_setting_keep_handing_out_items(app, db, setup):
     from sqlalchemy import text
 

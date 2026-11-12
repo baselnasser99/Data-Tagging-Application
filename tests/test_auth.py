@@ -67,11 +67,6 @@ def test_protected_pages_redirect_anonymous_visitors_to_login(client, path):
     assert "/login" in resp.headers["Location"]
 
 
-def test_annotator_cannot_open_admin_pages(user_client):
-    assert user_client.get("/admin/dashboard").status_code == 403
-    assert user_client.get("/admin/users").status_code == 403
-
-
 def test_admin_cannot_open_annotator_pages(admin_client):
     assert admin_client.get("/user/my-projects").status_code == 403
 

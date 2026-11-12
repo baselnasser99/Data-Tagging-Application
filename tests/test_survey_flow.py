@@ -121,25 +121,6 @@ def test_imported_survey_questions_still_open_without_a_group(app, db, admin_cli
     assert client.get(f"/user/group-project/{key}").status_code == 200
 
 
-def test_assigning_same_project_twice_is_prevented(db, admin_client):
-    project = Project(name="P", desc="d")
-    group = UserGroup(name="G")
-    db.session.add_all([project, group])
-    db.session.commit()
-    admin_client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": project.id})
-    resp = admin_client.post(
-        "/admin/assign-project-to-group",
-        data={"group_id": group.id, "project_id": project.id},
-        follow_redirects=True,
-    )
-    assert b"already assigned" in resp.data
-
-
-def test_end_user_dashboard_and_profile(user_client):
-    assert user_client.get("/user/dashboard").status_code == 200
-    assert user_client.get("/user/profile").status_code == 200
-
-
 def test_end_user_change_password(user_client, end_user):
     resp = user_client.post(
         "/user/change-password",

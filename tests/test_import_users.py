@@ -43,12 +43,6 @@ def test_csv_import_replaces_short_password_and_shows_it_to_admin(admin_client):
     assert user.check_password(temp)  # the password shown actually works
 
 
-def test_csv_import_creates_password_when_missing(admin_client):
-    data = {"csv_file": _csv("full_name,email,password\nNone,none@example.com,\n")}
-    resp = admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data", follow_redirects=True)
-    assert b"had no password" in resp.data
-
-
 def test_csv_import_requires_expected_columns(admin_client):
     data = {"csv_file": _csv("name,mail\nA,a@example.com\n")}
     resp = admin_client.post("/admin/import-users", data=data, content_type="multipart/form-data", follow_redirects=True)

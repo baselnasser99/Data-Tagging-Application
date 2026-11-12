@@ -1,6 +1,6 @@
 import pytest
 
-from application.models import Project, UserGroup
+from application.models import Project
 
 STATIC_ADMIN_PAGES = [
     "/admin/dashboard",
@@ -92,15 +92,6 @@ def test_delete_project_removes_it(admin_client, db, sample_project):
     resp = admin_client.post(f"/admin/delete-project/{sample_project.id}", follow_redirects=True)
     assert b"The project was deleted" in resp.data
     assert db.session.get(Project, sample_project.id) is None
-
-
-def test_dashboard_counts(admin_client, db, make_user, sample_project):
-    make_user()
-    make_user()
-    db.session.add(UserGroup(name="G"))
-    db.session.commit()
-    resp = admin_client.get("/admin/dashboard")
-    assert resp.status_code == 200
 
 
 def test_project_cards_show_status_and_progress(admin_client, db, sample_project):

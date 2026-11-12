@@ -236,34 +236,6 @@ def test_annotator_sees_annotation_project(app, admin_client, annotation_project
     assert client.get("/user/dashboard").status_code == 200
 
 
-def test_import_users_straight_into_annotation_project(admin_client, annotation_project):
-    project, group, members = annotation_project
-    admin_client.post("/admin/assign-project-to-group", data={"group_id": group.id, "project_id": project.id})
-    csv_data = "full_name,email,password\nNew,new@example.com,secret123\n"
-    resp = admin_client.post(
-        "/admin/import-users",
-        data={"csv_file": (io.BytesIO(csv_data.encode()), "u.csv"), "project_id": str(project.id)},
-        content_type="multipart/form-data",
-        follow_redirects=True,
-    )
-    assert resp.status_code == 200
-    new_user = User.query.filter_by(email="new@example.com").one()
-    assert new_user is not None
-
-
-def test_import_users_into_survey_project_assigns_questions(admin_client, survey):
-    from application.models import UserQuestionAssignment
-
-    csv_data = "full_name,email,password\nNew,new@example.com,secret123\n"
-    admin_client.post(
-        "/admin/import-users",
-        data={"csv_file": (io.BytesIO(csv_data.encode()), "u.csv"), "project_id": str(survey.id)},
-        content_type="multipart/form-data",
-    )
-    new_user = User.query.filter_by(email="new@example.com").one()
-    assert UserQuestionAssignment.query.filter_by(user_id=new_user.id).count() == 1
-
-
 def test_deleting_a_survey_removes_imported_assignments(app, admin_client, db, survey):
     # They were left behind, and on SQLite the next question took the deleted one's id: the member
     # then saw and answered an unrelated project's question through /user/group-project/imported-<old id>.

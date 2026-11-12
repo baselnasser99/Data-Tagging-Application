@@ -1,8 +1,10 @@
 import io
 import zipfile
+from functools import partial
 
 import pytest
 from flask.testing import FlaskClient
+from werkzeug.security import generate_password_hash
 
 from application import create_app
 from application.config import TestingConfig
@@ -129,3 +131,15 @@ def make_zip(files):
 def flashes(client):
     with client.session_transaction() as sess:
         return [msg for _cat, msg in sess.get("_flashes", [])]
+
+
+@pytest.fixture(autouse=True)
+def _cheap_password_hash(monkeypatch):
+    """One-round hashes in tests: scrypt costs ~0.2 s per hash and per check, most of the run time."""
+    import application.auth
+    import application.models
+
+    fast = partial(generate_password_hash, method="pbkdf2:sha256:1")
+    monkeypatch.setattr(application.models, "generate_password_hash", fast)
+    monkeypatch.setattr(application.auth, "generate_password_hash", fast)
+    application.auth._dummy_hash.cache_clear()

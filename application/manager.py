@@ -376,9 +376,10 @@ def _update_settings(project):
     if 'project_desc' in request.form:
         project.desc = request.form['project_desc']
     if project.is_annotation_project:
-        # Kept within bounds: 0 or a negative count, or text, used to break the hand-out or the page.
+        # Kept within bounds, the same ones the form shows: 0 or a negative count, or text, used to break the
+        # hand-out or the page.
         project.questions_per_image = form_int(request.form.get('questions_per_image'), project.questions_per_image,
-                                               0, MAX_QUESTIONS)
+                                               1, MAX_QUESTIONS)
         project.max_questions_per_user = form_int(request.form.get('max_questions_per_user'),
                                                   project.max_questions_per_user, 1, MAX_TASKS_PER_PERSON)
         project.answers_per_task = form_int(request.form.get('answers_per_task'), project.answers_per_task,

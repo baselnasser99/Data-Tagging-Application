@@ -338,7 +338,7 @@ def annotate_image(image_id, project_id, batch_index=0):
     user_id = current_user.id
     image = db.get_or_404(ProjectImage, image_id)
     project = db.get_or_404(Project, project_id)
-    batch_size = project.questions_per_image if project.questions_per_image > 0 else 5
+    batch_size = project.page_size
 
     open_assignments = TaskAssignment.query.join(AnnotationTask).filter(
         TaskAssignment.user_id == user_id,

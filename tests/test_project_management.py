@@ -467,9 +467,10 @@ def test_question_files_must_be_pictures_audio_or_video(admin_client, survey):
 def test_manager_may_remove_only_managers_not_placed_by_a_system_admin(app, db, survey, make_user, admin_user,
                                                                       make_project_admin):
     me = make_project_admin(survey)
-    by_admin, by_me, by_deleted = make_user(role="project-admin"), make_user(role="project-admin"), make_user(role="project-admin")
+    by_admin, by_me, by_member = make_user(role="project-admin"), make_user(role="project-admin"), make_user(role="project-admin")
+    former_manager = make_user()  # placed someone once, a member now
     rows = {who: ProjectAdmin(user_id=who.id, project_id=survey.id, assigned_by=assigner)
-            for who, assigner in ((by_admin, admin_user.id), (by_me, me.id), (by_deleted, 9999))}
+            for who, assigner in ((by_admin, admin_user.id), (by_me, me.id), (by_member, former_manager.id))}
     db.session.add_all(rows.values())
     db.session.commit()
     client = app.test_client()
@@ -477,11 +478,19 @@ def test_manager_may_remove_only_managers_not_placed_by_a_system_admin(app, db, 
 
     resp = client.post(f"/admin/project/{survey.id}/admins/{rows[by_admin].id}/remove", follow_redirects=True)
     assert b"assigned by a system admin" in resp.data
-    for who in (by_me, by_deleted):  # placed by me, or by an account that no longer exists
+    for who in (by_me, by_member):  # placed by me, or by someone who isn't a system admin
         client.post(f"/admin/project/{survey.id}/admins/{rows[who].id}/remove")
         assert not ProjectAdmin.query.filter_by(user_id=who.id).first()
         assert who.role == "end-user"
     assert ProjectAdmin.query.filter_by(user_id=by_admin.id).first()
+
+
+def test_the_test_database_checks_foreign_keys_like_mysql(db, survey, admin_user):
+    from sqlalchemy.exc import IntegrityError
+    db.session.add(ProjectAdmin(user_id=admin_user.id, project_id=survey.id, assigned_by=9999))
+    with pytest.raises(IntegrityError):
+        db.session.commit()
+    db.session.rollback()
 
 
 @pytest.mark.parametrize("path", ["/admin/create-project", "/admin/create-annotation-project"])

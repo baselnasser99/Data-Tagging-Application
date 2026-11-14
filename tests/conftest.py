@@ -4,12 +4,23 @@ from functools import partial
 
 import pytest
 from flask.testing import FlaskClient
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from werkzeug.security import generate_password_hash
 
 from application import create_app
 from application.config import TestingConfig
 from application.extns import db as _db
 from application.models import ProjectAdmin, User
+
+
+@event.listens_for(Engine, "connect")
+def _foreign_keys_on(dbapi_connection, _record):
+    """SQLite skips foreign-key checks unless asked; production MySQL always makes them."""
+    if type(dbapi_connection).__module__.startswith("sqlite3"):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 class BufferedClient(FlaskClient):

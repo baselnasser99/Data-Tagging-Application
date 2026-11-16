@@ -29,6 +29,8 @@ import re
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
+from sqlalchemy.orm import joinedload
+
 from .models import AnnotationTask, AnswerType, Project, QuestionAnswer, TaskAssignment
 
 SHORT_TEXT_MAX_WORDS = 3
@@ -105,9 +107,15 @@ def compared_answers(kind: str, values: list[str]) -> list[str] | None:
 
 
 def build_project_export(project: Project) -> dict:
-    """Collect every answer of an annotation project into one structure."""
+    """Collect every answer of an annotation project into one structure.
+
+    Each task's item and question, and each answer's annotator, come in the same
+    query as the rows that use them: loading them one by one cost a query per answer,
+    on every visit to the results page as well as every download.
+    """
     tasks = (
         AnnotationTask.query.filter_by(project_id=project.id)
+        .options(joinedload(AnnotationTask.image), joinedload(AnnotationTask.question))
         .order_by(AnnotationTask.image_id, AnnotationTask.question_id)
         .all()
     )
@@ -115,12 +123,13 @@ def build_project_export(project: Project) -> dict:
         QuestionAnswer.query.join(TaskAssignment, QuestionAnswer.task_assignment_id == TaskAssignment.id)
         .join(AnnotationTask, TaskAssignment.task_id == AnnotationTask.id)
         .filter(AnnotationTask.project_id == project.id)
+        .options(joinedload(QuestionAnswer.user))
+        .add_columns(TaskAssignment.task_id)
         .all()
     )
     by_task: dict[int, list] = defaultdict(list)
-    for answer in answers:
-        assignment = answer.task_assignment
-        by_task[assignment.task_id].append(answer)
+    for answer, task_id in answers:
+        by_task[task_id].append(answer)
 
     images: dict[int, dict] = {}
     per_question_ratings: dict[int, list[list[str]]] = defaultdict(list)

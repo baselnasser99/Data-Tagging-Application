@@ -377,3 +377,44 @@ def test_the_no_answers_row_is_neutralised_too(admin_client, make_user):
     person = make_user(name="=HYPERLINK(\"x\")")
     rows = list(csv.reader(io.StringIO(admin_client.get(f"/admin/download-answers/{person.id}").data.decode())))
     assert rows[1][1].startswith("'=")
+
+
+def test_the_export_takes_the_same_few_queries_however_many_answers(db, make_user):
+    """The results page builds the export on every visit, so it can't cost a query per answer."""
+    from sqlalchemy import event
+
+    from application.export import build_project_export
+
+    def selects_for(n_items):
+        project = Project(name=f"P{n_items}", desc="d", is_annotation_project=True,
+                          answers_per_task=2, max_questions_per_user=1000)
+        group = UserGroup(name=f"G{n_items}")
+        db.session.add_all([project, group])
+        db.session.flush()
+        db.session.add_all([Question(question=f"Q{i}", project_id=project.id) for i in range(2)])
+        db.session.add_all([ProjectImage(project_id=project.id, filename=f"{i}.png", original_filename=f"{i}.png",
+                                         file_path="x") for i in range(n_items)])
+        db.session.add(GroupProject(group_id=group.id, project_id=project.id))
+        for u in (make_user(), make_user(), make_user()):
+            db.session.add(UserGroupMembership(user_id=u.id, group_id=group.id))
+        db.session.commit()
+        distribution.distribute(project)
+        for a in TaskAssignment.query.all():
+            if a.task.project_id == project.id:
+                db.session.add(QuestionAnswer(task_assignment_id=a.id, question_id=a.task.question_id,
+                                              user_id=a.user_id, answer="yes"))
+        db.session.commit()
+        db.session.expire_all()
+
+        selects = []
+        listener = lambda conn, cursor, sql, *rest: selects.append(sql) if sql.lstrip().upper().startswith("SELECT") else None
+        event.listen(db.engine, "before_cursor_execute", listener)
+        try:
+            data = build_project_export(project)
+        finally:
+            event.remove(db.engine, "before_cursor_execute", listener)
+        assert data["totals"]["answers"] == n_items * 2 * 2
+        return len(selects)
+
+    small, large = selects_for(5), selects_for(40)
+    assert small == large <= 4, (small, large)  # project, tasks, answers, questions

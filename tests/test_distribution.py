@@ -711,4 +711,29 @@ def test_changing_answers_per_task_reads_all_assignments_in_one_query(db, setup)
         distribution.apply_answers_per_task(project)
     finally:
         event.remove(db.engine, "before_cursor_execute", listener)
-    assert len(selects) <= 3, selects  # tasks, their assignments; not one query per task
+    # the project lock, the project's settings, tasks, their assignments; not one query per task
+    assert len(selects) <= 5, selects
+
+
+def test_every_step_that_reads_then_writes_locks_the_project_first(db, setup, monkeypatch):
+    """Guarantee 8: a second hand-out for the same project waits for the first.
+
+    SQLite leaves FOR UPDATE out, so this checks the statements as MySQL would get them.
+    """
+    from sqlalchemy.dialects import mysql
+
+    project, _, _ = setup()
+    locks = []
+    execute = db.session.execute
+
+    def spy(statement, *args, **kwargs):
+        if getattr(statement, "_for_update_arg", None) is not None:
+            locks.append(str(statement.compile(dialect=mysql.dialect())))
+        return execute(statement, *args, **kwargs)
+
+    monkeypatch.setattr(db.session, "execute", spy)
+    distribution.apply_answers_per_task(project)
+    distribution.distribute(project)  # generate_tasks, release_over_cap, assign_open_slots, rebalance
+
+    assert len(locks) == 5
+    assert all(sql.endswith("FOR UPDATE") and "FROM project" in sql for sql in locks), locks

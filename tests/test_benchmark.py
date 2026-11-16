@@ -28,22 +28,16 @@ def test_every_configuration_is_fair_and_loses_nothing(app, name):
     assert row["tasks"] == 100 and row["r"] == TINY[name]["r"] and row["groups"] == TINY[name]["groups"]
     assert row["owned"] and row["kept"]  # every task has its owners; leaving kept finished work
     assert row["gap_total"] <= 1 and row["gap_open_join"] <= 1  # loads within one task
-
-
-def test_two_answers_per_task_means_two_people_per_task(app):
-    benchmark.run_config("tiny-r2", seed=1)
-    assert benchmark.TaskAssignment.query.count() == 200
-    assert all(t.required_answers == 2 for t in benchmark.AnnotationTask.query)
-
-
-def test_two_groups_share_one_project(app):
-    benchmark.run_config("tiny-2groups", seed=1)
-    assert benchmark.GroupProject.query.count() == 2
-    teams = {m.group_id for m in benchmark.UserGroupMembership.query}
-    assert len(teams) == 2  # people, leavers and newcomers are spread over both groups
-    holders = {a.user_id for a in benchmark.TaskAssignment.query}
-    members = {m.user_id for m in benchmark.UserGroupMembership.query}
-    assert members <= holders  # everyone in either group has work
+    if row["r"] == 2:  # two answers per task means two people per task
+        assert benchmark.TaskAssignment.query.count() == 200
+        assert all(t.required_answers == 2 for t in benchmark.AnnotationTask.query)
+    if row["groups"] == 2:  # two groups share one project
+        assert benchmark.GroupProject.query.count() == 2
+        teams = {m.group_id for m in benchmark.UserGroupMembership.query}
+        assert len(teams) == 2  # people, leavers and newcomers are spread over both groups
+        holders = {a.user_id for a in benchmark.TaskAssignment.query}
+        members = {m.user_id for m in benchmark.UserGroupMembership.query}
+        assert members <= holders  # everyone in either group has work
 
 
 def test_summarise_reports_mean_spread_and_integrity_counts():
@@ -71,5 +65,6 @@ def test_each_run_gets_its_own_seed_and_the_report_shows_the_spread(app):
 
 
 def test_main_runs_from_the_command_line():
-    summaries, load = benchmark.main(["--configs", "tiny", "--runs", "2", "--seed", "3"])
-    assert load is None and summaries[0]["runs"] == 2 and summaries[0]["owned"] == 2
+    # One run: the several-run path is covered by the seed-and-spread test above.
+    summaries, load = benchmark.main(["--configs", "tiny", "--runs", "1", "--seed", "3"])
+    assert load is None and summaries[0]["runs"] == 1 and summaries[0]["owned"] == 1

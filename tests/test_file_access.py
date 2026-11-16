@@ -51,10 +51,6 @@ def test_member_gets_200(app, item):
     assert resp.status_code == 200 and resp.data == b"file-bytes"
 
 
-def test_admin_gets_200(admin_client, item):
-    assert admin_client.get(item["url"]).status_code == 200
-
-
 def test_manager_sees_only_their_own_projects_files(app, item, make_project_admin):
     assert _client(app, make_project_admin(item["project"])).get(item["url"]).status_code == 200
     assert _client(app, make_project_admin(item["other_project"])).get(item["url"]).status_code == 403

@@ -59,19 +59,6 @@ def test_project_admin_sees_only_their_projects(app, db, make_project_admin, sam
     assert b"Survey" in resp.data and b"Other" not in resp.data
 
 
-def test_admin_profile_update_password(admin_client, admin_user):
-    resp = admin_client.post(
-        "/admin/profile",
-        data={
-            "action": "update_password",
-            "current_password": "password123",
-            "new_password": "newpassword",
-            "confirm_password": "newpassword",
-        },
-        follow_redirects=True,
-    )
-    assert b"Password updated successfully" in resp.data
-    assert admin_user.check_password("newpassword")
 
 
 def test_admin_profile_rejects_wrong_current_password(admin_client, admin_user):
@@ -88,7 +75,7 @@ def test_admin_profile_rejects_wrong_current_password(admin_client, admin_user):
     assert b"Current password is incorrect" in resp.data
 
 
-def test_delete_project_removes_it(admin_client, db, sample_project):
+def test_a_project_without_questions_can_be_deleted(admin_client, db, sample_project):
     resp = admin_client.post(f"/admin/delete-project/{sample_project.id}", follow_redirects=True)
     assert b"The project was deleted" in resp.data
     assert db.session.get(Project, sample_project.id) is None
@@ -135,4 +122,4 @@ def test_manager_can_change_their_own_password(app, make_project_admin, sample_p
     resp = client.post("/admin/profile", data={"action": "update_password", "current_password": "password123",
                                                  "new_password": "newpass456", "confirm_password": "newpass456"},
                        follow_redirects=True)
-    assert resp.status_code == 200 and manager.check_password("newpass456")
+    assert b"Password updated successfully" in resp.data and manager.check_password("newpass456")

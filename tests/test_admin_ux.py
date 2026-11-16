@@ -136,6 +136,7 @@ def test_upload_loose_files_and_zips_together(admin_client):
     resp = _upload(admin_client, project, {"loose.png": b"again", "zipped.jpg": b"jpg"})
     assert b"Successfully uploaded 1 image" in resp.data
     assert b"Skipped 1 file already in this project" in resp.data
+    assert ProjectImage.query.filter_by(project_id=project.id).count() == 3  # the duplicate was not added
 
 
 def test_dashboard_chart_data_and_group_progress(app, db, admin_client, make_user):

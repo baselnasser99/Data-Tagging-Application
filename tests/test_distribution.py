@@ -55,6 +55,12 @@ def setup(request, db, make_user):
     return _setup
 
 
+# For tests whose result can't depend on the hand-out mode: one question per item (an item
+# and a task are then the same thing, and both modes pick the same person), or a step that
+# never reads the mode. Running them per item as well would only repeat the same work.
+same_in_both_modes = pytest.mark.parametrize("setup", [False], ids=["per-question"], indirect=True)
+
+
 def assignments(project):
     return TaskAssignment.query.join(AnnotationTask).filter(AnnotationTask.project_id == project.id).all()
 
@@ -87,6 +93,7 @@ def stranded_slots(project):
 
 # ---- generation -------------------------------------------------------------
 
+@same_in_both_modes
 def test_generation_creates_one_task_per_image_question_pair(setup):
     project, _, _ = setup(n_images=4, n_questions=3)
     result = distribution.generate_tasks(project)
@@ -95,6 +102,7 @@ def test_generation_creates_one_task_per_image_question_pair(setup):
     assert len(pairs) == 12
 
 
+@same_in_both_modes
 def test_regenerating_keeps_existing_tasks_and_answers(db, setup):
     project, _, _ = setup(n_images=2, n_questions=1)
     distribution.distribute(project)
@@ -142,6 +150,7 @@ def test_no_user_gets_the_same_task_twice(setup):
         assert len(holders) == 3 and len(set(holders)) == 3
 
 
+@same_in_both_modes
 def test_cap_is_respected_and_reported(setup):
     project, _, _ = setup(n_images=10, n_questions=1, n_users=2, cap=3)
     result = distribution.distribute(project)
@@ -150,6 +159,7 @@ def test_cap_is_respected_and_reported(setup):
     assert any("Max tasks per person" in w for w in result.warnings)
 
 
+@same_in_both_modes
 def test_an_unset_cap_means_no_limit_everywhere(db, make_user, admin_client, setup):
     """Older databases can hold no 'Max tasks per person': it limits nobody, in every step."""
     project, group, users = setup(n_images=6, n_questions=1, n_users=1)
@@ -171,6 +181,7 @@ def test_an_unset_cap_means_no_limit_everywhere(db, make_user, admin_client, set
         assert b"None" not in admin_client.get(page).data, page
 
 
+@same_in_both_modes
 def test_small_group_warning(setup):
     project, _, _ = setup(n_images=2, n_questions=1, n_users=2, answers_per_task=5)
     result = distribution.distribute(project)
@@ -223,6 +234,7 @@ def test_leaving_member_work_goes_to_the_rest_of_the_team(db, setup):
     assert result.assignments_released == 4  # 6 held, 2 finished
 
 
+@same_in_both_modes
 def test_member_in_two_groups_keeps_their_work(db, setup, make_user):
     project, group, users = setup(n_images=4, n_questions=1, n_users=2)
     other = UserGroup(name="Other")
@@ -242,6 +254,7 @@ def test_member_in_two_groups_keeps_their_work(db, setup, make_user):
     assert sorted((a.task_id, a.user_id) for a in assignments(project)) == before
 
 
+@same_in_both_modes
 def test_new_member_takes_a_fair_share(db, setup, make_user):
     project, group, users = setup(n_images=12, n_questions=1, n_users=2)
     distribution.distribute(project)
@@ -257,6 +270,7 @@ def test_new_member_takes_a_fair_share(db, setup, make_user):
     assert sum(result.moves.values()) == 4  # the message names who gave work to whom
 
 
+@same_in_both_modes
 def test_rebalancing_tries_other_pairs_when_partners_share_every_task(db, setup):
     """With 2 answers per task, partners often hold the same tasks. If the least busy
     person already holds all of the busiest person's tasks, the work goes to the next
@@ -285,6 +299,7 @@ def test_rebalancing_tries_other_pairs_when_partners_share_every_task(db, setup)
     assert len(assignments(project)) == 34  # work moved, nothing added or lost
 
 
+@same_in_both_modes
 def test_rebalancing_never_moves_finished_work(db, setup, make_user):
     project, group, users = setup(n_images=6, n_questions=1, n_users=1)
     distribution.distribute(project)
@@ -300,6 +315,7 @@ def test_rebalancing_never_moves_finished_work(db, setup, make_user):
     assert open_load(project)[newcomer.id] == 1  # open work: 2 -> 1 each
 
 
+@same_in_both_modes
 def test_deleting_a_group_releases_its_members_work(db, setup, make_user):
     project, group, users = setup(n_images=4, n_questions=1, n_users=2)
     backup = UserGroup(name="Backup")
@@ -322,6 +338,7 @@ def test_deleting_a_group_releases_its_members_work(db, setup, make_user):
     assert stranded_slots(project) == 0
 
 
+@same_in_both_modes
 def test_raising_answers_per_task_adds_slots(setup):
     project, _, users = setup(n_images=3, n_questions=1, n_users=3, answers_per_task=1)
     distribution.distribute(project)
@@ -332,6 +349,7 @@ def test_raising_answers_per_task_adds_slots(setup):
         assert task.required_answers == 2 and len(task.assignments) == 2
 
 
+@same_in_both_modes
 def test_workload_summary(setup):
     project, _, users = setup(n_images=3, n_questions=1, n_users=3)
     distribution.distribute(project)
@@ -396,6 +414,7 @@ def test_a_new_question_goes_to_whoever_is_working_on_the_item(db, setup):
     assert stranded_slots(project) == 0
 
 
+@same_in_both_modes
 def test_lowering_answers_per_task_releases_work_no_longer_needed(setup):
     project, _, users = setup(n_images=2, n_questions=1, n_users=3, answers_per_task=3)
     distribution.distribute(project)
@@ -436,6 +455,7 @@ def _edit_questions(admin_client, project, **fields):
     return admin_client.post(f"/admin/project/{project.id}/edit-questions", data=data, follow_redirects=True)
 
 
+@same_in_both_modes
 def test_changing_a_question_type_reopens_its_tasks(admin_client, setup):
     project, _, users = setup(n_images=2, n_questions=1, n_users=2)
     distribution.distribute(project)
@@ -482,6 +502,7 @@ def test_a_reopened_task_of_someone_who_left_goes_to_the_group(db, admin_client,
     assert kept and all(db.session.get(TaskAssignment, i).is_completed for i in kept)
 
 
+@same_in_both_modes
 def test_handing_out_releases_open_work_held_outside_the_groups(db, make_user, setup):
     """An older CSV import gave tasks to people in none of the project's groups; the next hand-out frees them."""
     project, _, (member,) = setup(n_images=4, n_questions=1, n_users=1)
@@ -500,6 +521,7 @@ def test_handing_out_releases_open_work_held_outside_the_groups(db, make_user, s
     assert len(assignments(project)) == 4 and stranded_slots(project) == 0
 
 
+@same_in_both_modes
 def test_rewording_an_answered_question_warns_and_keeps_answers_and_settings(admin_client, setup):
     project, _, users = setup(n_images=1, n_questions=1, n_users=2, answers_per_task=2)
     distribution.distribute(project)
@@ -639,6 +661,7 @@ def test_a_leaver_answering_at_the_last_moment_keeps_the_answer(db, setup):
     assert result.assignments_released == 5  # 6 held, 1 answered just in time
 
 
+@same_in_both_modes
 def test_lowering_answers_per_task_keeps_an_answer_given_meanwhile(db, setup):
     project, _, users = setup(n_images=2, n_questions=1, n_users=3, answers_per_task=3)
     distribution.distribute(project)
@@ -667,6 +690,7 @@ def test_lowering_the_cap_keeps_an_answer_given_meanwhile(db, setup):
     assert result.assignments_released == 3  # 2 over the cap each, 1 answered just in time
 
 
+@same_in_both_modes
 def test_rebalancing_leaves_work_answered_meanwhile_with_whoever_answered_it(db, setup, make_user):
     project, group, (busy,) = setup(n_images=6, n_questions=1, n_users=1)
     distribution.distribute(project)
@@ -685,6 +709,7 @@ def test_rebalancing_leaves_work_answered_meanwhile_with_whoever_answered_it(db,
     assert result.assignments_moved == 2
 
 
+@same_in_both_modes
 def test_an_answer_to_work_just_moved_to_someone_else_is_not_saved(db, setup, make_user):
     from application.annotation import _save_answer
 
@@ -700,6 +725,7 @@ def test_an_answer_to_work_just_moved_to_someone_else_is_not_saved(db, setup, ma
     assert QuestionAnswer.query.count() == 0
 
 
+@same_in_both_modes
 def test_changing_answers_per_task_reads_all_assignments_in_one_query(db, setup):
     project, _, _ = setup(n_images=20, n_questions=2, n_users=3, answers_per_task=2)
     distribution.distribute(project)
@@ -715,6 +741,7 @@ def test_changing_answers_per_task_reads_all_assignments_in_one_query(db, setup)
     assert len(selects) <= 5, selects
 
 
+@same_in_both_modes
 def test_every_step_that_reads_then_writes_locks_the_project_first(db, setup, monkeypatch):
     """Guarantee 8: a second hand-out for the same project waits for the first.
 

@@ -84,14 +84,6 @@ def test_zip_upload_indexes_images_and_flattens_folders(app, admin_client):
         assert os.path.dirname(img.file_path).endswith(os.path.join("images", str(project.id)))
 
 
-def test_zip_upload_skips_duplicate_file_names(admin_client):
-    project = _create_project(admin_client)
-    _upload(admin_client, project, {"a.png": b"1"})
-    resp = _upload(admin_client, project, {"a.png": b"2", "d.png": b"3"})
-    assert b"Skipped 1 file already in this project" in resp.data
-    assert ProjectImage.query.filter_by(project_id=project.id).count() == 2
-
-
 def test_upload_rejects_invalid_zip(admin_client):
     project = _create_project(admin_client)
     resp = admin_client.post(

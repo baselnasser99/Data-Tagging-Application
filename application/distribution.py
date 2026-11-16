@@ -29,13 +29,17 @@ Guarantees, each covered by tests in tests/test_distribution.py:
        statement that makes it, that the work is still unfinished, so a task
        answered in the moment between our read and our write stays answered,
        with whoever answered it.
+    8. One step at a time: every step that reads a project's work and then writes
+       locks the project's row first, so a second hand-out for the same project
+       (two managers at once, or someone joining meanwhile) waits instead of
+       filling the same open slots again.
 """
 from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
 
-from sqlalchemy import case, func, insert, update
+from sqlalchemy import case, func, insert, inspect, select, update
 from sqlalchemy.orm import joinedload, selectinload
 
 from .extns import db
@@ -110,6 +114,20 @@ def _delete_unfinished(assignment_ids) -> int:
     ).delete(synchronize_session=False)
 
 
+def _lock_project(project: Project) -> None:
+    """Make other steps for this project wait until this one commits (guarantee 8).
+
+    The commit ends the current transaction first: MySQL reads from one snapshot per
+    transaction, so only reads made after the lock see work committed while we waited.
+    The id comes from the identity map: reading project.id on an expired object would
+    reload it, a read made before the lock.
+    SQLite (development and tests) has no row locks and leaves FOR UPDATE out.
+    """
+    project_id = inspect(project).identity[0]
+    db.session.commit()
+    db.session.execute(select(Project.id).where(Project.id == project_id).with_for_update())
+
+
 def user_loads(project: Project, users: list[User]) -> dict[int, tuple[int, int]]:
     """Map user id -> (open assignments, total assignments) within the project."""
     ids = [u.id for u in users]
@@ -142,6 +160,7 @@ def generate_tasks(project: Project) -> DistributionResult:
     Existing tasks are left alone, so completed answers survive when questions
     or images are added later.
     """
+    _lock_project(project)
     result = DistributionResult()
     images = ProjectImage.query.filter_by(project_id=project.id).all()
     questions = Question.query.filter_by(project_id=project.id).all()
@@ -170,6 +189,7 @@ def apply_answers_per_task(project: Project) -> DistributionResult:
     their unfinished assignments are released so nobody answers work that is
     already covered. Finished answers are always kept.
     """
+    _lock_project(project)
     result = DistributionResult()
     surplus_ids = []
     tasks = (AnnotationTask.query.filter_by(project_id=project.id)
@@ -222,6 +242,7 @@ def assign_open_slots(project: Project, users: list[User] | None = None) -> Dist
     is served first; within an item, the starting question rotates from item to
     item so nobody always ends up with the same question.
     """
+    _lock_project(project)
     result = DistributionResult()
     users = eligible_users(project) if users is None else users
     if not users:
@@ -343,6 +364,7 @@ def rebalance(project: Project, users: list[User] | None = None) -> Distribution
     memory, then saved together: re-reading every workload after each single
     move made adding one person to a large project take close to a minute.
     """
+    _lock_project(project)
     result = DistributionResult()
     users = eligible_users(project) if users is None else users
     if len(users) < 2:
@@ -529,6 +551,7 @@ def release_over_cap(project: Project) -> DistributionResult:
     The most recently assigned work goes back first; finished work is kept even
     if it alone exceeds the new limit.
     """
+    _lock_project(project)
     result = DistributionResult()
     cap = project.task_limit
     users = eligible_users(project)

@@ -61,7 +61,7 @@ Built as my diploma thesis at the University of Pécs, then rebuilt to productio
 | Feature | What it does |
 |---|---|
 | **Projects** | Upload images (PNG, JPG, GIF, BMP, WEBP) and audio (MP3, WAV, OGG, M4A, FLAC) as files or ZIPs. Ask free-text or multiple-choice questions about every item. |
-| **Fair hand-out** | Every *item × question* becomes a task. Each task goes to the person with the lightest open workload, never twice to the same person, up to a per-person cap. Optionally, several people can answer each task. |
+| **Fair hand-out** | Every *item × question* becomes a task. Each task goes to the person with the lightest open workload, never twice to the same person, up to a per-person cap. Optionally, several people can answer each task, or all of an item's questions go to one person. |
 | **People come and go** | When someone leaves a group, their unfinished tasks are handed to the rest; when someone joins, workloads are rebalanced. Finished answers are never lost. |
 | **Three roles** | **Admin** (everything), **Manager** (runs their own projects), **Member** (answers their tasks). Each role gets its own home page. |
 | **Progress and results** | Progress for every project and group, each person's share of the work and answers per week. Each project's results show how well people agreed on every question, how often each answer was given, the items people disagreed on and those marked "can't tell"; for longer free text, the most common words and a few example answers. A side panel lists what needs the admin or manager next. |
@@ -84,13 +84,29 @@ flowchart TB
     B --> H
 ```
 
+By default, each question is handed out on its own:
+
 ```
-for each task (item, question) still needing answers:
+for each task (item, question) still needing answers, most missing answers first:
     candidates = members of the project's groups
                  who don't hold this task yet and are under the per-person cap
     give it to the candidate with the fewest open tasks
         ties → fewest of this question → fewest tasks overall → lowest id
 ```
+
+A project can instead give **all of an item's questions to one person** (the *Hand out work* setting), so each item is answered in one sitting. Then the rule works on whole items:
+
+```
+for each item with questions still needing answers, most missing answers first:
+    candidates = as above
+    prefer someone who is already working on this item,
+    then the candidate with the fewest open tasks
+        ties → fewest tasks overall → lowest id
+    they get every open question on the item, up to the cap;
+    whatever the cap leaves goes to the next candidate
+```
+
+Because of that preference, a question added later goes to whoever is still working on the item.
 
 - **Someone leaves:** their unfinished tasks are released and handed out again with the same rule; their finished work stays.
 - **Someone joins:** open slots are filled first, then unstarted tasks move from the busiest person to the least busy until no move narrows the gap. In the measurements below, open workloads end within one task of each other.

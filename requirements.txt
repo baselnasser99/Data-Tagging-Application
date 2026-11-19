@@ -8,4 +8,4 @@ PyMySQL==1.2.4
 cryptography==50.0.2      # needed by PyMySQL for MySQL 8 authentication
 Werkzeug==3.1.9
 python-dotenv==1.2.4
-gunicorn==26.2.0
+gunicorn==27.0.1
